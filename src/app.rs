@@ -16,8 +16,11 @@ extern "C" {
     #[wasm_bindgen(js_name = invokeLinkCreate, catch)]
     pub async fn link_create() -> Result<JsValue, JsValue>;
 
+    #[wasm_bindgen(js_name = invokeTokenExchange, catch)]
+    pub async fn token_exchange(public_token: String) -> Result<JsValue, JsValue>;
+
     #[wasm_bindgen(js_name = link_start)]
-    pub async fn link_start(link_token: String);
+    pub async fn link_start(link_token: String) -> JsValue;
 }
 
 #[function_component(App)]
@@ -25,11 +28,19 @@ pub fn app() -> Html {
     let link = |_| {
         spawn_local(async move {
             let link = link_create().await;
-            // log::info!("{:?}", link.unwrap());
 
             match link.unwrap().as_string() {
                 Some(link_token) => {
-                    link_start(link_token).await;
+                    let public_token = link_start(link_token).await;
+                    let res = token_exchange(public_token.as_string().unwrap_or_default()).await;
+                    match res {
+                        Ok(access_token) => {
+                            log::info!("{:?}", access_token);
+                        }
+                        Err(err) => {
+                            log::error!("{:?}", err);
+                        }
+                    }
                 }
                 None => {}
             };
