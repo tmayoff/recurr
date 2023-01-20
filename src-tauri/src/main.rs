@@ -8,9 +8,16 @@ use serde::{Deserialize, Serialize};
 
 const URL_ENDPOINT: &str = "https://sandbox.plaid.com";
 
+#[derive(Debug, Deserialize)]
+struct TokenExchangeResponse {
+    access_token: String,
+    item_id: String,
+    request_id: String,
+}
+
 #[tauri::command]
 async fn token_exchange(public_token: String) -> Result<String, String> {
-    log::info!("Token Exchange");
+    log::warn!("Token Exchange");
 
     let mut headers = HeaderMap::new();
     headers.insert(
@@ -38,7 +45,7 @@ async fn token_exchange(public_token: String) -> Result<String, String> {
 
     let client = reqwest::Client::new();
     let res = client
-        .post(format!("{}/link/public_token/exchange", URL_ENDPOINT))
+        .post(format!("{}/item/public_token/exchange", URL_ENDPOINT))
         .headers(headers)
         .body(body)
         .send()
@@ -48,10 +55,10 @@ async fn token_exchange(public_token: String) -> Result<String, String> {
         Ok(res) => {
             assert!(res.status().is_success());
 
-            let json: LinkCreate = res.json().await.unwrap();
+            let json: TokenExchangeResponse = res.json().await.unwrap();
             log::info!("{:?}", json);
 
-            return Ok(json.link_token);
+            return Ok(json.access_token);
         }
         Err(err) => {
             log::error!("{:?}", err);
@@ -61,7 +68,7 @@ async fn token_exchange(public_token: String) -> Result<String, String> {
     Err(String::from("Error"))
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Deserialize)]
 struct LinkCreate {
     expiration: String,
     link_token: String,
@@ -103,7 +110,6 @@ async fn link_create() -> Result<String, String> {
             assert!(res.status().is_success());
 
             let json: LinkCreate = res.json().await.unwrap();
-            log::info!("{:?}", json);
 
             return Ok(json.link_token);
         }

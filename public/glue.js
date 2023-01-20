@@ -5,17 +5,18 @@ export async function invokeLinkCreate() {
 }
 
 export async function invokeTokenExchange(public_token) {
-    return await invoke("token_exchange", { public_token: public_token });
+    console.log({ publicToken: public_token });
+    return await invoke("token_exchange", { publicToken: public_token });
 }
 
-export async function link_start(link_token) {
+export async function linkStart(link_token, callback) {
     Plaid.create({
         token: link_token, onSuccess: (public_token, _metadata) => {
-            return public_token;
+            callback({ public_token: public_token });
         },
         onLoad: () => { },
-        onExit: (err, _metadata) => {
-            console.log(err);
+        onExit: (err, metadata) => {
+            callback({ error: err, metadata: metadata });
         },
         onEvent: (_eventName, _metadata) => { },
     }).open();
