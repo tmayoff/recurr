@@ -127,11 +127,7 @@ fn main() {
     env_logger::init();
 
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![
-            link_create,
-            token_exchange,
-            supabase::sign_up
-        ])
+        .invoke_handler(tauri::generate_handler![link_create, token_exchange,])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
