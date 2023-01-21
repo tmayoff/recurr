@@ -84,8 +84,8 @@ button {
   outline: none;
 }
 
-#greet-input {
-  margin-right: 5px;
+.has-shadow {
+  box-shadow: 0px 0px 80px rgb(230, 230, 230);
 }
 
 @media (prefers-color-scheme: dark) {
