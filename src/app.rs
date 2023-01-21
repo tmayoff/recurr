@@ -1,50 +1,59 @@
+use crate::{auth::Auth, context::SessionContext, supabase};
 use std::rc::Rc;
-use supabase_js_rs::SupabaseClient;
+use wasm_bindgen::{prelude::Closure, JsValue};
+use wasm_bindgen_futures::spawn_local;
 use yew::prelude::*;
-
-#[derive(Clone, Debug, PartialEq)]
-struct SessionContext {
-    // supabase_client: SupabaseClient,
-}
 
 #[function_component(App)]
 pub fn app() -> Html {
-    let context = use_memo(|_| SessionContext {}, ());
+    let context = use_memo(
+        |_| {
+            let session =      SessionContext {supabase_client: supabase_js_rs::create_client(
+        "https://linaejyblplchxcrusjy.supabase.co",
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxpbmFlanlibHBsY2h4Y3J1c2p5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE2NzQyNjc3ODMsImV4cCI6MTk4OTg0Mzc4M30.CSc7E2blxAaO2ijXxOGjmhdgmlDVKmBAUSROuWPujWI",
+    ), supabase_session: None};
+            let use_session = session.clone();
+            spawn_local(async move {
+                let res = use_session.supabase_client.auth().get_session().await;
+                log::info!("{:?}", res);
+            });
 
-    let signup = |event: SubmitEvent| {};
+            session
+        },
+        (),
+    );
+
+    let use_context = context.clone();
+
+    let auth_callback: Closure<dyn FnMut(JsValue, JsValue)> =
+        Closure::new(move |data: JsValue, session: JsValue| {
+            let session: supabase::Session = serde_wasm_bindgen::from_value(session).unwrap();
+            log::info!("\t{:?}", session);
+        });
+
+    use_context
+        .supabase_client
+        .auth()
+        .on_auth_state_change(&auth_callback);
+    auth_callback.forget();
+
+    let has_session = use_context.supabase_session.is_some();
 
     html! {
         <ContextProvider<Rc<SessionContext>> context={context}>
             <main class="full-height">
-                <div class="full-height is-flex is-justify-content-center is-align-content-center is-align-items-center">
-                    <div class="has-shadow has-radius p-3">
-                        // <h1 class="is-size-3">{"Sign In"}</h1>
-
-                        // <form onsubmit={signup}>
-                        //     <div class="field">
-                        //         <label class="label">{"Email"}</label>
-                        //         <div class="control">
-                        //             <input class="input" type="email" placeholder="username"/>
-                        //         </div>
-                        //     </div>
-                        //     <div class="field">
-                        //         <label class="label">{"Password"}</label>
-                        //         <div class="control">
-                        //             <input class="input" type="password" placeholder="password"/>
-                        //         </div>
-                        //     </div>
-                        //     <div class="field">
-                        //         <div class="control">
-                        //             <button class="button is-link">{"Login"}</button>
-                        //         </div>
-                        //     </div>
-                        // </form>
+                if has_session {
+                    <Auth />
+                } else {
+                    <div class="full-height columns">
+                        <div class="column is-one-fifth has-background-info">
+                            {"Sidebar"}
+                        </div>
+                        <div class="column">
+                            {"Main Area"}
+                        </div>
                     </div>
-                </div>
-
-            // <div class="column">
-            //     {"Main Area"}
-            // </div>
+                }
             </main>
         </ContextProvider<Rc<SessionContext>>>
     }

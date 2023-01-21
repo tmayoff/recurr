@@ -5,7 +5,6 @@ export async function invokeLinkCreate() {
 }
 
 export async function invokeTokenExchange(public_token) {
-    console.log({ publicToken: public_token });
     return await invoke("token_exchange", { publicToken: public_token });
 }
 
