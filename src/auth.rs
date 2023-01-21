@@ -58,7 +58,7 @@ pub fn auth() -> Html {
     };
 
     html! {
-        <div class="full-height is-flex is-justify-content-center is-align-content-center is-align-items-center">
+        <div class="hero is-fullheight is-flex is-justify-content-center is-align-content-center is-align-items-center">
             <div class="has-shadow has-radius p-3">
                 <h1 class="is-size-3">{"Sign In"}</h1>
 
