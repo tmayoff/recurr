@@ -1,5 +1,7 @@
 mod app;
 mod auth;
+mod context;
+mod supabase;
 
 use app::App;
 
