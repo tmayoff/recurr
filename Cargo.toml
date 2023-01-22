@@ -6,6 +6,7 @@ edition = "2021"
 [dependencies]
 js-sys = "0.3.59"
 log = "0.4.17"
+reqwest = { version = "0.11.14", features = ["json"] }
 serde = { version = "1.0.140", features = ["derive"] }
 serde-wasm-bindgen = "0.4.3"
 supabase-js-rs = "0.1.2"
