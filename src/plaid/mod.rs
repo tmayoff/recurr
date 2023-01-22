@@ -85,6 +85,13 @@ pub async fn link_token_create(anon_key: &str) -> Result<LinkTokenCreateReponse,
     }
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+pub struct PublicTokenExchangeResponse {
+    pub access_token: String,
+    pub item_id: String,
+    pub request_id: String,
+}
+
 #[derive(Debug, Deserialize, Serialize)]
 struct Institution {
     name: String,
@@ -141,6 +148,21 @@ fn link_start(
     );
 }
 
+async fn item_public_token_exchange(
+    anon_key: &str,
+    public_token: &str,
+) -> Result<PublicTokenExchangeResponse, JsValue> {
+    let res = invokeItemPublicTokenExchange(anon_key, public_token).await;
+    match res {
+        Ok(s) => {
+            let s = serde_wasm_bindgen::from_value::<PublicTokenExchangeResponse>(s)
+                .expect("Failed to deserialize");
+            Ok(s)
+        }
+        Err(e) => Err(e),
+    }
+}
+
 #[function_component(Link)]
 pub fn link() -> Html {
     let context = use_context::<SessionContext>().expect("No context");
@@ -178,10 +200,17 @@ pub fn link() -> Html {
                         // TODO Save some of the above to the database
 
                         let res =
-                            invokeItemPublicTokenExchange(&context.anon_key, &success.public_token)
+                            item_public_token_exchange(&context.anon_key, &success.public_token)
                                 .await;
 
-                        log::info!("{:?}", res);
+                        match res {
+                            Ok(s) => {
+                                // TODO Save access token
+                            }
+                            Err(e) => {
+                                log::info!("{:?}", e);
+                            }
+                        }
                     }
                     Err(error) => log::error!("{:?}", error),
                 }
