@@ -86,26 +86,53 @@ pub async fn link_token_create(anon_key: &str) -> Result<LinkTokenCreateReponse,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-struct Success {
+struct Institution {
+    name: String,
+    institution_id: String,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+struct Account {
+    id: String,
+    name: String,
+    mask: Option<String>,
+    // type: String,
+    verification_status: Option<String>,
+    class_type: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+struct Metadata {
+    institution: Option<Institution>,
+    accounts: Vec<Account>,
+    link_session_id: String,
+    transfer_status: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+struct LinkSuccess {
     public_token: String,
+    metadata: Metadata,
 }
 #[derive(Debug, Deserialize, Serialize)]
-struct Failure {
+struct LinkFailure {
     err: String,
 }
 
-fn link_start(link_token: String, mut callback: impl FnMut(Result<Success, Failure>) + 'static) {
+fn link_start(
+    link_token: String,
+    mut callback: impl FnMut(Result<LinkSuccess, LinkFailure>) + 'static,
+) {
     linkStart(
         link_token,
         Closure::once_into_js(move |response: JsValue| {
-            let s = serde_wasm_bindgen::from_value::<Success>(response.clone());
-
+            let s = serde_wasm_bindgen::from_value::<LinkSuccess>(response.clone());
             if let Ok(success) = s {
                 callback(Ok(success));
                 return;
             };
 
-            let e = serde_wasm_bindgen::from_value::<Failure>(response.clone());
+            let e = serde_wasm_bindgen::from_value::<LinkFailure>(response.clone());
             if let Ok(failure) = e {
                 callback(Err(failure));
                 return;
@@ -134,7 +161,7 @@ pub fn link() -> Html {
                 }
             }
 
-            let (tx, rx) = oneshot::channel::<Result<Success, Failure>>();
+            let (tx, rx) = oneshot::channel::<Result<LinkSuccess, LinkFailure>>();
 
             let sender_mtx = Mutex::new(Some(tx));
 
@@ -144,14 +171,16 @@ pub fn link() -> Html {
                 }
             });
 
-            let response = rx.await;
-
-            if let Ok(response) = response {
+            if let Ok(response) = rx.await {
                 match response {
                     Ok(success) => {
+                        log::info!("{:?}", success);
+                        // TODO Save some of the above to the database
+
                         let res =
                             invokeItemPublicTokenExchange(&context.anon_key, &success.public_token)
                                 .await;
+
                         log::info!("{:?}", res);
                     }
                     Err(error) => log::error!("{:?}", error),

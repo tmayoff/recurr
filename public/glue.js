@@ -10,8 +10,8 @@ export async function invokeItemPublicTokenExchange(anon_key, public_token) {
 
 export function linkStart(link_token, callback) {
     Plaid.create({
-        token: link_token, onSuccess: (public_token, _metadata) => {
-            callback({ public_token: public_token });
+        token: link_token, onSuccess: (public_token, metadata) => {
+            callback({ public_token: public_token, metadata: metadata });
         },
         onLoad: () => { },
         onExit: (err, metadata) => {
