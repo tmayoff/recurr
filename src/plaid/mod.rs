@@ -1,8 +1,53 @@
-use serde::{Deserialize, Serialize};
 use std::sync::Mutex;
+
+use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
-use wasm_bindgen_futures::spawn_local;
-use yew::{platform::pinned::oneshot, prelude::*};
+use yew::{
+    function_component, html,
+    platform::{pinned::oneshot, spawn_local},
+    use_context, Html,
+};
+
+use crate::context::SessionContext;
+
+#[derive(Serialize, Debug)]
+pub struct User {
+    pub client_user_id: String,
+}
+
+#[derive(Serialize, Debug)]
+pub struct LinkTokenCreateRequest {
+    pub client_name: String,
+    pub language: String,
+    pub country_codes: Vec<String>,
+    pub products: Vec<String>,
+    pub user: User,
+}
+
+impl LinkTokenCreateRequest {
+    pub fn new(
+        client_name: &str,
+        language: &str,
+        country_codes: Vec<String>,
+        products: Vec<String>,
+        user: User,
+    ) -> Self {
+        Self {
+            client_name: client_name.to_string(),
+            language: language.to_string(),
+            country_codes: country_codes.to_vec(),
+            products: products,
+            user: user,
+        }
+    }
+}
+
+#[derive(Deserialize, Debug)]
+pub struct LinkTokenCreateReponse {
+    expiration: String,
+    link_token: String,
+    request_id: String,
+}
 
 #[wasm_bindgen]
 extern "C" {
@@ -16,12 +61,28 @@ extern "C" {
 #[wasm_bindgen(module = "/public/glue.js")]
 extern "C" {
     #[wasm_bindgen(catch)]
-    pub async fn invokeLinkCreate() -> Result<JsValue, JsValue>;
+    pub async fn invokeLinkTokenCreate(anon_key: &str) -> Result<JsValue, JsValue>;
 
     #[wasm_bindgen(catch)]
-    pub async fn invokeTokenExchange(public_token: String) -> Result<JsValue, JsValue>;
+    pub async fn invokeItemPublicTokenExchange(
+        anon_key: &str,
+        public_token: &str,
+    ) -> Result<JsValue, JsValue>;
 
     pub fn linkStart(link_token: String, callback: JsValue);
+}
+
+pub async fn link_token_create(anon_key: &str) -> Result<LinkTokenCreateReponse, String> {
+    let response = invokeLinkTokenCreate(anon_key).await;
+
+    match response {
+        Ok(response) => {
+            let res = serde_wasm_bindgen::from_value::<LinkTokenCreateReponse>(response)
+                .expect("Response not valid");
+            Ok(res)
+        }
+        Err(e) => Err(e.as_string().unwrap()),
+    }
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -55,14 +116,23 @@ fn link_start(link_token: String, mut callback: impl FnMut(Result<Success, Failu
 
 #[function_component(Link)]
 pub fn link() -> Html {
-    let link = |_| {
-        spawn_local(async move {
-            let link = invokeLinkCreate().await;
+    let context = use_context::<SessionContext>().expect("No context");
 
-            let link_token = link
-                .expect("Link Failed")
-                .as_string()
-                .expect("Response not a string");
+    let link = move |_| {
+        let context = context.clone();
+        spawn_local(async move {
+            let context = context.clone();
+            let response = link_token_create(&context.anon_key).await;
+            let link_token;
+            match response {
+                Ok(res) => {
+                    link_token = res.link_token;
+                }
+                Err(e) => {
+                    log::error!("{:?}", e);
+                    return;
+                }
+            }
 
             let (tx, rx) = oneshot::channel::<Result<Success, Failure>>();
 
@@ -79,7 +149,9 @@ pub fn link() -> Html {
             if let Ok(response) = response {
                 match response {
                     Ok(success) => {
-                        let res = invokeTokenExchange(String::from(success.public_token)).await;
+                        let res =
+                            invokeItemPublicTokenExchange(&context.anon_key, &success.public_token)
+                                .await;
                         log::info!("{:?}", res);
                     }
                     Err(error) => log::error!("{:?}", error),
