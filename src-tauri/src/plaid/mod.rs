@@ -1,85 +1,11 @@
 use reqwest::header::{HeaderMap, HeaderValue};
 use serde::{Deserialize, Serialize};
 
+pub mod link;
+
 #[derive(Serialize, Debug)]
 pub struct User {
     pub client_user_id: String,
-}
-
-#[derive(Serialize, Debug)]
-pub struct LinkTokenCreateRequest {
-    pub client_name: String,
-    pub language: String,
-    pub country_codes: Vec<String>,
-    pub products: Vec<String>,
-    pub user: User,
-}
-
-impl LinkTokenCreateRequest {
-    pub fn new(
-        client_name: &str,
-        language: &str,
-        country_codes: Vec<String>,
-        products: Vec<String>,
-        user: User,
-    ) -> Self {
-        Self {
-            client_name: client_name.to_string(),
-            language: language.to_string(),
-            country_codes: country_codes.to_vec(),
-            products: products,
-            user: user,
-        }
-    }
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct LinkTokenCreateReponse {
-    expiration: String,
-    link_token: String,
-    request_id: String,
-}
-
-#[tauri::command]
-pub async fn link_token_create(anon_key: &str) -> Result<LinkTokenCreateReponse, String> {
-    let mut authorization = String::from("Bearer ");
-    authorization.push_str(&anon_key);
-
-    let mut headers = HeaderMap::new();
-    headers.insert("Authorization", authorization.parse().unwrap());
-    headers.insert("Content-Type", HeaderValue::from_static("application/json"));
-
-    let req = LinkTokenCreateRequest::new(
-        "Recurr",
-        "en",
-        vec!["CA".to_owned()],
-        vec!["auth".to_owned()],
-        User {
-            client_user_id: "tmayoff".to_owned(),
-        },
-    );
-
-    let client = reqwest::Client::new();
-    let res = client
-        .post(format!(
-            "https://linaejyblplchxcrusjy.functions.supabase.co/link_create"
-        ))
-        .json(&req)
-        .headers(headers)
-        .send()
-        .await;
-
-    match res {
-        Ok(res) => {
-            let json: LinkTokenCreateReponse = res.json().await.unwrap();
-            return Ok(json);
-        }
-        Err(err) => {
-            log::error!("{:?}", err);
-        }
-    }
-
-    Err(String::from("Error"))
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -96,11 +22,11 @@ pub struct PublicTokenExchangeResponse {
 
 #[tauri::command]
 pub async fn item_public_token_exchange(
-    anon_key: &str,
+    auth_key: &str,
     public_token: &str,
 ) -> Result<PublicTokenExchangeResponse, String> {
     let mut authorization = String::from("Bearer ");
-    authorization.push_str(&anon_key);
+    authorization.push_str(&auth_key);
 
     let mut headers = HeaderMap::new();
     headers.insert("Authorization", authorization.parse().unwrap());
@@ -124,6 +50,97 @@ pub async fn item_public_token_exchange(
         Ok(res) => {
             log::info!("{:?}", res);
             let json: PublicTokenExchangeResponse = res.json().await.unwrap();
+            return Ok(json);
+        }
+        Err(err) => return Err(err.to_string()),
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+struct Balances {
+    available: Option<f64>,
+    current: Option<f64>,
+    limit: Option<f64>,
+    iso_currency_code: Option<String>,
+    unofficial_currency_code: Option<String>,
+    last_updated_datetime: Option<String>,
+}
+
+#[derive(Serialize, Deserialize)]
+enum AccountType {
+    investment,
+    credit,
+    depository,
+    loan,
+    broakerage,
+    other,
+}
+
+#[derive(Serialize, Deserialize)]
+struct Account {
+    account_id: String,
+    balances: Balances,
+    mask: Option<String>,
+    name: String,
+    official_name: Option<String>,
+    #[serde(rename = "type")]
+    account_type: String,
+    verification_status: String,
+}
+
+#[derive(Serialize, Deserialize)]
+struct Item {
+    item_id: String,
+    instituion_id: Option<String>,
+
+    available_products: Vec<String>,
+    products: Vec<String>,
+}
+
+#[derive(Serialize, Deserialize)]
+struct AccountsBalanceGetRequest {
+    account_ids: Vec<String>,
+    min_last_updated_datetime: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct AccountsBalanceGetResponse {
+    accounts: Vec<Account>,
+    item: Item,
+}
+
+#[tauri::command]
+pub async fn accounts_balance_get(
+    auth_key: String,
+    account_ids: Vec<String>,
+    last_updated: String,
+) -> Result<AccountsBalanceGetResponse, String> {
+    let mut authorization = String::from("Bearer ");
+    authorization.push_str(&auth_key);
+
+    let mut headers = HeaderMap::new();
+    headers.insert("Authorization", authorization.parse().unwrap());
+    headers.insert("Content-Type", HeaderValue::from_static("application/json"));
+
+    let req = AccountsBalanceGetRequest {
+        account_ids,
+        min_last_updated_datetime: last_updated,
+    };
+
+    let client = reqwest::Client::new();
+    let res = client
+        .post(format!(
+            "https://linaejyblplchxcrusjy.functions.supabase.co/public_key_exchange"
+        ))
+        .json(&req)
+        .headers(headers)
+        .send()
+        .await;
+
+    match res {
+        Ok(res) => {
+            log::info!("{:?}", res);
+            let json: AccountsBalanceGetResponse = res.json().await.unwrap();
             return Ok(json);
         }
         Err(err) => return Err(err.to_string()),

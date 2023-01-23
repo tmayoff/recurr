@@ -70,6 +70,21 @@ extern "C" {
     ) -> Result<JsValue, JsValue>;
 
     pub fn linkStart(link_token: String, callback: JsValue);
+
+    #[wasm_bindgen(catch)]
+    pub async fn invokeSaveAccessToken(
+        auth_token: &str,
+        user_id: &str,
+        access_token: &str,
+    ) -> Result<(), JsValue>;
+
+    #[wasm_bindgen(catch)]
+    pub async fn invokeSavePlaidAccount(
+        auth_token: &str,
+        user_id: &str,
+        access_token: &str,
+        plaid_account_id: &str,
+    ) -> Result<(), JsValue>;
 }
 
 pub async fn link_token_create(anon_key: &str) -> Result<LinkTokenCreateReponse, String> {
@@ -196,16 +211,40 @@ pub fn link() -> Html {
             if let Ok(response) = rx.await {
                 match response {
                     Ok(success) => {
-                        log::info!("{:?}", success);
-                        // TODO Save some of the above to the database
-
                         let res =
                             item_public_token_exchange(&context.anon_key, &success.public_token)
                                 .await;
 
                         match res {
                             Ok(s) => {
-                                // TODO Save access token
+                                let context = context.clone();
+                                if let Some(session) = &context.supabase_session {
+                                    let user_id = &session.user.id;
+                                    let auth_token = &session.access_token;
+
+                                    let res =
+                                        invokeSaveAccessToken(auth_token, user_id, &s.access_token)
+                                            .await;
+
+                                    if let Err(e) = res {
+                                        log::error!("{:?}", e);
+                                        return;
+                                    }
+
+                                    for account in success.metadata.accounts {
+                                        let res = invokeSavePlaidAccount(
+                                            auth_token,
+                                            user_id,
+                                            &s.access_token,
+                                            &account.id,
+                                        )
+                                        .await;
+                                        if let Err(e) = res {
+                                            log::error!("{:?}", e);
+                                            return;
+                                        }
+                                    }
+                                }
                             }
                             Err(e) => {
                                 log::info!("{:?}", e);

@@ -2,13 +2,13 @@ use serde::Deserialize;
 
 #[derive(Debug, Deserialize, PartialEq, Clone)]
 pub struct User {
-    id: String,
+    pub id: String,
 }
 
 #[derive(Debug, Deserialize, PartialEq, Clone)]
 pub struct Session {
-    access_token: String,
-    token_type: String,
-    expires_in: u32,
-    user: User,
+    pub access_token: String,
+    pub token_type: String,
+    pub expires_in: u32,
+    pub user: User,
 }
