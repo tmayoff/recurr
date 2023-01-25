@@ -17,6 +17,7 @@ wasm-bindgen-futures = "0.4.32"
 wasm-logger = "0.2.0"
 web-sys = { version = "0.3.59", features = ["console"] }
 yew = { version="0.20.0", features = ["csr"] }
+getrandom = { version = "0.2.8", features = ["js"] }
 
 [build-dependencies]
 tauri-build = "2.0.0-alpha.0"
