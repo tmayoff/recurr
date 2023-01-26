@@ -1,4 +1,4 @@
-use crate::{context::SessionContext, plaid::Link};
+use crate::{context::SessionContext, dashboard::accounts::Accounts, plaid::Link};
 use web_sys::MouseEvent;
 use yew::{function_component, html, platform::spawn_local, use_context, Html};
 

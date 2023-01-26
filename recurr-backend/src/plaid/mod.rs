@@ -1,4 +1,4 @@
-use recurr_lib::{Account, Item};
+use recurr_core::{Account, Item};
 use reqwest::header::{HeaderMap, HeaderValue};
 use serde::{Deserialize, Serialize};
 

@@ -8,7 +8,13 @@ use yew::{
     use_context, Html,
 };
 
-use crate::context::SessionContext;
+use crate::{
+    commands::{
+        invokeItemPublicTokenExchange, invokeLinkTokenCreate, invokeSaveAccessToken,
+        invokeSavePlaidAccount, linkStart,
+    },
+    context::SessionContext,
+};
 
 #[derive(Serialize, Debug)]
 pub struct User {
@@ -47,44 +53,6 @@ pub struct LinkTokenCreateReponse {
     expiration: String,
     link_token: String,
     request_id: String,
-}
-
-#[wasm_bindgen]
-extern "C" {
-    #[wasm_bindgen(js_namespace = ["window", "__TAURI__", "tauri"])]
-    async fn invoke(cmd: &str, args: JsValue) -> JsValue;
-
-    #[wasm_bindgen(js_namespace = console)]
-    fn log(s: &str);
-}
-
-#[wasm_bindgen(module = "/public/glue.js")]
-extern "C" {
-    #[wasm_bindgen(catch)]
-    pub async fn invokeLinkTokenCreate(anon_key: &str) -> Result<JsValue, JsValue>;
-
-    #[wasm_bindgen(catch)]
-    pub async fn invokeItemPublicTokenExchange(
-        anon_key: &str,
-        public_token: &str,
-    ) -> Result<JsValue, JsValue>;
-
-    pub fn linkStart(link_token: String, callback: JsValue);
-
-    #[wasm_bindgen(catch)]
-    pub async fn invokeSaveAccessToken(
-        auth_token: &str,
-        user_id: &str,
-        access_token: &str,
-    ) -> Result<(), JsValue>;
-
-    #[wasm_bindgen(catch)]
-    pub async fn invokeSavePlaidAccount(
-        auth_token: &str,
-        user_id: &str,
-        access_token: &str,
-        plaid_account_id: &str,
-    ) -> Result<(), JsValue>;
 }
 
 pub async fn link_token_create(anon_key: &str) -> Result<LinkTokenCreateReponse, String> {
