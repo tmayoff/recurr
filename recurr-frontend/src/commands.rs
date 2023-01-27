@@ -38,5 +38,7 @@ extern "C" {
 pub async fn get_all_accounts(auth_token: &str, user_id: &str) -> Vec<recurr_core::Account> {
     let account_ids = invokeGetPlaidAccounts(auth_token, user_id).await;
 
+    log::info!("{:?}", account_ids);
+
     Vec::new()
 }
