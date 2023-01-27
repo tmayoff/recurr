@@ -20,7 +20,7 @@ pub fn accounts() -> Html {
 
     html! {
         <div>
-        {"Accounts here"}
+        {"Accounts here!"}
         </div>
     }
 }

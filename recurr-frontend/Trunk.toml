@@ -2,7 +2,6 @@
 target = "./index.html"
 
 [watch]
-ignore = ["../recurr-backend"]
 
 [serve]
 address = "127.0.0.1"
