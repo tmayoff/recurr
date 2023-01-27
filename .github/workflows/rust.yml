@@ -29,8 +29,8 @@ jobs:
       with:
         toolchain: stable
 
-    - name: Install tauri
-      run: cargo install tauri-cli
+    - name: Setup dist dir
+      run: mkdir recurr-frontend/dist
 
     - name: Build
-      run: cargo tauri build --verbose
+      run: cargo build
