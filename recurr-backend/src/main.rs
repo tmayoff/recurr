@@ -7,6 +7,7 @@ mod plaid;
 mod supabase;
 
 fn main() {
+    dotenv::dotenv().ok();
     env_logger::init();
 
     tauri::Builder::default()
