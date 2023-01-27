@@ -30,7 +30,7 @@ jobs:
         toolchain: stable
 
     - name: Install tauri
-      run: cargo install tauri-clie
+      run: cargo install tauri-cli
 
     - name: Build
-      run: cargo tauri buil --verbose
+      run: cargo tauri build --verbose
