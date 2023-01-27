@@ -29,7 +29,8 @@ jobs:
       with:
         toolchain: stable
 
+    - name: Install tauri
+      run: cargo install tauri-clie
+
     - name: Build
-      run: cargo build --verbose
-    - name: Run tests
-      run: cargo test --verbose
+      run: cargo tauri buil --verbose

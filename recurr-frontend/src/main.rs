@@ -1,5 +1,6 @@
 mod app;
 mod auth;
+mod commands;
 mod context;
 mod dashboard;
 mod plaid;
