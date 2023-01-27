@@ -14,9 +14,10 @@ fn main() {
             plaid::link::link_token_create,
             plaid::item_public_token_exchange,
             plaid::accounts_balance_get,
-            supabase::save_access_token,
-            supabase::get_access_token,
-            supabase::save_plaid_account,
+            supabase::access_token::save_access_token,
+            supabase::access_token::get_access_token,
+            supabase::accounts::save_plaid_account,
+            supabase::accounts::get_plaid_accounts,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -1,2 +1,2 @@
 [workspace]
-members = ["frontend", "backend", "recurr_lib"]
+members = ["recurr-frontend", "recurr-backend", "recurr-core"]

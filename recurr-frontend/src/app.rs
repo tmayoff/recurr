@@ -14,7 +14,6 @@ fn setup_auth_handler(context: UseReducerHandle<Session>) {
     let auth_callback: Closure<dyn FnMut(JsValue, JsValue)> =
         Closure::new(move |_: JsValue, session: JsValue| {
             let session: Result<supabase::Session, Error> = serde_wasm_bindgen::from_value(session);
-            log::info!("{:?}", session);
             if let Ok(session) = session {
                 callback_context.dispatch(Some(session));
             } else {
@@ -25,7 +24,6 @@ fn setup_auth_handler(context: UseReducerHandle<Session>) {
     let use_context = context.clone();
     spawn_local(async move {
         let session = use_context.supabase_client.auth().get_session().await;
-        log::info!("{:?}", session);
     });
 
     context

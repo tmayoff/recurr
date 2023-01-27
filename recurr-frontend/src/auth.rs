@@ -10,7 +10,7 @@ use crate::context::SessionContext;
 pub fn auth() -> Html {
     let context = use_context::<SessionContext>().expect("No context found");
 
-    let email_input_value_handle = use_state(|| String::default());
+    let email_input_value_handle = use_state(String::default);
     let email_input_value = (*email_input_value_handle).clone();
     let email = email_input_value.clone();
     let email_input_onchange: Callback<InputEvent> = {
@@ -25,7 +25,7 @@ pub fn auth() -> Html {
         })
     };
 
-    let password_input_value_handle = use_state(|| String::default());
+    let password_input_value_handle = use_state(String::default);
     let password_input_value = (*password_input_value_handle).clone();
     let password = password_input_value.clone();
 

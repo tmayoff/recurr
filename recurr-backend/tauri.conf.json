@@ -1,9 +1,9 @@
 {
   "build": {
-    "beforeDevCommand": "cd frontend && trunk serve",
-    "beforeBuildCommand": "cd frontend && trunk build",
+    "beforeDevCommand": "cd recurr-frontend && trunk serve",
+    "beforeBuildCommand": "cd recurr-frontend && trunk build",
     "devPath": "http://localhost:1420",
-    "distDir": "../frontend/dist",
+    "distDir": "../recurr-frontend/dist",
     "withGlobalTauri": true
   },
   "package": {

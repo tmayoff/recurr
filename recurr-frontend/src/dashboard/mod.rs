@@ -1,12 +1,15 @@
-use crate::{context::SessionContext, plaid::Link};
+use crate::{context::SessionContext, dashboard::accounts::Accounts, plaid::Link};
 use web_sys::MouseEvent;
 use yew::{function_component, html, platform::spawn_local, use_context, Html};
 
-#[function_component(Accounts)]
-fn accounts() -> Html {
+mod accounts;
+
+#[function_component(AccountsView)]
+fn accounts_view() -> Html {
     html! {
         <div>
             <Link />
+            <Accounts />
         </div>
     }
 }
@@ -14,7 +17,7 @@ fn accounts() -> Html {
 #[function_component(Sidebar)]
 fn sidebar() -> Html {
     let context = use_context::<SessionContext>().unwrap();
-    let use_context = context.clone();
+    let use_context = context;
 
     let signout = move |_: MouseEvent| {
         let use_context = use_context.clone();
@@ -48,7 +51,7 @@ pub fn dashboard() -> Html {
         <div class="full-height columns m-0">
             <Sidebar />
             <div class="column">
-                <Accounts />
+                <AccountsView />
             </div>
         </div>
     }
