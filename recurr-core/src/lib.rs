@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 struct Balances {
     available: Option<f64>,
     current: Option<f64>,
@@ -10,7 +10,7 @@ struct Balances {
     last_updated_datetime: Option<String>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 enum AccountType {
     investment,
     credit,
@@ -20,7 +20,7 @@ enum AccountType {
     other,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Account {
     account_id: String,
     balances: Balances,

@@ -1,10 +1,14 @@
 use std::collections::{HashMap, HashSet};
 
 use postgrest::Postgrest;
+use recurr_core::Account;
 
-use crate::supabase::{
-    access_token::{get_access_token, get_access_tokens},
-    SchemaAccessToken, SchemaPlaidAccount,
+use crate::{
+    plaid::accounts::accounts_get,
+    supabase::{
+        access_token::{get_access_token, get_access_tokens},
+        SchemaAccessToken, SchemaPlaidAccount,
+    },
 };
 
 use super::SupabaseErrors;
@@ -13,7 +17,7 @@ use super::SupabaseErrors;
 pub async fn get_plaid_accounts(
     auth_token: &str,
     user_id: &str,
-) -> Result<Vec<String>, SupabaseErrors> {
+) -> Result<Vec<Account>, SupabaseErrors> {
     let client = Postgrest::new("https://linaejyblplchxcrusjy.supabase.co/rest/v1")
     .insert_header("apikey", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxpbmFlanlibHBsY2h4Y3J1c2p5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE2NzQyNjc3ODMsImV4cCI6MTk4OTg0Mzc4M30.CSc7E2blxAaO2ijXxOGjmhdgmlDVKmBAUSROuWPujWI");
 
@@ -37,7 +41,6 @@ pub async fn get_plaid_accounts(
 
     let access_tokens: Vec<SchemaAccessToken> =
         res.json().await.expect("Failed to deserialize data");
-    log::info!("{:?}", access_tokens);
 
     for token in access_tokens {
         // let mut account_ids = token
@@ -51,6 +54,18 @@ pub async fn get_plaid_accounts(
         if !account_ids.is_empty() {
             token_account_ids.insert(token.access_token, account_ids);
         }
+    }
+
+    // TODO Get account from plaid
+    for token_account_id in token_account_ids {
+        let accounts = accounts_get(
+            auth_token.to_string(),
+            token_account_id.0,
+            token_account_id.1,
+        )
+        .await;
+
+        log::info!("{:?}", accounts);
     }
 
     Ok(Vec::new())
