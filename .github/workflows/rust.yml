@@ -33,4 +33,4 @@ jobs:
       run: cargo install tauri-cli
 
     - name: Build
-      run: cargo tauri buil --verbose
+      run: cargo tauri build --verbose
