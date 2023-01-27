@@ -16,9 +16,11 @@ pub struct SchemaAccessToken {
     id: i32,
     access_token: String,
     user_id: String,
+
+    plaid_accounts: Option<Vec<SchemaPlaidAccount>>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 struct SchemaPlaidAccount {
     user_id: String,
     account_id: String,
