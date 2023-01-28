@@ -1,5 +1,6 @@
 use std::fmt::Display;
 
+use postgrest::Postgrest;
 use serde::{Deserialize, Serialize};
 
 use crate::plaid;
@@ -9,6 +10,8 @@ pub mod accounts;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
+    #[error(transparent)]
+    EnvVar(#[from] std::env::VarError),
     #[error(transparent)]
     Request(#[from] reqwest::Error),
     #[error(transparent)]
@@ -33,6 +36,13 @@ impl Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:?}", self)
     }
+}
+
+fn get_supbase_client() -> Result<Postgrest, Error> {
+    let client = Postgrest::new(std::env::var("SUPBASE_URL")?)
+        .insert_header("apikey", std::env::var("SUPABASE_KEY")?);
+
+    Ok(client)
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
