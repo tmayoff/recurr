@@ -1,13 +1,26 @@
-use crate::{context::SessionContext, dashboard::accounts::AccountsView};
+use crate::{
+    context::SessionContext,
+    dashboard::{accounts::AccountsView, summary::SummaryView},
+};
 use web_sys::MouseEvent;
-use yew::{function_component, html, platform::spawn_local, use_context, Html};
+use yew::{
+    function_component, html, platform::spawn_local, use_context, use_state, Callback, Html,
+};
 
 mod accounts;
+mod summary;
+
+enum DashboardTab {
+    Dashboard,
+    Accounts,
+}
 
 #[function_component(Sidebar)]
 fn sidebar() -> Html {
     let context = use_context::<SessionContext>().unwrap();
     let use_context = context;
+
+    let tab = use_state(|| DashboardTab::Dashboard);
 
     let signout = move |_: MouseEvent| {
         let use_context = use_context.clone();
@@ -19,11 +32,16 @@ fn sidebar() -> Html {
         });
     };
 
+    // let switch_tabs = {
+    //     let tab = tab.clone();
+    //     Callback::from(move |_| tab.set(DashboardTab::Accounts))
+    // };
+
     html! {
         <div class="column is-one-fifth has-background-info is-flex is-flex-direction-column">
             <div class="is-flex-grow-1 is-flex is-flex-direction-column">
-                <button class="button is-info">{"Dashboard"}</button>
-                <button class="button is-info is-active">{"Accounts"}</button>
+                <button class="button is-info is-active">{"Summary"}</button>
+                <button class="button is-info">{"Accounts"}</button>
                 <button class="button is-info">{"Dashboard"}</button>
                 <button class="button is-info">{"Dashboard"}</button>
             </div>
@@ -41,6 +59,7 @@ pub fn dashboard() -> Html {
         <div class="full-height columns m-0">
             <Sidebar />
             <div class="column">
+                <SummaryView />
                 <AccountsView />
             </div>
         </div>
