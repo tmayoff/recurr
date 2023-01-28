@@ -30,29 +30,11 @@ pub struct LinkTokenCreateRequest {
     pub user: User,
 }
 
-impl LinkTokenCreateRequest {
-    pub fn new(
-        client_name: &str,
-        language: &str,
-        country_codes: Vec<String>,
-        products: Vec<String>,
-        user: User,
-    ) -> Self {
-        Self {
-            client_name: client_name.to_string(),
-            language: language.to_string(),
-            country_codes: country_codes.to_vec(),
-            products: products,
-            user: user,
-        }
-    }
-}
-
 #[derive(Deserialize, Debug)]
 pub struct LinkTokenCreateReponse {
-    expiration: String,
-    link_token: String,
-    request_id: String,
+    pub expiration: String,
+    pub link_token: String,
+    pub request_id: String,
 }
 
 pub async fn link_token_create(anon_key: &str) -> Result<LinkTokenCreateReponse, String> {
@@ -122,10 +104,9 @@ fn link_start(
                 return;
             };
 
-            let e = serde_wasm_bindgen::from_value::<LinkFailure>(response.clone());
+            let e = serde_wasm_bindgen::from_value::<LinkFailure>(response);
             if let Ok(failure) = e {
                 callback(Err(failure));
-                return;
             };
         }),
     );
@@ -155,16 +136,13 @@ pub fn link() -> Html {
         spawn_local(async move {
             let context = context.clone();
             let response = link_token_create(&context.anon_key).await;
-            let link_token;
-            match response {
-                Ok(res) => {
-                    link_token = res.link_token;
-                }
+            let link_token = match response {
+                Ok(res) => res.link_token,
                 Err(e) => {
                     log::error!("{:?}", e);
                     return;
                 }
-            }
+            };
 
             let (tx, rx) = oneshot::channel::<Result<LinkSuccess, LinkFailure>>();
 

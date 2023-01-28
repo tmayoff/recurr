@@ -8,13 +8,11 @@ use crate::{
     supabase::{access_token::get_access_token, SchemaAccessToken, SchemaPlaidAccount},
 };
 
-use super::SupabaseErrors;
-
 #[tauri::command]
 pub async fn get_plaid_accounts(
     auth_token: &str,
     user_id: &str,
-) -> Result<Vec<(Institution, Vec<Account>)>, SupabaseErrors> {
+) -> Result<Vec<(Institution, Vec<Account>)>, super::Error> {
     let client = Postgrest::new("https://linaejyblplchxcrusjy.supabase.co/rest/v1")
     .insert_header("apikey", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxpbmFlanlibHBsY2h4Y3J1c2p5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE2NzQyNjc3ODMsImV4cCI6MTk4OTg0Mzc4M30.CSc7E2blxAaO2ijXxOGjmhdgmlDVKmBAUSROuWPujWI");
 
@@ -25,19 +23,12 @@ pub async fn get_plaid_accounts(
         .select("*,plaid_accounts(*)")
         .eq("user_id", user_id)
         .execute()
-        .await
-        .map_err(|e| SupabaseErrors::RequestError(e.to_string()))?;
-
-    if !res.status().is_success() {
-        return Err(SupabaseErrors::RequestError(
-            res.text().await.expect("Failed to stringify"),
-        ));
-    }
+        .await?
+        .error_for_status()?;
 
     let mut token_account_ids = HashMap::new();
 
-    let access_tokens: Vec<SchemaAccessToken> =
-        res.json().await.expect("Failed to deserialize data");
+    let access_tokens: Vec<SchemaAccessToken> = res.json().await?;
 
     for token in access_tokens {
         // let mut account_ids = token
@@ -55,9 +46,7 @@ pub async fn get_plaid_accounts(
 
     let mut all_accounts = Vec::new();
     for token_account_id in token_account_ids {
-        let accounts = accounts_get(auth_token, &token_account_id.0, token_account_id.1)
-            .await
-            .map_err(|e| SupabaseErrors::RequestError(e.to_string()))?;
+        let accounts = accounts_get(auth_token, &token_account_id.0, token_account_id.1).await?;
         all_accounts.push(accounts);
     }
 
@@ -70,37 +59,25 @@ pub async fn save_plaid_account(
     user_id: &str,
     access_token: &str,
     plaid_account_id: &str,
-) -> Result<(), SupabaseErrors> {
+) -> Result<(), super::Error> {
     let client = Postgrest::new("https://linaejyblplchxcrusjy.supabase.co/rest/v1")
         .insert_header("apikey", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxpbmFlanlibHBsY2h4Y3J1c2p5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE2NzQyNjc3ODMsImV4cCI6MTk4OTg0Mzc4M30.CSc7E2blxAaO2ijXxOGjmhdgmlDVKmBAUSROuWPujWI");
 
-    let access_token_row = get_access_token(&auth_token, &user_id, &access_token).await?;
-    log::info!("Access Token Row {:?}", access_token_row);
+    let access_token_row = get_access_token(auth_token, user_id, access_token).await?;
 
     let body = serde_json::to_string(&SchemaPlaidAccount {
         user_id: user_id.to_owned(),
         account_id: plaid_account_id.to_owned(),
         access_token_id: access_token_row.id,
-    })
-    .expect("Failed to serialize schema");
+    })?;
 
-    let res = client
+    let _ = client
         .from("plaid_accounts")
         .auth(auth_token)
         .insert(&body)
         .execute()
-        .await;
+        .await?
+        .error_for_status()?;
 
-    match res {
-        Ok(res) => {
-            if res.status().is_success() {
-                return Ok(());
-            } else {
-                return Err(SupabaseErrors::RequestError(
-                    res.text().await.expect("Failed to stringify"),
-                ));
-            }
-        }
-        Err(err) => return Err(SupabaseErrors::RequestError(err.to_string())),
-    }
+    Ok(())
 }

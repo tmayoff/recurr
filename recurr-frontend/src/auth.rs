@@ -12,9 +12,9 @@ pub fn auth() -> Html {
 
     let email_input_value_handle = use_state(String::default);
     let email_input_value = (*email_input_value_handle).clone();
-    let email = email_input_value.clone();
+    let email = email_input_value;
     let email_input_onchange: Callback<InputEvent> = {
-        let email_input_value_handle = email_input_value_handle.clone();
+        let email_input_value_handle = email_input_value_handle;
 
         Callback::from(move |event: InputEvent| {
             let target = event.target();
@@ -30,7 +30,7 @@ pub fn auth() -> Html {
     let password = password_input_value.clone();
 
     let password_input_onchange: Callback<InputEvent> = {
-        let password_input_value_handle = password_input_value_handle.clone();
+        let password_input_value_handle = password_input_value_handle;
 
         Callback::from(move |event: InputEvent| {
             let target = event.target();

@@ -1,7 +1,7 @@
 use reqwest::header::{HeaderMap, HeaderValue};
 use serde::{Deserialize, Serialize};
 
-use super::User;
+use super::{PlaidRequest, User};
 
 #[derive(Serialize, Debug)]
 pub struct LinkTokenCreateRequest {
@@ -24,8 +24,8 @@ impl LinkTokenCreateRequest {
             client_name: client_name.to_string(),
             language: language.to_string(),
             country_codes: country_codes.to_vec(),
-            products: products,
-            user: user,
+            products,
+            user,
         }
     }
 }
@@ -38,15 +38,15 @@ pub struct LinkTokenCreateReponse {
 }
 
 #[tauri::command]
-pub async fn link_token_create(auth_key: &str) -> Result<LinkTokenCreateReponse, String> {
+pub async fn link_token_create(auth_key: &str) -> Result<LinkTokenCreateReponse, super::Error> {
     let mut authorization = String::from("Bearer ");
-    authorization.push_str(&auth_key);
+    authorization.push_str(auth_key);
 
     let mut headers = HeaderMap::new();
     headers.insert("Authorization", authorization.parse().unwrap());
     headers.insert("Content-Type", HeaderValue::from_static("application/json"));
 
-    let req = LinkTokenCreateRequest::new(
+    let data = serde_json::to_value(LinkTokenCreateRequest::new(
         "Recurr",
         "en",
         vec!["CA".to_owned()],
@@ -54,27 +54,21 @@ pub async fn link_token_create(auth_key: &str) -> Result<LinkTokenCreateReponse,
         User {
             client_user_id: "tmayoff".to_owned(),
         },
-    );
+    ))?;
+
+    let req = PlaidRequest {
+        endpoint: "/link/token/create".to_string(),
+        data,
+    };
 
     let client = reqwest::Client::new();
     let res = client
-        .post(format!(
-            "https://linaejyblplchxcrusjy.functions.supabase.co/link_create"
-        ))
+        .post("https://linaejyblplchxcrusjy.functions.supabase.co/plaid".to_string())
         .json(&req)
         .headers(headers)
         .send()
-        .await;
+        .await?;
 
-    match res {
-        Ok(res) => {
-            let json: LinkTokenCreateReponse = res.json().await.unwrap();
-            return Ok(json);
-        }
-        Err(err) => {
-            log::error!("{:?}", err);
-        }
-    }
-
-    Err(String::from("Error"))
+    let json: LinkTokenCreateReponse = res.json().await.unwrap();
+    Ok(json)
 }

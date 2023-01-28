@@ -1,6 +1,3 @@
-use std::collections::HashMap;
-
-use recurr_core::Institution;
 use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
 
 #[wasm_bindgen(module = "/public/glue.js")]

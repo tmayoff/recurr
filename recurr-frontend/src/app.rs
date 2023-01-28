@@ -6,7 +6,6 @@ use crate::{
 };
 use serde_wasm_bindgen::Error;
 use wasm_bindgen::{prelude::Closure, JsValue};
-use wasm_bindgen_futures::spawn_local;
 use yew::prelude::*;
 
 fn setup_auth_handler(context: UseReducerHandle<Session>) {
@@ -20,11 +19,6 @@ fn setup_auth_handler(context: UseReducerHandle<Session>) {
                 callback_context.dispatch(None);
             }
         });
-
-    let use_context = context.clone();
-    spawn_local(async move {
-        let session = use_context.supabase_client.auth().get_session().await;
-    });
 
     context
         .supabase_client
