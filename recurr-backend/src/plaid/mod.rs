@@ -1,8 +1,8 @@
-use recurr_core::{Account, Item};
 use reqwest::header::{HeaderMap, HeaderValue};
 use serde::{Deserialize, Serialize};
 
 pub mod accounts;
+pub mod institutions;
 pub mod link;
 
 #[derive(Serialize)]

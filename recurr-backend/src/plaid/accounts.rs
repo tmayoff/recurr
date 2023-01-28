@@ -1,6 +1,8 @@
-use recurr_core::{Account, Item};
+use recurr_core::{Account, Institution, Item};
 use reqwest::header::{HeaderMap, HeaderValue};
 use serde::{Deserialize, Serialize};
+
+use crate::plaid::institutions::institution_get;
 
 use super::PlaidRequest;
 
@@ -22,9 +24,9 @@ pub async fn accounts_get(
     auth_key: &str,
     access_token: &str,
     account_ids: Vec<String>,
-) -> Result<Vec<Account>, reqwest::Error> {
+) -> Result<(Institution, Vec<Account>), reqwest::Error> {
     let mut authorization = String::from("Bearer ");
-    authorization.push_str(&auth_key);
+    authorization.push_str(auth_key);
 
     let mut headers = HeaderMap::new();
     headers.insert("Authorization", authorization.parse().unwrap());
@@ -58,11 +60,21 @@ pub async fn accounts_get(
     #[derive(Deserialize)]
     struct AccountsGetResponse {
         accounts: Vec<Account>,
+        item: Item,
     }
 
-    let account_response = res.error_for_status()?;
-    let accounts: AccountsGetResponse = account_response.json().await?;
-    Ok(accounts.accounts)
+    let account_response = res
+        .error_for_status()?
+        .json::<AccountsGetResponse>()
+        .await?;
+
+    let id = account_response
+        .item
+        .institution_id
+        .expect("No institution associated with this");
+    let institution = institution_get(auth_key, &id).await?;
+
+    Ok((institution, account_response.accounts))
 }
 
 #[derive(Serialize, Deserialize)]

@@ -1,7 +1,7 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 use postgrest::Postgrest;
-use recurr_core::Account;
+use recurr_core::{Account, Institution};
 
 use crate::{
     plaid::accounts::accounts_get,
@@ -14,7 +14,7 @@ use super::SupabaseErrors;
 pub async fn get_plaid_accounts(
     auth_token: &str,
     user_id: &str,
-) -> Result<Vec<Account>, SupabaseErrors> {
+) -> Result<Vec<(Institution, Vec<Account>)>, SupabaseErrors> {
     let client = Postgrest::new("https://linaejyblplchxcrusjy.supabase.co/rest/v1")
     .insert_header("apikey", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxpbmFlanlibHBsY2h4Y3J1c2p5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE2NzQyNjc3ODMsImV4cCI6MTk4OTg0Mzc4M30.CSc7E2blxAaO2ijXxOGjmhdgmlDVKmBAUSROuWPujWI");
 
@@ -58,8 +58,7 @@ pub async fn get_plaid_accounts(
         let accounts = accounts_get(auth_token, &token_account_id.0, token_account_id.1)
             .await
             .map_err(|e| SupabaseErrors::RequestError(e.to_string()))?;
-
-        all_accounts.extend(accounts);
+        all_accounts.push(accounts);
     }
 
     Ok(all_accounts)

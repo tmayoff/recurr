@@ -29,7 +29,6 @@ pub fn accounts() -> Html {
 
     let accounts = use_async(async move {
         let accounts = get_all_accounts(&access_token, &user_id).await;
-        log::info!("{:?}", &accounts);
         accounts
     });
 
@@ -46,11 +45,23 @@ pub fn accounts() -> Html {
             }
             {
                 if let Some(data) = &accounts.data {
-                    data.clone().into_iter().map(|account| {
+                    data.clone().into_iter().map(|(institution, accounts)| {
                         html!{
                             <div class="m-3 card">
+                                <div class="card-header">
+                                    <h1 class="card-header-title">{institution.name}</h1>
+                                </div>
+
                                 <div class="card-content">
-                                    <h1 class="is-size-5">{account.official_name}</h1>
+                                    {
+                                        accounts.into_iter().map(|account| {
+                                            html!{
+                                                <div>
+                                                    {account.official_name}
+                                                </div>
+                                            }
+                                        }).collect::<Html>()
+                                    }
                                 </div>
                             </div>
                         }

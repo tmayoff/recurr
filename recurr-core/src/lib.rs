@@ -20,6 +20,12 @@ enum AccountType {
     other,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
+pub struct Institution {
+    pub institution_id: String,
+    pub name: String,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct Account {
     pub account_id: String,
@@ -36,9 +42,9 @@ pub struct Account {
 
 #[derive(Serialize, Deserialize)]
 pub struct Item {
-    item_id: String,
-    instituion_id: Option<String>,
+    pub item_id: String,
+    pub institution_id: Option<String>,
 
-    available_products: Vec<String>,
-    products: Vec<String>,
+    pub available_products: Vec<String>,
+    pub products: Vec<String>,
 }
