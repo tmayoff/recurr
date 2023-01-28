@@ -5,6 +5,23 @@ pub mod accounts;
 pub mod institutions;
 pub mod link;
 
+#[derive(Debug, thiserror::Error)]
+pub enum Error {
+    #[error(transparent)]
+    Request(#[from] reqwest::Error),
+    #[error(transparent)]
+    Serialization(#[from] serde_json::Error),
+}
+
+impl serde::Serialize for Error {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str(self.to_string().as_ref())
+    }
+}
+
 #[derive(Serialize)]
 pub struct PlaidRequest {
     endpoint: String,
@@ -32,34 +49,31 @@ pub struct PublicTokenExchangeResponse {
 pub async fn item_public_token_exchange(
     auth_key: &str,
     public_token: &str,
-) -> Result<PublicTokenExchangeResponse, String> {
+) -> Result<PublicTokenExchangeResponse, Error> {
     let mut authorization = String::from("Bearer ");
-    authorization.push_str(&auth_key);
+    authorization.push_str(auth_key);
 
     let mut headers = HeaderMap::new();
     headers.insert("Authorization", authorization.parse().unwrap());
     headers.insert("Content-Type", HeaderValue::from_static("application/json"));
 
-    let req = PublicTokenExchangeRequest {
+    let data = serde_json::to_value(PublicTokenExchangeRequest {
         public_token: public_token.to_owned(),
+    })?;
+
+    let req = PlaidRequest {
+        endpoint: "/item/public_token/exchange".to_string(),
+        data,
     };
 
     let client = reqwest::Client::new();
     let res = client
-        .post(format!(
-            "https://linaejyblplchxcrusjy.functions.supabase.co/public_key_exchange"
-        ))
+        .post("https://linaejyblplchxcrusjy.functions.supabase.co/plaid".to_string())
         .json(&req)
         .headers(headers)
         .send()
-        .await;
+        .await?;
 
-    match res {
-        Ok(res) => {
-            log::info!("Public Token Exchange: {:?}", res);
-            let json: PublicTokenExchangeResponse = res.json().await.unwrap();
-            return Ok(json);
-        }
-        Err(err) => return Err(err.to_string()),
-    }
+    let json = res.json().await?;
+    Ok(json)
 }
