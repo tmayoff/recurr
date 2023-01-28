@@ -23,7 +23,13 @@ fn sidebar() -> Html {
     let signout = move |_: MouseEvent| {
         let use_context = use_context.clone();
         spawn_local(async move {
-            let res = use_context.supabase_client.auth().sign_out().await;
+            let res = use_context
+                .supabase_client
+                .clone()
+                .expect("Must have supabase client")
+                .auth()
+                .sign_out()
+                .await;
             if let Err(e) = res {
                 log::error!("{:?}", e);
             }
