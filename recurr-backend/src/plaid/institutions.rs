@@ -7,7 +7,7 @@ use crate::plaid::PlaidRequest;
 pub async fn institution_get(
     auth_key: &str,
     insitution_id: &str,
-) -> Result<Institution, reqwest::Error> {
+) -> Result<Institution, super::Error> {
     let mut authorization = String::from("Bearer ");
     authorization.push_str(auth_key);
 

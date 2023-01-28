@@ -24,7 +24,7 @@ pub async fn accounts_get(
     auth_key: &str,
     access_token: &str,
     account_ids: Vec<String>,
-) -> Result<(Institution, Vec<Account>), reqwest::Error> {
+) -> Result<(Institution, Vec<Account>), super::Error> {
     let mut authorization = String::from("Bearer ");
     authorization.push_str(auth_key);
 
