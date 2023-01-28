@@ -10,16 +10,6 @@ pub struct Balances {
     pub last_updated_datetime: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-enum AccountType {
-    investment,
-    credit,
-    depository,
-    loan,
-    broakerage,
-    other,
-}
-
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
 pub struct Institution {
     pub institution_id: String,

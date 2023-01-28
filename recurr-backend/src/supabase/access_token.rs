@@ -77,7 +77,7 @@ pub async fn save_access_token(
     })
     .expect("Failed to serialize schema");
 
-    let res = client
+    let _ = client
         .from("access_tokens")
         .auth(auth_token)
         .insert(&body)

@@ -3,9 +3,7 @@ use crate::{
     dashboard::{accounts::AccountsView, summary::SummaryView},
 };
 use web_sys::MouseEvent;
-use yew::{
-    function_component, html, platform::spawn_local, use_context, use_state, Callback, Html,
-};
+use yew::{function_component, html, platform::spawn_local, use_context, use_state, Html};
 
 mod accounts;
 mod summary;
@@ -20,7 +18,7 @@ fn sidebar() -> Html {
     let context = use_context::<SessionContext>().unwrap();
     let use_context = context;
 
-    let tab = use_state(|| DashboardTab::Dashboard);
+    let _ = use_state(|| DashboardTab::Dashboard);
 
     let signout = move |_: MouseEvent| {
         let use_context = use_context.clone();
