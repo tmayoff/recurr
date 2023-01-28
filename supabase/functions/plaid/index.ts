@@ -13,21 +13,16 @@ serve(async (req: Request) => {
   const body = await req.json();
   const endpoint = body["endpoint"];
   const request = body["data"];
-  console.log(endpoint);
-  console.log(request);
 
-
-  const init = {
+  const res = await fetch(BASE_URL + endpoint, {
     method: "POST",
     headers: {
       "content-type": "application/json",
       "PLAID-CLIENT-ID": plaid_client_id,
       'PLAID-SECRET': plaid_secret,
     },
-    body: request
-  };
-  const res = await fetch(BASE_URL + endpoint, init);
-  console.log(res);
+    body: JSON.stringify(request)
+  });
 
   return res;
 })

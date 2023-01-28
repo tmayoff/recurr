@@ -56,7 +56,7 @@ pub async fn item_public_token_exchange(
 
     match res {
         Ok(res) => {
-            log::info!("{:?}", res);
+            log::info!("Public Token Exchange: {:?}", res);
             let json: PublicTokenExchangeResponse = res.json().await.unwrap();
             return Ok(json);
         }

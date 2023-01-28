@@ -24,7 +24,7 @@ pub async fn get_access_tokens(
                 match json {
                     Ok(json) => {
                         let schemas: Vec<SchemaAccessToken> = json;
-                        log::info!("{:?}", schemas);
+                        log::info!("Get Access Tokens {:?}", schemas);
                         let schema = schemas.first();
                         match schema {
                             Some(schema) => Ok(schema.clone()),
@@ -71,7 +71,7 @@ pub async fn get_access_token(
                 match json {
                     Ok(json) => {
                         let schemas: Vec<SchemaAccessToken> = json;
-                        log::info!("{:?}", schemas);
+                        log::info!("Schema Access Token: {:?}", schemas);
                         let schema = schemas.first();
                         match schema {
                             Some(schema) => Ok(schema.clone()),

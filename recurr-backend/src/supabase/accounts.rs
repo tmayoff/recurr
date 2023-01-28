@@ -5,10 +5,7 @@ use recurr_core::Account;
 
 use crate::{
     plaid::accounts::accounts_get,
-    supabase::{
-        access_token::{get_access_token, get_access_tokens},
-        SchemaAccessToken, SchemaPlaidAccount,
-    },
+    supabase::{access_token::get_access_token, SchemaAccessToken, SchemaPlaidAccount},
 };
 
 use super::SupabaseErrors;
@@ -56,19 +53,16 @@ pub async fn get_plaid_accounts(
         }
     }
 
-    // TODO Get account from plaid
+    let mut all_accounts = Vec::new();
     for token_account_id in token_account_ids {
-        let accounts = accounts_get(
-            auth_token.to_string(),
-            token_account_id.0,
-            token_account_id.1,
-        )
-        .await;
+        let accounts = accounts_get(auth_token, &token_account_id.0, token_account_id.1)
+            .await
+            .map_err(|e| SupabaseErrors::RequestError(e.to_string()))?;
 
-        log::info!("{:?}", accounts);
+        all_accounts.extend(accounts);
     }
 
-    Ok(Vec::new())
+    Ok(all_accounts)
 }
 
 #[tauri::command]

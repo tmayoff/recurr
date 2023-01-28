@@ -1,18 +1,8 @@
-use crate::{context::SessionContext, dashboard::accounts::Accounts, plaid::Link};
+use crate::{context::SessionContext, dashboard::accounts::AccountsView};
 use web_sys::MouseEvent;
 use yew::{function_component, html, platform::spawn_local, use_context, Html};
 
 mod accounts;
-
-#[function_component(AccountsView)]
-fn accounts_view() -> Html {
-    html! {
-        <div>
-            <Link />
-            <Accounts />
-        </div>
-    }
-}
 
 #[function_component(Sidebar)]
 fn sidebar() -> Html {

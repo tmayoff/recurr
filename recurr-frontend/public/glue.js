@@ -16,7 +16,7 @@ export async function invokeSavePlaidAccount(auth_token, user_id, access_token, 
     return await invoke("save_plaid_account", {authToken: auth_token, userId: user_id, accessToken: access_token, plaidAccountId: account_id});
 }
 
-export async function invokeGetPlaidAccounts(auth_token, user_id ) {
+export async function invokeGetPlaidAccounts(auth_token, user_id) {
     return await invoke("get_plaid_accounts", {authToken: auth_token, userId: user_id});
 }
 

@@ -226,11 +226,9 @@ pub fn link() -> Html {
     };
 
     html! {
-        <main class="container">
+        <>
             <script src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"></script>
-            <div class="row">
-                <button type="button" onclick={link}>{"Link"}</button>
-            </div>
-        </main>
+            <button class="button is-success" type="button" onclick={link}>{"Link New Account"}</button>
+        </>
     }
 }

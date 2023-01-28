@@ -19,10 +19,10 @@ struct AccountsGetRequest {
 
 #[tauri::command]
 pub async fn accounts_get(
-    auth_key: String,
-    access_token: String,
+    auth_key: &str,
+    access_token: &str,
     account_ids: Vec<String>,
-) -> Result<Vec<Account>, String> {
+) -> Result<Vec<Account>, reqwest::Error> {
     let mut authorization = String::from("Bearer ");
     authorization.push_str(&auth_key);
 
@@ -37,12 +37,10 @@ pub async fn accounts_get(
     };
 
     let data = serde_json::to_value(AccountsGetRequest {
-        access_token,
+        access_token: access_token.to_string(),
         options,
     })
     .expect("Failed to serialize");
-
-    log::info!("{:?}", &data);
 
     let req = PlaidRequest {
         endpoint: "/accounts/get".to_string(),
@@ -55,20 +53,16 @@ pub async fn accounts_get(
         .json(&req)
         .headers(headers)
         .send()
-        .await;
+        .await?;
 
-    match res {
-        Ok(res) => {
-            if res.status().is_success() {
-                log::info!("{:?}", res);
-                let json: Vec<Account> = res.json().await.expect("Failed to deserialize data");
-                Ok(json)
-            } else {
-                Err(res.text().await.expect("Failed to get text"))
-            }
-        }
-        Err(err) => Err(err.to_string()),
+    #[derive(Deserialize)]
+    struct AccountsGetResponse {
+        accounts: Vec<Account>,
     }
+
+    let account_response = res.error_for_status()?;
+    let accounts: AccountsGetResponse = account_response.json().await?;
+    Ok(accounts.accounts)
 }
 
 #[derive(Serialize, Deserialize)]
@@ -111,10 +105,10 @@ pub async fn balance_get(
 
     match res {
         Ok(res) => {
-            log::info!("{:?}", res);
+            log::info!("Balances Get: {:?}", res);
             let json: AccountsBalanceGetResponse = res.json().await.unwrap();
-            return Ok(json);
+            Ok(json)
         }
-        Err(err) => return Err(err.to_string()),
+        Err(err) => Err(err.to_string()),
     }
 }
