@@ -39,7 +39,7 @@ impl Display for Error {
 }
 
 fn get_supbase_client() -> Result<Postgrest, Error> {
-    let client = Postgrest::new(std::env::var("SUPBASE_URL")?)
+    let client = Postgrest::new(std::env::var("SUPABASE_URL")?)
         .insert_header("apikey", std::env::var("SUPABASE_KEY")?);
 
     Ok(client)
