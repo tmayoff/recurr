@@ -1,12 +1,12 @@
 use postgrest::Postgrest;
 
-use crate::supabase::{SchemaAccessToken, SupabaseErrors};
+use crate::supabase::{Error, SchemaAccessToken};
 
 #[tauri::command]
 pub async fn get_access_tokens(
     auth_token: &str,
     user_id: &str,
-) -> Result<SchemaAccessToken, SupabaseErrors> {
+) -> Result<SchemaAccessToken, super::Error> {
     let client = Postgrest::new("https://linaejyblplchxcrusjy.supabase.co/rest/v1")
     .insert_header("apikey", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxpbmFlanlibHBsY2h4Y3J1c2p5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE2NzQyNjc3ODMsImV4cCI6MTk4OTg0Mzc4M30.CSc7E2blxAaO2ijXxOGjmhdgmlDVKmBAUSROuWPujWI");
 
@@ -16,32 +16,16 @@ pub async fn get_access_tokens(
         .select("*")
         .eq("user_id", user_id)
         .execute()
-        .await;
-    match res {
-        Ok(res) => {
-            if res.status().is_success() {
-                let json = res.json().await;
-                match json {
-                    Ok(json) => {
-                        let schemas: Vec<SchemaAccessToken> = json;
-                        log::info!("Get Access Tokens {:?}", schemas);
-                        let schema = schemas.first();
-                        match schema {
-                            Some(schema) => Ok(schema.clone()),
-                            None => Err(SupabaseErrors::QueryError(
-                                "Nothing returned from query".to_owned(),
-                            )),
-                        }
-                    }
-                    Err(err) => Err(SupabaseErrors::SchemaError(err.to_string())),
-                }
-            } else {
-                return Err(SupabaseErrors::RequestError(
-                    res.text().await.expect("Failed to stringify"),
-                ));
-            }
-        }
-        Err(err) => Err(SupabaseErrors::RequestError(err.to_string())),
+        .await?
+        .error_for_status()?;
+
+    let json = res.json().await?;
+    let schemas: Vec<SchemaAccessToken> = json;
+    log::info!("Get Access Tokens {:?}", schemas);
+    let schema = schemas.first();
+    match schema {
+        Some(schema) => Ok(schema.clone()),
+        None => Err(Error::Query("Nothing returned from query".to_string())),
     }
 }
 
@@ -50,7 +34,7 @@ pub async fn get_access_token(
     auth_token: &str,
     user_id: &str,
     access_token: &str,
-) -> Result<SchemaAccessToken, SupabaseErrors> {
+) -> Result<SchemaAccessToken, super::Error> {
     let client = Postgrest::new("https://linaejyblplchxcrusjy.supabase.co/rest/v1")
     .insert_header("apikey", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxpbmFlanlibHBsY2h4Y3J1c2p5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE2NzQyNjc3ODMsImV4cCI6MTk4OTg0Mzc4M30.CSc7E2blxAaO2ijXxOGjmhdgmlDVKmBAUSROuWPujWI");
 
@@ -63,32 +47,16 @@ pub async fn get_access_token(
         .eq("access_token", access_token)
         .eq("user_id", user_id)
         .execute()
-        .await;
-    match res {
-        Ok(res) => {
-            if res.status().is_success() {
-                let json = res.json().await;
-                match json {
-                    Ok(json) => {
-                        let schemas: Vec<SchemaAccessToken> = json;
-                        log::info!("Schema Access Token: {:?}", schemas);
-                        let schema = schemas.first();
-                        match schema {
-                            Some(schema) => Ok(schema.clone()),
-                            None => Err(SupabaseErrors::QueryError(
-                                "Nothing returned from query".to_owned(),
-                            )),
-                        }
-                    }
-                    Err(err) => Err(SupabaseErrors::SchemaError(err.to_string())),
-                }
-            } else {
-                return Err(SupabaseErrors::RequestError(
-                    res.text().await.expect("Failed to stringify"),
-                ));
-            }
-        }
-        Err(err) => Err(SupabaseErrors::RequestError(err.to_string())),
+        .await?
+        .error_for_status()?;
+
+    let json = res.json().await?;
+
+    let schemas: Vec<SchemaAccessToken> = json;
+    let schema = schemas.first();
+    match schema {
+        Some(schema) => Ok(schema.clone()),
+        None => Err(Error::Query("Nothing returned from query".to_string())),
     }
 }
 
@@ -97,7 +65,7 @@ pub async fn save_access_token(
     auth_token: &str,
     user_id: &str,
     access_token: &str,
-) -> Result<(), SupabaseErrors> {
+) -> Result<(), super::Error> {
     let client = Postgrest::new("https://linaejyblplchxcrusjy.supabase.co/rest/v1")
         .insert_header("apikey", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxpbmFlanlibHBsY2h4Y3J1c2p5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE2NzQyNjc3ODMsImV4cCI6MTk4OTg0Mzc4M30.CSc7E2blxAaO2ijXxOGjmhdgmlDVKmBAUSROuWPujWI");
 
@@ -114,18 +82,8 @@ pub async fn save_access_token(
         .auth(auth_token)
         .insert(&body)
         .execute()
-        .await;
+        .await?
+        .error_for_status()?;
 
-    match res {
-        Ok(res) => {
-            if res.status().is_success() {
-                return Ok(());
-            } else {
-                return Err(SupabaseErrors::RequestError(
-                    res.text().await.expect("Failed to stringify"),
-                ));
-            }
-        }
-        Err(err) => return Err(SupabaseErrors::RequestError(err.to_string())),
-    }
+    Ok(())
 }
