@@ -3,6 +3,8 @@
     windows_subsystem = "windows"
 )]
 
+use tauri::Manager;
+
 mod plaid;
 mod supabase;
 
@@ -11,6 +13,14 @@ fn main() {
     env_logger::init();
 
     tauri::Builder::default()
+        .setup(|app| {
+            #[cfg(debug_assertions)] // only include this code on debug builds
+            let window = app.get_window("main");
+            if let Some(window) = window {
+                window.open_devtools();
+            }
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             plaid::link::link_token_create,
             plaid::item_public_token_exchange,
