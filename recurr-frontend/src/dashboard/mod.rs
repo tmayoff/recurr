@@ -1,17 +1,21 @@
+use std::str::FromStr;
+
 use crate::{
     context::SessionContext,
     dashboard::{accounts::AccountsView, summary::SummaryView},
 };
-use web_sys::MouseEvent;
+use strum::EnumString;
+use wasm_bindgen::JsCast;
+use web_sys::{HtmlElement, MouseEvent};
 use yew::{
-    classes, function_component, html, platform::spawn_local, use_context, use_state, Callback,
-    Html, Properties, UseStateHandle,
+    function_component, html, platform::spawn_local, use_context, use_state, Callback, Html,
+    Properties, UseStateHandle,
 };
 
 mod accounts;
 mod summary;
 
-#[derive(PartialEq)]
+#[derive(Debug, PartialEq, EnumString)]
 enum DashboardTab {
     Summary,
     Accounts,
@@ -47,21 +51,48 @@ fn sidebar(props: &SidebarProps) -> Html {
         let tab = props.sidebar_state.clone();
         Callback::from(move |e: MouseEvent| {
             let target = e.target().expect("Event should come with a target");
-
-            log::info!("Switching tabs {:?}", target);
-            // tab.set()
+            let target = target.unchecked_into::<HtmlElement>();
+            let data = target.get_attribute("data").expect("Invalid Tab Button");
+            tab.set(DashboardTab::from_str(&data).expect("Invalid Tab button"));
         })
     };
 
-    let base_classes = vec!["button", "is-info"];
+    struct TabButton {
+        active: bool,
+        name: String,
+        tab: DashboardTab,
+    }
+
+    let mut tab_buttons = vec![
+        TabButton {
+            active: false,
+            name: "Summary".to_string(),
+            tab: DashboardTab::Summary,
+        },
+        TabButton {
+            active: false,
+            name: "Accounts".to_string(),
+            tab: DashboardTab::Accounts,
+        },
+    ];
+
+    let tabs = props.sidebar_state.clone();
+    for button in &mut tab_buttons {
+        button.active = button.tab == *tabs;
+    }
 
     html! {
         <div class="column is-one-fifth has-background-info is-flex is-flex-direction-column">
             <div class="is-flex-grow-1 is-flex is-flex-direction-column">
-                <button class="button is-info is-active" onclick={switch_tabs}>{"Summary"}</button>
-                <button class={classes!(base_classes)}>{"Accounts"}</button>
-                <button class="button is-info">{"Dashboard"}</button>
-                <button class="button is-info">{"Dashboard"}</button>
+                {
+                    tab_buttons.into_iter().map(|tab| {
+                        if tab.active {
+                            html!{<button class="button is-info is-active" data={format!("{:?}", tab.tab)}>{tab.name}</button>}
+                        } else {
+                            html!{<button class="button is-info" data={format!("{:?}", tab.tab)} onclick={switch_tabs.clone()}>{tab.name}</button>}
+                        }
+                    }).collect::<Html>()
+                }
             </div>
 
             <div class="is-flex is-justify-content-center">
