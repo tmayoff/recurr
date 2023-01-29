@@ -1,24 +1,35 @@
+use std::str::FromStr;
+
 use crate::{
     context::SessionContext,
     dashboard::{accounts::AccountsView, summary::SummaryView},
 };
-use web_sys::MouseEvent;
-use yew::{function_component, html, platform::spawn_local, use_context, use_state, Html};
+use strum::EnumString;
+use wasm_bindgen::JsCast;
+use web_sys::{HtmlElement, MouseEvent};
+use yew::{
+    function_component, html, platform::spawn_local, use_context, use_state, Callback, Html,
+    Properties, UseStateHandle,
+};
 
 mod accounts;
 mod summary;
 
+#[derive(Debug, PartialEq, EnumString)]
 enum DashboardTab {
-    Dashboard,
+    Summary,
     Accounts,
 }
 
+#[derive(Properties, PartialEq)]
+struct SidebarProps {
+    sidebar_state: UseStateHandle<DashboardTab>,
+}
+
 #[function_component(Sidebar)]
-fn sidebar() -> Html {
+fn sidebar(props: &SidebarProps) -> Html {
     let context = use_context::<SessionContext>().unwrap();
     let use_context = context;
-
-    let _ = use_state(|| DashboardTab::Dashboard);
 
     let signout = move |_: MouseEvent| {
         let use_context = use_context.clone();
@@ -36,18 +47,52 @@ fn sidebar() -> Html {
         });
     };
 
-    // let switch_tabs = {
-    //     let tab = tab.clone();
-    //     Callback::from(move |_| tab.set(DashboardTab::Accounts))
-    // };
+    let switch_tabs = {
+        let tab = props.sidebar_state.clone();
+        Callback::from(move |e: MouseEvent| {
+            let target = e.target().expect("Event should come with a target");
+            let target = target.unchecked_into::<HtmlElement>();
+            let data = target.get_attribute("data").expect("Invalid Tab Button");
+            tab.set(DashboardTab::from_str(&data).expect("Invalid Tab button"));
+        })
+    };
+
+    struct TabButton {
+        active: bool,
+        name: String,
+        tab: DashboardTab,
+    }
+
+    let mut tab_buttons = vec![
+        TabButton {
+            active: false,
+            name: "Summary".to_string(),
+            tab: DashboardTab::Summary,
+        },
+        TabButton {
+            active: false,
+            name: "Accounts".to_string(),
+            tab: DashboardTab::Accounts,
+        },
+    ];
+
+    let tabs = props.sidebar_state.clone();
+    for button in &mut tab_buttons {
+        button.active = button.tab == *tabs;
+    }
 
     html! {
         <div class="column is-one-fifth has-background-info is-flex is-flex-direction-column">
             <div class="is-flex-grow-1 is-flex is-flex-direction-column">
-                <button class="button is-info is-active">{"Summary"}</button>
-                <button class="button is-info">{"Accounts"}</button>
-                <button class="button is-info">{"Dashboard"}</button>
-                <button class="button is-info">{"Dashboard"}</button>
+                {
+                    tab_buttons.into_iter().map(|tab| {
+                        if tab.active {
+                            html!{<button class="button is-info is-active" data={format!("{:?}", tab.tab)}>{tab.name}</button>}
+                        } else {
+                            html!{<button class="button is-info" data={format!("{:?}", tab.tab)} onclick={switch_tabs.clone()}>{tab.name}</button>}
+                        }
+                    }).collect::<Html>()
+                }
             </div>
 
             <div class="is-flex is-justify-content-center">
@@ -59,12 +104,21 @@ fn sidebar() -> Html {
 
 #[function_component(Dashboard)]
 pub fn dashboard() -> Html {
+    let sidebar_state = use_state(|| DashboardTab::Summary);
+
     html! {
         <div class="full-height columns m-0">
-            <Sidebar />
+            <Sidebar sidebar_state={sidebar_state.clone()} />
             <div class="column">
-                <SummaryView />
-                <AccountsView />
+                {
+                    if (*sidebar_state) == DashboardTab::Summary {
+                        html!{<SummaryView />}
+                    } else if (*sidebar_state) == DashboardTab::Accounts {
+                        html!{<AccountsView />}
+                    } else {
+                        html!{}
+                    }
+                }
             </div>
         </div>
     }
