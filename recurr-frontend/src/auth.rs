@@ -1,13 +1,13 @@
-use supabase_js_rs::Credentials;
+use supabase_js_rs::{Credentials, SupabaseClient};
 use wasm_bindgen_futures::spawn_local;
-use web_sys::{HtmlInputElement, SubmitEvent};
+use web_sys::{HtmlElement, HtmlInputElement, SubmitEvent};
 use yew::{
-    function_component, html, Callback, Component, Context, ContextHandle, Html, NodeRef,
-    Properties,
+    function_component, html, use_context, Callback, Component, Context, ContextHandle, Html,
+    NodeRef, Properties,
 };
 use yew_hooks::{use_toggle, UseToggleHandle};
 
-use crate::context::Session;
+use crate::context::{Session, SessionContext};
 
 #[derive(PartialEq)]
 enum SignupSignin {
@@ -18,16 +18,12 @@ enum SignupSignin {
 #[derive(Properties, PartialEq)]
 struct FormProps {
     toggle: UseToggleHandle<SignupSignin>,
+    client: SupabaseClient,
 }
 
-enum ComponentMsg {
-    SessionContextUpdate(Session),
-}
+enum ComponentMsg {}
 
 struct LoginComponent {
-    context: Session,
-    _context_listener: ContextHandle<Session>,
-
     email: NodeRef,
     password: NodeRef,
 }
@@ -37,25 +33,9 @@ impl Component for LoginComponent {
     type Properties = FormProps;
 
     fn create(ctx: &Context<Self>) -> Self {
-        let (session, _context_listener) = ctx
-            .link()
-            .context(ctx.link().callback(ComponentMsg::SessionContextUpdate))
-            .expect("No message context provided");
-
         Self {
-            context: session,
-            _context_listener,
             email: NodeRef::default(),
             password: NodeRef::default(),
-        }
-    }
-
-    fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
-        match msg {
-            ComponentMsg::SessionContextUpdate(session) => {
-                self.context = session;
-                true
-            }
         }
     }
 
@@ -63,12 +43,7 @@ impl Component for LoginComponent {
         let email_ref = self.email.clone();
         let pass_ref = self.password.clone();
 
-        let client = self
-            .context
-            .supabase_client
-            .clone()
-            .expect("Must have supabase client already");
-
+        let client = ctx.props().client.clone();
         let signin = move |event: SubmitEvent| {
             event.prevent_default();
             let email = email_ref.cast::<HtmlInputElement>().unwrap().value();
@@ -120,30 +95,22 @@ impl Component for LoginComponent {
 }
 
 struct SignupComponent {
-    context: Session,
-    _context_listener: ContextHandle<Session>,
-
     email: NodeRef,
     password: NodeRef,
     confirm_password: NodeRef,
+    confirm_pass_error: NodeRef,
 }
 
 impl Component for SignupComponent {
     type Message = ComponentMsg;
     type Properties = FormProps;
 
-    fn create(ctx: &Context<Self>) -> Self {
-        let (session, _context_listener) = ctx
-            .link()
-            .context(ctx.link().callback(ComponentMsg::SessionContextUpdate))
-            .expect("No message context provided");
-
+    fn create(_ctx: &Context<Self>) -> Self {
         Self {
-            context: session,
-            _context_listener,
             email: NodeRef::default(),
             password: NodeRef::default(),
             confirm_password: NodeRef::default(),
+            confirm_pass_error: NodeRef::default(),
         }
     }
 
@@ -151,28 +118,36 @@ impl Component for SignupComponent {
         let email_ref = self.email.clone();
         let pass_ref = self.password.clone();
         let conf_pass_ref = self.confirm_password.clone();
+        let conf_pass_error_ref = self.confirm_pass_error.clone();
 
-        let client = self
-            .context
-            .supabase_client
-            .clone()
-            .expect("Must have supabase client already");
-
+        let client = ctx.props().client.clone();
         let signup = move |event: SubmitEvent| {
             event.prevent_default();
             let email = email_ref.cast::<HtmlInputElement>().unwrap().value();
             let password = pass_ref.cast::<HtmlInputElement>().unwrap().value();
             let confirm_password = conf_pass_ref.cast::<HtmlInputElement>().unwrap().value();
 
-            // TODO Check password
+            if password != confirm_password {
+                conf_pass_error_ref
+                    .cast::<HtmlElement>()
+                    .unwrap()
+                    .set_inner_text("Passwords must match");
+                return;
+            } else {
+                conf_pass_error_ref
+                    .cast::<HtmlElement>()
+                    .unwrap()
+                    .set_inner_text("");
+            }
+
+            if email.is_empty() || password.is_empty() || confirm_password.is_empty() {
+                return;
+            }
 
             let client = client.clone();
 
             spawn_local(async move {
-                let _ = client
-                    .auth()
-                    .sign_in_with_password(Credentials { email, password })
-                    .await;
+                let _ = client.auth().sign_up(Credentials { email, password }).await;
             });
         };
 
@@ -196,8 +171,15 @@ impl Component for SignupComponent {
                     </div>
                 </div>
                 <div class="field">
+                    <label class="label">{"Confirm Password"}</label>
                     <div class="control">
-                        <button class="button is-link">{"Login"}</button>
+                        <input ref={self.confirm_password.clone()} class="input" type="password" placeholder="password"/>
+                    </div>
+                    <p ref={self.confirm_pass_error.clone()} class="help is-danger" >{"Passwords must match"}</p>
+                </div>
+                <div class="field">
+                    <div class="control">
+                        <button class="button is-link">{"Sign Up"}</button>
                     </div>
                 </div>
                 <div class="field">
@@ -213,20 +195,25 @@ impl Component for SignupComponent {
 
 #[function_component(Auth)]
 pub fn auth() -> Html {
+    let context = use_context::<SessionContext>().expect("Needs context");
+
     let signin_signup = use_toggle(SignupSignin::Signin, SignupSignin::Signup);
+
+    let client = context
+        .supabase_client
+        .clone()
+        .expect("Requires supabase client");
 
     html! {
         <div class="hero is-fullheight is-flex is-justify-content-center is-align-content-center is-align-items-center">
             <div class="has-shadow has-radius p-3">
-
                 {
                     if (*signin_signup) == SignupSignin::Signin {
-                       html!{ <LoginComponent toggle={signin_signup}/> }
+                       html!{ <LoginComponent {client} toggle={signin_signup} /> }
                     } else {
-                        html!{ <SignupComponent toggle={signin_signup}/> }
+                        html!{ <SignupComponent {client} toggle={signin_signup}/> }
                     }
                 }
-
             </div>
         </div>
     }
