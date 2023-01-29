@@ -1,7 +1,7 @@
 use crate::{
     auth::Auth,
     commands,
-    context::{Session, SessionContext, SessionProvider},
+    context::{self, Session, SessionContext, SessionProvider},
     dashboard::Dashboard,
     supabase,
 };
@@ -27,39 +27,73 @@ fn setup_auth_handler(context: &UseReducerHandle<Session>, client: &SupabaseClie
     auth_callback.forget();
 }
 
-#[function_component(Main)]
-fn main() -> Html {
-    let context = use_context::<SessionContext>().unwrap();
-    let use_context = context.clone();
+enum MainMessage {
+    ContextUpdated(UseReducerHandle<Session>),
+}
 
-    let async_context = context.clone();
-    spawn_local(async move {
-        let cred = commands::get_supabase_auth_credentials().await;
+#[derive(Properties, PartialEq)]
+struct MainProps;
 
-        let cred = cred.expect("Failed to get credentials");
-        let client = supabase_js_rs::create_client(&cred.auth_url, &cred.anon_key);
-        setup_auth_handler(&async_context, &client);
-        async_context.dispatch((None, Some(client)));
-    });
+struct Main {
+    context: UseReducerHandle<Session>,
+    _context_listener: ContextHandle<UseReducerHandle<Session>>,
+}
 
-    let has_session = use_context.supabase_session.is_some();
+impl Component for Main {
+    type Message = MainMessage;
+    type Properties = MainProps;
 
-    html! {
-        <main class="hero is-fullheight">
-        {
-            if context.supabase_client.is_some() {
-                html!{
-                    if has_session {
-                        <Dashboard />
-                    } else {
-                        <Auth />
-                    }
-                }
-            } else {
-                html!{}
+    fn create(ctx: &Context<Self>) -> Self {
+        let (context, context_listener) = ctx
+            .link()
+            .context(ctx.link().callback(MainMessage::ContextUpdated))
+            .expect("No Context Provided");
+
+        let async_context = context.clone();
+        spawn_local(async move {
+            let cred = commands::get_supabase_auth_credentials().await;
+
+            let cred = cred.expect("Failed to get credentials");
+            let client = supabase_js_rs::create_client(&cred.auth_url, &cred.anon_key);
+            setup_auth_handler(&async_context, &client);
+            async_context.dispatch((None, Some(client)));
+        });
+
+        Self {
+            context,
+            _context_listener: context_listener,
+        }
+    }
+
+    fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
+        match msg {
+            MainMessage::ContextUpdated(context) => {
+                self.context = context;
+                true
             }
         }
-        </main>
+    }
+
+    fn view(&self, _ctx: &Context<Self>) -> Html {
+        let context = &self.context;
+        let has_session = self.context.supabase_session.is_some();
+        html! {
+            <main class="hero is-fullheight">
+            {
+                if context.supabase_client.is_some() {
+                    html!{
+                        if has_session {
+                            <Dashboard />
+                        } else {
+                            <Auth />
+                        }
+                    }
+                } else {
+                    html!{}
+                }
+            }
+            </main>
+        }
     }
 }
 
