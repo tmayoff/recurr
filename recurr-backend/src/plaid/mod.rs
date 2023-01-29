@@ -8,6 +8,8 @@ pub mod link;
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error(transparent)]
+    EnVar(#[from] std::env::VarError),
+    #[error(transparent)]
     Request(#[from] reqwest::Error),
     #[error(transparent)]
     Serialization(#[from] serde_json::Error),

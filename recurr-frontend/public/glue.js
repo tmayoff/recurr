@@ -1,5 +1,9 @@
 const invoke = window.__TAURI__.invoke;
 
+export async function invokeGetSupbaseAuthCredentials() {
+    return await invoke("get_supabase_auth_credentials");
+}
+
 export async function invokeLinkTokenCreate(anon_key) {
     return await invoke("link_token_create", {authKey: anon_key});
 }

@@ -51,6 +51,8 @@ pub fn auth() -> Html {
         spawn_local(async move {
             let _ = context
                 .supabase_client
+                .clone()
+                .expect("Must have supabase client")
                 .auth()
                 .sign_in_with_password(Credentials { email, password })
                 .await;

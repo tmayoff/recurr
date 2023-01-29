@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 
-use postgrest::Postgrest;
 use recurr_core::{Account, Institution};
 
 use crate::{
@@ -13,8 +12,7 @@ pub async fn get_plaid_accounts(
     auth_token: &str,
     user_id: &str,
 ) -> Result<Vec<(Institution, Vec<Account>)>, super::Error> {
-    let client = Postgrest::new("https://linaejyblplchxcrusjy.supabase.co/rest/v1")
-    .insert_header("apikey", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxpbmFlanlibHBsY2h4Y3J1c2p5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE2NzQyNjc3ODMsImV4cCI6MTk4OTg0Mzc4M30.CSc7E2blxAaO2ijXxOGjmhdgmlDVKmBAUSROuWPujWI");
+    let client = super::get_supbase_client()?;
 
     // Get access tokens and their associated plaid accounts
     let res = client
@@ -60,8 +58,7 @@ pub async fn save_plaid_account(
     access_token: &str,
     plaid_account_id: &str,
 ) -> Result<(), super::Error> {
-    let client = Postgrest::new("https://linaejyblplchxcrusjy.supabase.co/rest/v1")
-        .insert_header("apikey", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxpbmFlanlibHBsY2h4Y3J1c2p5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE2NzQyNjc3ODMsImV4cCI6MTk4OTg0Mzc4M30.CSc7E2blxAaO2ijXxOGjmhdgmlDVKmBAUSROuWPujWI");
+    let client = super::get_supbase_client()?;
 
     let access_token_row = get_access_token(auth_token, user_id, access_token).await?;
 

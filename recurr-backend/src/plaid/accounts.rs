@@ -51,7 +51,7 @@ pub async fn accounts_get(
 
     let client = reqwest::Client::new();
     let res = client
-        .post("https://linaejyblplchxcrusjy.functions.supabase.co/plaid".to_string())
+        .post(std::env::var("PLAID_URL")?)
         .json(&req)
         .headers(headers)
         .send()
@@ -91,36 +91,9 @@ pub struct AccountsBalanceGetResponse {
 
 #[tauri::command]
 pub async fn balance_get(
-    auth_key: String,
-    account_ids: Vec<String>,
-    last_updated: String,
-) -> Result<AccountsBalanceGetResponse, String> {
-    let mut authorization = String::from("Bearer ");
-    authorization.push_str(&auth_key);
-
-    let mut headers = HeaderMap::new();
-    headers.insert("Authorization", authorization.parse().unwrap());
-    headers.insert("Content-Type", HeaderValue::from_static("application/json"));
-
-    let req = AccountsBalanceGetRequest {
-        account_ids,
-        min_last_updated_datetime: last_updated,
-    };
-
-    let client = reqwest::Client::new();
-    let res = client
-        .post("https://linaejyblplchxcrusjy.functions.supabase.co/public_key_exchange".to_string())
-        .json(&req)
-        .headers(headers)
-        .send()
-        .await;
-
-    match res {
-        Ok(res) => {
-            log::info!("Balances Get: {:?}", res);
-            let json: AccountsBalanceGetResponse = res.json().await.unwrap();
-            Ok(json)
-        }
-        Err(err) => Err(err.to_string()),
-    }
+    _auth_key: String,
+    _account_ids: Vec<String>,
+    _last_updated: String,
+) -> Result<(), String> {
+    Ok(())
 }

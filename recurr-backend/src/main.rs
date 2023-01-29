@@ -15,6 +15,7 @@ fn main() {
             plaid::link::link_token_create,
             plaid::item_public_token_exchange,
             plaid::accounts::balance_get,
+            supabase::auth::get_supabase_auth_credentials,
             supabase::access_token::save_access_token,
             supabase::access_token::get_access_token,
             supabase::accounts::save_plaid_account,
