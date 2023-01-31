@@ -33,6 +33,8 @@ export function linkStart(link_token, callback) {
         onExit: (err, metadata) => {
             callback({ error: err, metadata: metadata });
         },
-        onEvent: (_eventName, _metadata) => { },
+        onEvent: (eventName, metadata) => {
+            console.log("Event: "+ eventName + " " + metadata);
+         },
     }).open();
 }

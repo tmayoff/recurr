@@ -40,8 +40,7 @@ impl Display for Error {
 }
 
 fn get_supbase_client() -> Result<Postgrest, Error> {
-    let client = Postgrest::new(std::env::var("SUPABASE_URL")?)
-        .insert_header("apikey", std::env::var("SUPABASE_KEY")?);
+    let client = Postgrest::new(env!("SUPABASE_URL")).insert_header("apikey", env!("SUPABASE_KEY"));
 
     Ok(client)
 }
@@ -53,6 +52,7 @@ pub struct SchemaAccessToken {
     access_token: String,
     user_id: String,
 
+    #[serde(skip_serializing)]
     plaid_accounts: Option<Vec<SchemaPlaidAccount>>,
 }
 

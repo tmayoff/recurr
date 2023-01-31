@@ -22,7 +22,8 @@ impl Reducible for Session {
 
         // We don't want to overwrite either session or client if the other isn't provided in the call
         if let Some(session) = action.0 {
-            s.supabase_session = Some(session);
+            s.supabase_session = Some(session.clone());
+            s.anon_key = session.access_token;
         }
 
         if let Some(client) = action.1 {

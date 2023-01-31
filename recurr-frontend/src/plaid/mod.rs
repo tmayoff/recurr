@@ -116,15 +116,10 @@ async fn item_public_token_exchange(
     anon_key: &str,
     public_token: &str,
 ) -> Result<PublicTokenExchangeResponse, JsValue> {
-    let res = invokeItemPublicTokenExchange(anon_key, public_token).await;
-    match res {
-        Ok(s) => {
-            let s = serde_wasm_bindgen::from_value::<PublicTokenExchangeResponse>(s)
-                .expect("Failed to deserialize");
-            Ok(s)
-        }
-        Err(e) => Err(e),
-    }
+    let res = invokeItemPublicTokenExchange(anon_key, public_token).await?;
+    let s = serde_wasm_bindgen::from_value::<PublicTokenExchangeResponse>(res)
+        .expect("Failed to deserialize");
+    Ok(s)
 }
 
 #[function_component(Link)]
@@ -135,6 +130,11 @@ pub fn link() -> Html {
         let context = context.clone();
         spawn_local(async move {
             let context = context.clone();
+            let session = context
+                .supabase_session
+                .clone()
+                .expect("Needs session already");
+
             let response = link_token_create(&context.anon_key).await;
             let link_token = match response {
                 Ok(res) => res.link_token,
@@ -154,52 +154,46 @@ pub fn link() -> Html {
                 }
             });
 
-            if let Ok(response) = rx.await {
-                match response {
-                    Ok(success) => {
-                        let res =
-                            item_public_token_exchange(&context.anon_key, &success.public_token)
-                                .await;
+            let link_status = rx.await.expect("Failed to get link response");
+            if let Err(e) = &link_status {
+                log::info!("{:?}", e);
+                return;
+            }
 
-                        match res {
-                            Ok(s) => {
-                                let context = context.clone();
-                                if let Some(session) = &context.supabase_session {
-                                    let user_id = &session.user.id;
-                                    let auth_token = &session.access_token;
+            let link_status = link_status.expect("Checked for error");
 
-                                    let res =
-                                        invokeSaveAccessToken(auth_token, user_id, &s.access_token)
-                                            .await;
+            let exchange_status =
+                item_public_token_exchange(&context.anon_key, &link_status.public_token).await;
+            if let Err(e) = exchange_status {
+                log::info!("{:?}", e);
+                return;
+            }
+            let exchange_status = exchange_status.ok().unwrap();
 
-                                    if let Err(e) = res {
-                                        log::error!("{:?}", e);
-                                        return;
-                                    }
+            let user_id = &session.user.id;
+            let auth_token = &session.access_token;
 
-                                    for account in success.metadata.accounts {
-                                        let res = invokeSavePlaidAccount(
-                                            auth_token,
-                                            user_id,
-                                            &s.access_token,
-                                            &account.id,
-                                        )
-                                        .await;
-                                        if let Err(e) = res {
-                                            log::error!("{:?}", e);
-                                            return;
-                                        }
-                                    }
-                                }
-                            }
-                            Err(e) => {
-                                log::info!("{:?}", e);
-                            }
-                        }
-                    }
-                    Err(error) => log::error!("{:?}", error),
+            let res =
+                invokeSaveAccessToken(auth_token, user_id, &exchange_status.access_token).await;
+            if let Err(e) = res {
+                log::error!("{:?}", e);
+                return;
+            }
+
+            for account in link_status.metadata.accounts {
+                let res = invokeSavePlaidAccount(
+                    auth_token,
+                    user_id,
+                    &exchange_status.access_token,
+                    &account.id,
+                )
+                .await;
+
+                if let Err(e) = res {
+                    log::error!("{:?}", e);
+                    return;
                 }
-            };
+            }
         })
     };
 

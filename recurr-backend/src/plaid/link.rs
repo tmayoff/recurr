@@ -63,12 +63,12 @@ pub async fn link_token_create(auth_key: &str) -> Result<LinkTokenCreateReponse,
 
     let client = reqwest::Client::new();
     let res = client
-        .post(std::env::var("PLAID_URL")?)
+        .post(env!("PLAID_URL"))
         .json(&req)
         .headers(headers)
         .send()
         .await?;
 
-    let json: LinkTokenCreateReponse = res.json().await.unwrap();
+    let json: LinkTokenCreateReponse = res.error_for_status()?.json().await?;
     Ok(json)
 }
