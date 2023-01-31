@@ -39,7 +39,6 @@ pub struct LinkTokenCreateReponse {
 
 #[tauri::command]
 pub async fn link_token_create(auth_key: &str) -> Result<LinkTokenCreateReponse, super::Error> {
-    log::info!("Sending Link Token Create Req");
     let mut authorization = String::from("Bearer ");
     authorization.push_str(auth_key);
 
@@ -70,11 +69,6 @@ pub async fn link_token_create(auth_key: &str) -> Result<LinkTokenCreateReponse,
         .send()
         .await?;
 
-    log::info!("{:?}", &res.error_for_status()?.text().await?);
-    // let json: LinkTokenCreateReponse = res.json().await?;
-    Ok(LinkTokenCreateReponse {
-        expiration: "".to_string(),
-        link_token: "".to_string(),
-        request_id: "".to_string(),
-    })
+    let json: LinkTokenCreateReponse = res.error_for_status()?.json().await?;
+    Ok(json)
 }

@@ -70,12 +70,12 @@ pub async fn item_public_token_exchange(
 
     let client = reqwest::Client::new();
     let res = client
-        .post("https://linaejyblplchxcrusjy.functions.supabase.co/plaid".to_string())
+        .post(env!("PLAID_URL"))
         .json(&req)
         .headers(headers)
         .send()
         .await?;
 
-    let json = res.json().await?;
+    let json = res.error_for_status()?.json().await?;
     Ok(json)
 }

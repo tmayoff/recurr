@@ -33,7 +33,6 @@ pub async fn get_access_token(
     access_token: &str,
 ) -> Result<SchemaAccessToken, super::Error> {
     let client = super::get_supbase_client()?;
-    log::info!("Auth Token: {}", auth_token);
 
     let res = client
         .from("access_tokens")
