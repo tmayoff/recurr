@@ -2,12 +2,11 @@ use supabase_js_rs::{Credentials, SupabaseClient};
 use wasm_bindgen_futures::spawn_local;
 use web_sys::{HtmlElement, HtmlInputElement, SubmitEvent};
 use yew::{
-    function_component, html, use_context, Callback, Component, Context, ContextHandle, Html,
-    NodeRef, Properties,
+    function_component, html, use_context, Callback, Component, Context, Html, NodeRef, Properties,
 };
 use yew_hooks::{use_toggle, UseToggleHandle};
 
-use crate::context::{Session, SessionContext};
+use crate::context::SessionContext;
 
 #[derive(PartialEq)]
 enum SignupSignin {
@@ -32,7 +31,7 @@ impl Component for LoginComponent {
     type Message = ComponentMsg;
     type Properties = FormProps;
 
-    fn create(ctx: &Context<Self>) -> Self {
+    fn create(_ctx: &Context<Self>) -> Self {
         Self {
             email: NodeRef::default(),
             password: NodeRef::default(),

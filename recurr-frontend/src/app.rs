@@ -1,7 +1,7 @@
 use crate::{
     auth::Auth,
     commands,
-    context::{self, Session, SessionContext, SessionProvider},
+    context::{Session, SessionProvider},
     dashboard::Dashboard,
     supabase,
 };
