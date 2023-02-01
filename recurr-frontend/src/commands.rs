@@ -36,6 +36,9 @@ extern "C" {
         user_id: &str,
     ) -> Result<JsValue, JsValue>;
 
+    #[wasm_bindgen(catch)]
+    pub async fn invokeGetBalances(auth_token: &str, user_id: &str) -> Result<JsValue, JsValue>;
+
     pub fn linkStart(link_token: String, callback: JsValue);
 }
 
@@ -49,6 +52,10 @@ pub async fn get_supabase_auth_credentials() -> Result<SupabaseAuthCredentials, 
         }
         Err(e) => Err(e.as_string().expect("Failed to get string")),
     }
+}
+
+pub async fn get_balances(auth_token: &str, acces_token: &str) -> Result<JsValue, JsValue> {
+    invokeGetBalances(auth_token, acces_token).await
 }
 
 pub async fn get_all_accounts(

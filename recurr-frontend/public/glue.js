@@ -24,6 +24,11 @@ export async function invokeGetPlaidAccounts(auth_token, user_id) {
     return await invoke("get_plaid_accounts", {authToken: auth_token, userId: user_id});
 }
 
+export async function invokeGetBalances(auth_token, access_token) {
+    console.log("GLUE");
+    return await invoke("get_balances", {authToken: auth_token, accessToken: access_token});
+}
+
 export function linkStart(link_token, callback) {
     Plaid.create({
         token: link_token, onSuccess: (public_token, metadata) => {
@@ -33,8 +38,6 @@ export function linkStart(link_token, callback) {
         onExit: (err, metadata) => {
             callback({ error: err, metadata: metadata });
         },
-        onEvent: (eventName, metadata) => {
-            console.log("Event: "+ eventName + " " + metadata);
-         },
+        onEvent: (_eventName, _metadata) => {},
     }).open();
 }

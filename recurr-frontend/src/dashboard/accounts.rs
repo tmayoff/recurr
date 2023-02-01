@@ -38,7 +38,7 @@ pub fn accounts() -> Html {
         <div class="is-flex p-2">
             {
                 if accounts.loading {
-                    html!{"Loading Accounts"}
+                    html!{"Loading Accounts..."}
                 } else {
                     html!{}
                 }
