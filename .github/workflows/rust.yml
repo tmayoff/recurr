@@ -2,16 +2,15 @@ name: Rust
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
     container: debian:bookworm
 
@@ -21,23 +20,22 @@ jobs:
       SUPABASE_KEY: ""
       PLAID_URL: ""
 
-
     steps:
-    - uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-    - name: Update System
-      run: apt-get -y update && apt-get -y upgrade
+      - name: Update System
+        run: apt-get -y update && apt-get -y upgrade
 
-    - name: Install dependencies
-      run: apt-get -y install build-essential curl wget libssl-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev libsoup2.4-dev libjavascriptcoregtk-4.0-dev libwebkit2gtk-4.0-dev
+      - name: Install dependencies
+        run: apt-get -y install build-essential curl wget libssl-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev libsoup2.4-dev libjavascriptcoregtk-4.0-dev libwebkit2gtk-4.0-dev
 
-    - name: Install latest stable
-      uses: actions-rs/toolchain@v1
-      with:
-        toolchain: stable
+      - name: Install latest stable
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
 
-    - name: Setup dist dir
-      run: mkdir recurr-frontend/dist
+      - name: Setup dist dir
+        run: mkdir recurr-frontend/dist
 
-    - name: Build
-      run: cargo build
+      - name: Build
+        run: cargo build
