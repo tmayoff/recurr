@@ -21,6 +21,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
+          target: wasm32-unknown-unknown
 
       - name: Sync node version and setup cache
         uses: actions/setup-node@v3
@@ -29,7 +30,7 @@ jobs:
 
       - name: Install trunk
         uses: actions-rs/install@v0.1.2
-        with: 
+        with:
           crate: trunk
 
       - name: Build the app
