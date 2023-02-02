@@ -2,7 +2,7 @@ use recurr_core::{Account, Institution, Item};
 use reqwest::header::{HeaderMap, HeaderValue};
 use serde::{Deserialize, Serialize};
 
-use crate::plaid::institutions::institution_get;
+use crate::{plaid::institutions::institution_get, supabase::accounts::get_plaid_accounts};
 
 use super::PlaidRequest;
 
@@ -85,13 +85,12 @@ pub struct AccountsBalanceGetResponse {
 
 #[tauri::command]
 pub async fn get_balances(
-    auth_key: &str,
+    auth_token: &str,
     access_token: &str,
+    account_ids: Vec<String>,
 ) -> Result<Vec<Account>, super::Error> {
-    log::info!("Get Balances");
-
     let mut authorization = String::from("Bearer ");
-    authorization.push_str(&auth_key);
+    authorization.push_str(auth_token);
 
     let mut headers = HeaderMap::new();
     headers.insert("Authorization", authorization.parse().unwrap());
@@ -110,14 +109,12 @@ pub async fn get_balances(
 
     let data = serde_json::to_value(Request {
         access_token: access_token.to_string(),
-        options: Options {
-            account_ids: Vec::new(),
-        },
+        options: Options { account_ids },
     })
     .expect("Failed to serialize");
 
     let req = PlaidRequest {
-        endpoint: "/accounts/get".to_string(),
+        endpoint: "/accounts/balance/get".to_string(),
         data,
     };
 
@@ -129,23 +126,17 @@ pub async fn get_balances(
         .send()
         .await?;
 
-    log::info!("Balances");
-    // #[derive(Deserialize)]
-    // struct AccountsGetResponse {
-    //     accounts: Vec<Account>,
-    //     item: Item,
-    // }
+    #[derive(Deserialize)]
+    struct AccountsGetResponse {
+        accounts: Vec<Account>,
+        item: Item,
+    }
 
-    // let account_response = res
-    //     .error_for_status()?
-    //     .json::<AccountsGetResponse>()
-    //     .await?;
+    let account_response = res
+        .error_for_status()?
+        .json::<AccountsGetResponse>()
+        .await?;
 
-    // let id = account_response
-    //     .item
-    //     .institution_id
-    //     .expect("No institution associated with this");
-    // let institution = institution_get(auth_key, &id).await?;
-
-    Ok(Vec::new())
+    log::info!("{:?}", &account_response.accounts);
+    Ok(account_response.accounts)
 }

@@ -12,7 +12,14 @@ pub fn summary_view() -> Html {
         .expect("Requires supabase session")
         .access_token;
 
-    let balances = use_async(async move { get_balances(&access_token, "").await });
+    let user_id = context
+        .supabase_session
+        .clone()
+        .expect("Requires supabase session")
+        .user
+        .id;
+
+    let balances = use_async(async move { get_balances(&access_token, "", &user_id).await });
 
     use_state(|| balances.run());
 
@@ -22,7 +29,15 @@ pub fn summary_view() -> Html {
             if balances.loading {
                 html!{"Loading..."}
             } else {
-                html!{{"Loaded"}}
+                html!{}
+            }
+        }
+
+        {
+            if let Some(data) = &balances.data {
+                html!{format!("{data:?}")}
+            } else {
+                html!{""}
             }
         }
         </div>
