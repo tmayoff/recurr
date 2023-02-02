@@ -37,7 +37,7 @@ extern "C" {
     ) -> Result<JsValue, JsValue>;
 
     #[wasm_bindgen(catch)]
-    pub async fn invokePlaidGetBalances(
+    pub async fn invokeGetPlaidBalances(
         auth_token: &str,
         access_token: &str,
         user_id: &str,
@@ -63,7 +63,7 @@ pub async fn get_balances(
     access_token: &str,
     user_id: &str,
 ) -> Result<JsValue, JsValue> {
-    return invokePlaidGetBalances(auth_token, access_token, user_id).await;
+    return invokeGetPlaidBalances(auth_token, access_token, user_id).await;
 }
 
 pub async fn get_all_accounts(
