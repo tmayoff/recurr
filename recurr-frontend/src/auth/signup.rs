@@ -191,7 +191,7 @@ impl Component for SignupComponent {
                     }
                 });
             }
-            SignupMsg::SignedUp => todo!(),
+            SignupMsg::SignedUp => log::info!("Signed up"),
         }
 
         true
