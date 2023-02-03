@@ -1,4 +1,4 @@
-use recurr_core::SupabaseAuthCredentials;
+use recurr_core::{Account, SupabaseAuthCredentials};
 use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
 
 #[wasm_bindgen(module = "/public/glue.js")]
@@ -39,7 +39,6 @@ extern "C" {
     #[wasm_bindgen(catch)]
     pub async fn invokeGetPlaidBalances(
         auth_token: &str,
-        access_token: &str,
         user_id: &str,
     ) -> Result<JsValue, JsValue>;
 
@@ -58,12 +57,12 @@ pub async fn get_supabase_auth_credentials() -> Result<SupabaseAuthCredentials, 
     }
 }
 
-pub async fn get_balances(
-    auth_token: &str,
-    access_token: &str,
-    user_id: &str,
-) -> Result<JsValue, JsValue> {
-    return invokeGetPlaidBalances(auth_token, access_token, user_id).await;
+pub async fn get_balances(auth_token: &str, user_id: &str) -> Result<Vec<Account>, String> {
+    let res = invokeGetPlaidBalances(auth_token, user_id).await;
+    match res {
+        Ok(json) => Ok(serde_wasm_bindgen::from_value(json).map_err(|e| e.to_string())?),
+        Err(e) => Err(e.as_string().expect("Failed to get string")),
+    }
 }
 
 pub async fn get_all_accounts(

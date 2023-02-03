@@ -44,9 +44,9 @@ export async function invokeGetPlaidAccounts(auth_token, user_id) {
   });
 }
 
-export async function invokeGetPlaidBalances(auth_token, user_id) {
-  return await invoke("get_balances", {
-    authToken: auth_token,
+export async function invokeGetPlaidBalances(auth_key, user_id) {
+  return await invoke("get_plaid_balances", {
+    authKey: auth_key,
     userId: user_id,
   });
 }

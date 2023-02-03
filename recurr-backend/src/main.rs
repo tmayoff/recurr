@@ -24,13 +24,13 @@ fn main() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            plaid::accounts::get_balances,
             plaid::link::link_token_create,
             plaid::item_public_token_exchange,
             supabase::access_token::save_access_token,
             supabase::access_token::get_access_token,
             supabase::accounts::save_plaid_account,
             supabase::accounts::get_plaid_accounts,
+            supabase::accounts::get_plaid_balances,
             supabase::auth::get_supabase_auth_credentials,
         ])
         .run(tauri::generate_context!())

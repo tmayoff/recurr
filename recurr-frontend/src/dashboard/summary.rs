@@ -4,18 +4,8 @@ use yew_hooks::use_async;
 
 use crate::{commands, context::SessionContext};
 
-async fn get_balances(access_token: &str, user_id: &str) -> Result<Vec<Account>, String> {
-    let accounts = commands::get_all_accounts(access_token, user_id).await?;
-
-    let mut account_ids = Vec::new();
-    for account in accounts {
-        account_ids.extend(account.1.clone());
-    }
-
-    let account_ids: Vec<String> = account_ids.into_iter().map(|a| a.account_id).collect();
-    commands::get_balances(access_token, "", user_id).await;
-
-    Ok(Vec::new())
+async fn get_balances(auth_key: &str, user_id: &str) -> Result<Vec<Account>, String> {
+    commands::get_balances(auth_key, user_id).await
 }
 
 #[function_component(SummaryView)]
@@ -50,7 +40,19 @@ pub fn summary_view() -> Html {
 
         {
             if let Some(data) = &balances.data {
-                html!{format!("{data:?}")}
+                data.clone().into_iter().map(|account| {
+                    html!{
+                        <div class="m-3 card">
+                            <div class="card-header">
+                                <h1 class="card-header-title">{account.name}</h1>
+                            </div>
+
+                            <div class="card-content">
+                                {"$"} {account.balances.current}
+                            </div>
+                        </div>
+                    }
+                }).collect::<Html>()
             } else {
                 html!{""}
             }
