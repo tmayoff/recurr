@@ -59,7 +59,7 @@ pub async fn get_balances(
     #[derive(Deserialize)]
     struct AccountsGetResponse {
         accounts: Vec<Account>,
-        item: Item,
+        // item: Item,
     }
 
     let account_response = res
@@ -102,7 +102,7 @@ pub async fn accounts_get(
 
     let client = reqwest::Client::new();
     let res = client
-        .post(std::env::var("PLAID_URL")?)
+        .post(env!("PLAID_URL"))
         .json(&req)
         .headers(headers)
         .send()
