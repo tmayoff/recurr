@@ -17,6 +17,7 @@ pub struct SignupComponent {
     confirm_password: NodeRef,
 
     error: Option<String>,
+    info: Option<String>,
 }
 
 impl Component for SignupComponent {
@@ -29,6 +30,7 @@ impl Component for SignupComponent {
             password: NodeRef::default(),
             confirm_password: NodeRef::default(),
             error: None,
+            info: None,
         }
     }
 
@@ -90,6 +92,9 @@ impl Component for SignupComponent {
     }
 
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
+        self.error = None;
+        self.info = None;
+
         match msg {
             SignupMsg::Error(e) => self.error = e,
             SignupMsg::Signup => {
@@ -139,7 +144,19 @@ impl Component for SignupComponent {
                     }
                 });
             }
-            SignupMsg::SignedUp => log::info!("Signed up"),
+            SignupMsg::SignedUp => {
+                self.email.cast::<HtmlInputElement>().unwrap().set_value("");
+                self.password
+                    .cast::<HtmlInputElement>()
+                    .unwrap()
+                    .set_value("");
+                self.confirm_password
+                    .cast::<HtmlInputElement>()
+                    .unwrap()
+                    .set_value("");
+
+                self.info = Some("Check you email to confirm".to_string());
+            }
         }
 
         true
