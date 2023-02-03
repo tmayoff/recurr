@@ -1,6 +1,7 @@
+use serde::Deserialize;
 use supabase_js_rs::{Credentials, SupabaseClient};
 use wasm_bindgen_futures::spawn_local;
-use web_sys::{HtmlElement, HtmlInputElement, SubmitEvent};
+use web_sys::{HtmlElement, HtmlInputElement, MouseEvent, SubmitEvent};
 use yew::{
     function_component, html, use_context, Callback, Component, Context, Html, NodeRef, Properties,
 };
@@ -20,11 +21,17 @@ struct FormProps {
     client: SupabaseClient,
 }
 
-enum ComponentMsg {}
+enum ComponentMsg {
+    LoggedIn,
+    Login,
+    Error(Option<String>),
+}
 
 struct LoginComponent {
     email: NodeRef,
     password: NodeRef,
+
+    error: Option<String>,
 }
 
 impl Component for LoginComponent {
@@ -35,36 +42,23 @@ impl Component for LoginComponent {
         Self {
             email: NodeRef::default(),
             password: NodeRef::default(),
+            error: None,
         }
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
-        let email_ref = self.email.clone();
-        let pass_ref = self.password.clone();
-
-        let client = ctx.props().client.clone();
-        let signin = move |event: SubmitEvent| {
-            event.prevent_default();
-            let email = email_ref.cast::<HtmlInputElement>().unwrap().value();
-            let password = pass_ref.cast::<HtmlInputElement>().unwrap().value();
-
-            let client = client.clone();
-
-            spawn_local(async move {
-                let _ = client
-                    .auth()
-                    .sign_in_with_password(Credentials { email, password })
-                    .await;
-            });
-        };
-
         let toggle = ctx.props().toggle.clone();
-        let toggle_form = { Callback::from(move |_| toggle.toggle()) };
+        let toggle_form = { Callback::from(move |_: MouseEvent| toggle.toggle()) };
+
+        let login = ctx.link().callback(|e: SubmitEvent| {
+            e.prevent_default();
+            ComponentMsg::Login
+        });
 
         html! {
         <>
             <h1 class="is-size-3">{"Sign In"}</h1>
-            <form onsubmit={signin}>
+            <form onsubmit={login}>
                 <div class="field">
                     <label class="label">{"Email"}</label>
                     <div class="control">
@@ -82,6 +76,17 @@ impl Component for LoginComponent {
                         <button class="button is-link">{"Login"}</button>
                     </div>
                 </div>
+                {
+                    if let Some(e) = &self.error {
+                        html!{
+                            <div class="field">
+                                <label class="label is-danger">{e}</label>
+                            </div>
+                        }
+                    } else {
+                        html!{}
+                    }
+                }
                 <div class="field">
                     <div class="control">
                         <a onclick={toggle_form}>{"Don't have an account?"}</a>
@@ -91,6 +96,66 @@ impl Component for LoginComponent {
         </>
         }
     }
+
+    fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
+        match msg {
+            ComponentMsg::Login => {
+                let client = ctx.props().client.clone();
+                let email_ref = self.email.clone();
+                let pass_ref = self.password.clone();
+                ctx.link().send_future(async move {
+                    let email = email_ref.cast::<HtmlInputElement>().unwrap().value();
+                    let password = pass_ref.cast::<HtmlInputElement>().unwrap().value();
+
+                    let res = client
+                        .auth()
+                        .sign_in_with_password(Credentials { email, password })
+                        .await;
+
+                    match res {
+                        Ok(res) => {
+                            #[derive(Deserialize)]
+                            struct AuthError {
+                                message: String,
+                            }
+
+                            #[derive(Deserialize)]
+                            struct AuthResponse {
+                                error: Option<AuthError>,
+                            }
+
+                            let auth_res: AuthResponse =
+                                serde_wasm_bindgen::from_value(res).expect("Failed to deserialize");
+
+                            if let Some(e) = auth_res.error {
+                                return ComponentMsg::Error(Some(e.message));
+                            }
+
+                            ComponentMsg::LoggedIn
+                        }
+                        Err(e) => {
+                            ComponentMsg::Error(Some(e.as_string().expect("Failed to get string")))
+                        }
+                    }
+                });
+            }
+            ComponentMsg::Error(e) => self.error = e,
+            ComponentMsg::LoggedIn => log::info!("Logged in"),
+        };
+        true
+    }
+
+    fn changed(&mut self, _ctx: &Context<Self>, _old_props: &Self::Properties) -> bool {
+        true
+    }
+
+    fn rendered(&mut self, _ctx: &Context<Self>, _first_render: bool) {}
+
+    fn prepare_state(&self) -> Option<String> {
+        None
+    }
+
+    fn destroy(&mut self, _ctx: &Context<Self>) {}
 }
 
 struct SignupComponent {
