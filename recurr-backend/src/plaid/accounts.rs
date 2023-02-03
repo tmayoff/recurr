@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::plaid::institutions::institution_get;
 
-use super::PlaidRequest;
+use super::{Error, PlaidRequest};
 
 #[derive(Serialize, Deserialize)]
 struct Options {
@@ -17,6 +17,57 @@ struct AccountsGetRequest {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     options: Option<Options>,
+}
+
+pub async fn get_balances(
+    auth_key: &str,
+    access_token: &str,
+    account_ids: Vec<String>,
+) -> Result<Vec<Account>, Error> {
+    let mut authorization = String::from("Bearer ");
+    authorization.push_str(auth_key);
+
+    let mut headers = HeaderMap::new();
+    headers.insert("Authorization", authorization.parse().unwrap());
+    headers.insert("Content-Type", HeaderValue::from_static("application/json"));
+
+    let options = if account_ids.is_empty() {
+        None
+    } else {
+        Some(Options { account_ids })
+    };
+
+    let data = serde_json::to_value(AccountsGetRequest {
+        access_token: access_token.to_string(),
+        options,
+    })
+    .expect("Failed to serialize");
+
+    let req = PlaidRequest {
+        endpoint: "/accounts/balance/get".to_string(),
+        data,
+    };
+
+    let client = reqwest::Client::new();
+    let res = client
+        .post(env!("PLAID_URL"))
+        .json(&req)
+        .headers(headers)
+        .send()
+        .await?;
+
+    #[derive(Deserialize)]
+    struct AccountsGetResponse {
+        accounts: Vec<Account>,
+        // item: Item,
+    }
+
+    let account_response = res
+        .error_for_status()?
+        .json::<AccountsGetResponse>()
+        .await?;
+
+    Ok(account_response.accounts)
 }
 
 #[tauri::command]
@@ -51,7 +102,7 @@ pub async fn accounts_get(
 
     let client = reqwest::Client::new();
     let res = client
-        .post(std::env::var("PLAID_URL")?)
+        .post(env!("PLAID_URL"))
         .json(&req)
         .headers(headers)
         .send()
@@ -81,71 +132,4 @@ pub async fn accounts_get(
 pub struct AccountsBalanceGetResponse {
     accounts: Vec<Account>,
     item: Item,
-}
-
-#[tauri::command]
-pub async fn get_balances(
-    auth_key: &str,
-    access_token: &str,
-) -> Result<Vec<Account>, super::Error> {
-    log::info!("Get Balances");
-
-    let mut authorization = String::from("Bearer ");
-    authorization.push_str(&auth_key);
-
-    let mut headers = HeaderMap::new();
-    headers.insert("Authorization", authorization.parse().unwrap());
-    headers.insert("Content-Type", HeaderValue::from_static("application/json"));
-
-    #[derive(Serialize)]
-    struct Options {
-        account_ids: Vec<String>,
-    }
-
-    #[derive(Serialize)]
-    struct Request {
-        access_token: String,
-        options: Options,
-    }
-
-    let data = serde_json::to_value(Request {
-        access_token: access_token.to_string(),
-        options: Options {
-            account_ids: Vec::new(),
-        },
-    })
-    .expect("Failed to serialize");
-
-    let req = PlaidRequest {
-        endpoint: "/accounts/get".to_string(),
-        data,
-    };
-
-    let client = reqwest::Client::new();
-    let res = client
-        .post(std::env::var("PLAID_URL")?)
-        .json(&req)
-        .headers(headers)
-        .send()
-        .await?;
-
-    log::info!("Balances");
-    // #[derive(Deserialize)]
-    // struct AccountsGetResponse {
-    //     accounts: Vec<Account>,
-    //     item: Item,
-    // }
-
-    // let account_response = res
-    //     .error_for_status()?
-    //     .json::<AccountsGetResponse>()
-    //     .await?;
-
-    // let id = account_response
-    //     .item
-    //     .institution_id
-    //     .expect("No institution associated with this");
-    // let institution = institution_get(auth_key, &id).await?;
-
-    Ok(Vec::new())
 }

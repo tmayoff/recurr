@@ -3,9 +3,45 @@ use std::collections::HashMap;
 use recurr_core::{Account, Institution};
 
 use crate::{
-    plaid::accounts::accounts_get,
+    plaid::{self, accounts::accounts_get},
     supabase::{access_token::get_access_token, SchemaAccessToken, SchemaPlaidAccount},
 };
+
+#[tauri::command]
+pub async fn get_plaid_balances(
+    auth_key: &str,
+    user_id: &str,
+) -> Result<Vec<Account>, super::Error> {
+    // Get Account IDs and access tokens from supabase
+    let client = super::get_supbase_client()?;
+    let res = client
+        .from("access_tokens")
+        .auth(auth_key)
+        .select("*,plaid_accounts(*)")
+        .eq("user_id", user_id)
+        .execute()
+        .await?
+        .error_for_status()?;
+
+    let access_tokens: Vec<SchemaAccessToken> = res.json().await?;
+
+    let mut all_accounts = Vec::new();
+    for access_token in access_tokens {
+        if let Some(token) = access_token.plaid_accounts {
+            let account_ids = token
+                .into_iter()
+                .map(|a| a.account_id)
+                .collect::<Vec<String>>();
+
+            let accounts =
+                plaid::accounts::get_balances(auth_key, &access_token.access_token, account_ids)
+                    .await?;
+            all_accounts.extend(accounts);
+        }
+    }
+
+    Ok(all_accounts)
+}
 
 #[tauri::command]
 pub async fn get_plaid_accounts(
