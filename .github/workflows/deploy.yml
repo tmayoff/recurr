@@ -1,12 +1,13 @@
 name: Deploy
 
 on:
-  workflow_dispatch:
+  push:
+    tags:
+      - "v*.*.*"
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    container: debian:bookworm
 
     environment: deploy
 
@@ -52,5 +53,6 @@ jobs:
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
         with: 
           files: /target/release/bundle/appimage/*
