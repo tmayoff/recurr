@@ -44,3 +44,21 @@ pub struct Item {
     pub available_products: Vec<String>,
     pub products: Vec<String>,
 }
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct SchemaAccessToken {
+    #[serde(skip_serializing)]
+    pub id: i32,
+    pub access_token: String,
+    pub user_id: String,
+
+    #[serde(skip_serializing)]
+    pub plaid_accounts: Option<Vec<SchemaPlaidAccount>>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct SchemaPlaidAccount {
+    pub user_id: String,
+    pub account_id: String,
+    pub access_token_id: i32,
+}
