@@ -1,7 +1,7 @@
 use crate::supabase::{Error, SchemaAccessToken};
 
 #[tauri::command]
-pub async fn _get_access_tokens(
+pub async fn get_access_tokens(
     auth_token: &str,
     user_id: &str,
 ) -> Result<SchemaAccessToken, super::Error> {
