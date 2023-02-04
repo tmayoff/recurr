@@ -37,8 +37,11 @@ pub struct LinkTokenCreateReponse {
     pub request_id: String,
 }
 
-pub async fn link_token_create(anon_key: &str) -> Result<LinkTokenCreateReponse, String> {
-    let response = invokeLinkTokenCreate(anon_key).await;
+pub async fn link_token_create(
+    anon_key: &str,
+    user_id: &str,
+) -> Result<LinkTokenCreateReponse, String> {
+    let response = invokeLinkTokenCreate(anon_key, user_id).await;
 
     match response {
         Ok(response) => {
@@ -135,7 +138,7 @@ pub fn link() -> Html {
                 .clone()
                 .expect("Needs session already");
 
-            let response = link_token_create(&context.anon_key).await;
+            let response = link_token_create(&context.anon_key, &session.user.id).await;
             let link_token = match response {
                 Ok(res) => res.link_token,
                 Err(e) => {
