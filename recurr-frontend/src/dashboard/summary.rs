@@ -15,7 +15,7 @@ pub fn summary_view() -> Html {
         .supabase_session
         .clone()
         .expect("Requires supabase session")
-        .access_token;
+        .auth_key;
 
     let user_id = context
         .supabase_session
