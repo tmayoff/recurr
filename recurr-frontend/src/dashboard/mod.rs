@@ -43,6 +43,8 @@ fn sidebar(props: &SidebarProps) -> Html {
                 .auth()
                 .sign_out()
                 .await;
+
+            log::info!("{:?}", res);
             if let Err(e) = res {
                 log::error!("{:?}", e);
             }
