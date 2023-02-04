@@ -8,6 +8,7 @@ pub struct User {
 
 #[derive(Debug, Deserialize, PartialEq, Clone)]
 pub struct Session {
+    #[serde(rename = "access_token")]
     pub auth_key: String,
     pub token_type: String,
     pub expires_in: u32,
