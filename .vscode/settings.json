@@ -5,4 +5,7 @@
   "deno.enable": true,
   "deno.lint": true,
   "deno.unstable": true,
+  "yaml.schemas": {
+    "https://json.schemastore.org/github-workflow.json": "recurr/.github/workflows/deploy.yml"
+  },
 }
