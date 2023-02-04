@@ -49,3 +49,8 @@ jobs:
           releaseBody: "See the assets to download and install this version."
           releaseDraft: true
           prerelease: false
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with: 
+          files: /target/release/bundle/appimage/*
