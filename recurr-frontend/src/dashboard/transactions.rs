@@ -1,5 +1,5 @@
 use recurr_core::{Account, SchemaAccessToken, Transaction};
-use yew::{html, Component, Context, Properties, UseReducerHandle};
+use yew::{html, Component, Context, Html, Properties, UseReducerHandle};
 
 use crate::{commands, context::Session, supabase::get_supbase_client};
 
@@ -56,7 +56,10 @@ impl TransactionsView {
                     let res = commands::get_transactions(&auth_key, &row.access_token, a).await;
                     match res {
                         Ok(t) => return Msg::GotTransactions(t),
-                        Err(e) => return Msg::Error(e),
+                        Err(e) => {
+                            log::error!("{}", &e);
+                            return Msg::Error(e);
+                        }
                     }
                 }
             }
@@ -92,9 +95,34 @@ impl Component for TransactionsView {
                     }
                 }
 
-                {
-                    html!{{format!("{:?}", self.transactions)}}
-                }
+                <table class="table is-hoverable is-full-width">
+                    <thead>
+                        <th>{"Data"}</th>
+                        <th>{"Name"}</th>
+                        <th>{"Category"}</th>
+                        <th>{"Amount"}</th>
+                    </thead>
+                    <tbody>
+                    {
+                        self.transactions.1.clone().into_iter().map(|t| {
+                            html!{
+                                <tr>
+                                    <td> {t.date}</td>
+                                    <td> {t.name}</td>
+                                    <td> {t.category.clone()[0].clone()}</td>
+                                    {
+                                        if t.amount < 0.0 {
+                                            html!{<td class="has-text-success">{format!("${:.2}", t.amount)}</td>}
+                                        } else {
+                                            html!{<td> {format!("${:.2}", t.amount)}</td>}
+                                        }
+                                    }
+                                </tr>
+                            }
+                        }).collect::<Html>()
+                    }
+                    </tbody>
+                </table>
             </>
         }
     }

@@ -1,7 +1,6 @@
 use std::fmt::Display;
 
 use postgrest::Postgrest;
-use serde::{Deserialize, Serialize};
 
 use crate::plaid;
 
