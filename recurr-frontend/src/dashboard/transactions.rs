@@ -1,20 +1,21 @@
-use supabase_js_rs::SupabaseClient;
-use yew::{html, Component, Context, Properties};
+use recurr_core::{Account, SchemaAccessToken, Transaction};
+use yew::{html, Component, Context, Properties, UseReducerHandle};
 
-use crate::{context::Session, supabase::get_supbase_client};
+use crate::{commands, context::Session, supabase::get_supbase_client};
 
 #[derive(Properties, PartialEq)]
 pub struct Props {
-    pub session: Session,
+    pub session: UseReducerHandle<Session>,
 }
 
 pub enum Msg {
-    GotTransactions,
+    GotTransactions((Vec<Account>, Vec<Transaction>)),
     GetTransactions,
     Error(String),
 }
 
 pub struct TransactionsView {
+    transactions: (Vec<Account>, Vec<Transaction>),
     error: Option<String>,
 }
 
@@ -25,6 +26,7 @@ impl TransactionsView {
             .session
             .clone()
             .supabase_session
+            .clone()
             .expect("Needs session");
         let auth_key = session.auth_key;
         let user_id = session.user.id;
@@ -34,8 +36,8 @@ impl TransactionsView {
         ctx.link().send_future(async move {
             let res = db_client
                 .from("access_tokens")
-                .auth(auth_key)
-                .select("*")
+                .auth(&auth_key)
+                .select("*,plaid_accounts(*)")
                 .eq("user_id", user_id)
                 .execute()
                 .await;
@@ -44,7 +46,22 @@ impl TransactionsView {
                 return Msg::Error(e.to_string());
             }
 
-            Msg::GotTransactions
+            let res: Vec<SchemaAccessToken> =
+                res.unwrap().json().await.expect("Failed to get json");
+
+            // Get Transactions
+            for row in res {
+                if let Some(accounts) = row.plaid_accounts {
+                    let a: Vec<String> = accounts.into_iter().map(|a| a.account_id).collect();
+                    let res = commands::get_transactions(&auth_key, &row.access_token, a).await;
+                    match res {
+                        Ok(t) => return Msg::GotTransactions(t),
+                        Err(e) => return Msg::Error(e),
+                    }
+                }
+            }
+
+            Msg::Error("Failed to get transactions".to_string())
         });
     }
 }
@@ -56,13 +73,16 @@ impl Component for TransactionsView {
     fn create(ctx: &yew::Context<Self>) -> Self {
         ctx.link().send_message(Msg::GetTransactions);
 
-        Self { error: None }
+        Self {
+            error: None,
+            transactions: (Vec::new(), Vec::new()),
+        }
     }
 
     fn view(&self, _ctx: &yew::Context<Self>) -> yew::Html {
         html! {
             <>
-                {"Transaction"}
+                <h1 class="is-size-3"> {"Transaction"} </h1>
 
                 {
                     if let Some(e) = &self.error {
@@ -70,6 +90,10 @@ impl Component for TransactionsView {
                     } else {
                         html!{}
                     }
+                }
+
+                {
+                    html!{{format!("{:?}", self.transactions)}}
                 }
             </>
         }
@@ -80,9 +104,9 @@ impl Component for TransactionsView {
 
         match msg {
             Msg::GetTransactions => self.get_transaction(ctx),
-            Msg::GotTransactions => log::info!("Got transactions"),
+            Msg::GotTransactions(t) => self.transactions = t,
             Msg::Error(e) => {
-                log::info!("Got error {}", &e);
+                log::info!("Got error: {}", &e);
                 self.error = Some(e);
             }
         }
@@ -90,15 +114,15 @@ impl Component for TransactionsView {
         true
     }
 
-    fn changed(&mut self, ctx: &yew::Context<Self>, _old_props: &Self::Properties) -> bool {
+    fn changed(&mut self, _ctx: &yew::Context<Self>, _old_props: &Self::Properties) -> bool {
         true
     }
 
-    fn rendered(&mut self, ctx: &yew::Context<Self>, first_render: bool) {}
+    fn rendered(&mut self, _ctx: &yew::Context<Self>, _first_render: bool) {}
 
     fn prepare_state(&self) -> Option<String> {
         None
     }
 
-    fn destroy(&mut self, ctx: &yew::Context<Self>) {}
+    fn destroy(&mut self, _ctx: &yew::Context<Self>) {}
 }

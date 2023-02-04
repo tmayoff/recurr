@@ -79,7 +79,6 @@ impl Component for Main {
     fn view(&self, _ctx: &Context<Self>) -> Html {
         let context = &self.context;
         let has_session = self.context.supabase_session.is_some();
-        log::info!("{}", has_session);
         html! {
             <main class="hero is-fullheight">
             {

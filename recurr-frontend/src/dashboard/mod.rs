@@ -9,7 +9,7 @@ use wasm_bindgen::JsCast;
 use web_sys::{HtmlElement, MouseEvent};
 use yew::{
     function_component, html, platform::spawn_local, use_context, use_state, Callback, Html,
-    Properties, UseStateHandle,
+    Properties, UseReducerHandle, UseStateHandle,
 };
 
 mod accounts;
@@ -112,7 +112,7 @@ fn sidebar(props: &SidebarProps) -> Html {
 #[function_component(Dashboard)]
 pub fn dashboard() -> Html {
     let sidebar_state = use_state(|| DashboardTab::Transaction);
-    let context = use_context::<Session>();
+    let context = use_context::<UseReducerHandle<Session>>();
 
     html! {
         <div class="full-height columns m-0">

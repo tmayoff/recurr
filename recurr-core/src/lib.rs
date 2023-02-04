@@ -36,6 +36,11 @@ pub struct Account {
     // verification_status: String,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+pub struct Transaction {
+    pub name: String,
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct Item {
     pub item_id: String,

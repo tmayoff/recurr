@@ -1,4 +1,4 @@
-use recurr_core::{Account, SupabaseAuthCredentials};
+use recurr_core::{Account, SupabaseAuthCredentials, Transaction};
 use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
 
 #[wasm_bindgen(module = "/public/glue.js")]
@@ -13,6 +13,13 @@ extern "C" {
     pub async fn invokeItemPublicTokenExchange(
         anon_key: &str,
         public_token: &str,
+    ) -> Result<JsValue, JsValue>;
+
+    #[wasm_bindgen(catch)]
+    pub async fn invokeGetTransactions(
+        auth_key: &str,
+        access_token: &str,
+        account_ids: JsValue,
     ) -> Result<JsValue, JsValue>;
 
     #[wasm_bindgen(catch)]
@@ -55,6 +62,23 @@ pub async fn get_supabase_auth_credentials() -> Result<SupabaseAuthCredentials, 
         }
         Err(e) => Err(e.as_string().expect("Failed to get string")),
     }
+}
+
+pub async fn get_transactions(
+    auth_key: &str,
+    access_token: &str,
+    account_ids: Vec<String>,
+) -> Result<(Vec<Account>, Vec<Transaction>), String> {
+    let res = invokeGetTransactions(
+        auth_key,
+        access_token,
+        serde_wasm_bindgen::to_value(&account_ids).expect("Failed to convert to JsValue"),
+    )
+    .await
+    .map_err(|e| e.as_string().unwrap())?;
+
+    let res = serde_wasm_bindgen::from_value(res).map_err(|e| e.to_string())?;
+    Ok(res)
 }
 
 pub async fn get_balances(auth_token: &str, user_id: &str) -> Result<Vec<Account>, String> {

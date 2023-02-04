@@ -1,4 +1,6 @@
-use crate::supabase::{Error, SchemaAccessToken};
+use recurr_core::SchemaAccessToken;
+
+use crate::supabase::Error;
 
 #[tauri::command]
 pub async fn get_access_tokens(
