@@ -16,8 +16,11 @@ export async function invokeGetTransactions(
   });
 }
 
-export async function invokeLinkTokenCreate(anon_key) {
-  return await invoke("link_token_create", { authKey: anon_key });
+export async function invokeLinkTokenCreate(anon_key, user_id) {
+  return await invoke("link_token_create", {
+    authKey: anon_key,
+    userId: user_id,
+  });
 }
 
 export async function invokeItemPublicTokenExchange(anon_key, public_token) {

@@ -7,7 +7,7 @@ extern "C" {
     pub async fn invokeGetSupbaseAuthCredentials() -> Result<JsValue, JsValue>;
 
     #[wasm_bindgen(catch)]
-    pub async fn invokeLinkTokenCreate(anon_key: &str) -> Result<JsValue, JsValue>;
+    pub async fn invokeLinkTokenCreate(anon_key: &str, user_id: &str) -> Result<JsValue, JsValue>;
 
     #[wasm_bindgen(catch)]
     pub async fn invokeItemPublicTokenExchange(
