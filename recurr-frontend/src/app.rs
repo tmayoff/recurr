@@ -16,10 +16,12 @@ fn setup_auth_handler(context: &UseReducerHandle<Session>, client: &SupabaseClie
     let auth_callback: Closure<dyn FnMut(JsValue, JsValue)> =
         Closure::new(move |_: JsValue, session: JsValue| {
             let session: Result<supabase::Session, Error> = serde_wasm_bindgen::from_value(session);
-            if let Ok(session) = session {
-                callback_context.dispatch((Some(session), None));
-            } else {
-                callback_context.dispatch((None, None));
+            match session {
+                Ok(session) => callback_context.dispatch((Some(session), None)),
+                Err(e) => {
+                    log::error!("Auth status changed, but failed {} ", e);
+                    callback_context.dispatch((None, None));
+                }
             }
         });
 

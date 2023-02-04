@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 
-use recurr_core::{Account, Institution};
+use recurr_core::{Account, Institution, SchemaAccessToken, SchemaPlaidAccount};
 
 use crate::{
     plaid::{self, accounts::accounts_get},
-    supabase::{access_token::get_access_token, SchemaAccessToken, SchemaPlaidAccount},
+    supabase::access_token::get_access_token,
 };
 
 #[tauri::command]

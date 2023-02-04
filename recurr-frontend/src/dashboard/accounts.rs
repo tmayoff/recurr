@@ -25,7 +25,7 @@ pub fn accounts() -> Html {
         .as_ref()
         .expect("Requires supabase session");
     let user_id = session.user.id.clone();
-    let access_token = session.access_token.clone();
+    let access_token = session.auth_key.clone();
 
     let accounts = use_async(async move {
         let accounts = get_all_accounts(&access_token, &user_id).await;

@@ -1,23 +1,25 @@
 use std::str::FromStr;
 
 use crate::{
-    context::SessionContext,
-    dashboard::{accounts::AccountsView, summary::SummaryView},
+    context::{Session, SessionContext},
+    dashboard::{accounts::AccountsView, summary::SummaryView, transactions::TransactionsView},
 };
 use strum::EnumString;
 use wasm_bindgen::JsCast;
 use web_sys::{HtmlElement, MouseEvent};
 use yew::{
     function_component, html, platform::spawn_local, use_context, use_state, Callback, Html,
-    Properties, UseStateHandle,
+    Properties, UseReducerHandle, UseStateHandle,
 };
 
 mod accounts;
 mod summary;
+mod transactions;
 
 #[derive(Debug, PartialEq, EnumString)]
 enum DashboardTab {
     Summary,
+    Transaction,
     Accounts,
 }
 
@@ -70,6 +72,11 @@ fn sidebar(props: &SidebarProps) -> Html {
             tab: DashboardTab::Summary,
         },
         TabButton {
+            active: true,
+            name: "Transaction".to_string(),
+            tab: DashboardTab::Transaction,
+        },
+        TabButton {
             active: false,
             name: "Accounts".to_string(),
             tab: DashboardTab::Accounts,
@@ -104,19 +111,24 @@ fn sidebar(props: &SidebarProps) -> Html {
 
 #[function_component(Dashboard)]
 pub fn dashboard() -> Html {
-    let sidebar_state = use_state(|| DashboardTab::Summary);
+    let sidebar_state = use_state(|| DashboardTab::Transaction);
+    let context = use_context::<UseReducerHandle<Session>>();
 
     html! {
         <div class="full-height columns m-0">
             <Sidebar sidebar_state={sidebar_state.clone()} />
             <div class="column">
                 {
-                    if (*sidebar_state) == DashboardTab::Summary {
-                        html!{<SummaryView />}
-                    } else if (*sidebar_state) == DashboardTab::Accounts {
-                        html!{<AccountsView />}
-                    } else {
-                        html!{}
+                    match *sidebar_state {
+                        DashboardTab::Summary => html!{<SummaryView />},
+                        DashboardTab::Transaction => {
+                                if let Some(session) = context {
+                                    html!{<TransactionsView {session}/>}
+                                }  else {
+                                    html!{""}
+                                }
+                            },
+                        DashboardTab::Accounts => html!{<AccountsView />},
                     }
                 }
             </div>

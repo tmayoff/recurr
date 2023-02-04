@@ -171,7 +171,7 @@ pub fn link() -> Html {
             let exchange_status = exchange_status.ok().unwrap();
 
             let user_id = &session.user.id;
-            let auth_token = &session.access_token;
+            let auth_token = &session.auth_key;
 
             let res =
                 invokeSaveAccessToken(auth_token, user_id, &exchange_status.access_token).await;

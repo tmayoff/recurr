@@ -25,9 +25,11 @@ fn main() {
         })
         .invoke_handler(tauri::generate_handler![
             plaid::link::link_token_create,
+            plaid::get_transactions,
             plaid::item_public_token_exchange,
             supabase::access_token::save_access_token,
-            supabase::access_token::get_access_token,
+            supabase::access_token::get_access_tokens,
+            // supabase::access_token::get_access_token,
             supabase::accounts::save_plaid_account,
             supabase::accounts::get_plaid_accounts,
             supabase::accounts::get_plaid_balances,
