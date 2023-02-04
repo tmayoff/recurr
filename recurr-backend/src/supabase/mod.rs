@@ -40,7 +40,8 @@ impl Display for Error {
 }
 
 pub fn get_supbase_client() -> Result<Postgrest, Error> {
-    let client = Postgrest::new(env!("SUPABASE_URL")).insert_header("apikey", env!("SUPABASE_KEY"));
+    let client = Postgrest::new(env!("SUPABASE_URL").to_owned() + "/rest/v1")
+        .insert_header("apikey", env!("SUPABASE_KEY"));
 
     Ok(client)
 }
