@@ -1,6 +1,6 @@
 [package]
 name = "recurr"
-version = "0.0.2"
+version = "0.0.3"
 description = "Recurr a budgeting up"
 authors = ["Tyler Mayoff"]
 license = ""
