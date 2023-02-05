@@ -34,7 +34,7 @@ pub async fn institution_get(
 
     let client = reqwest::Client::new();
     let res = client
-        .post(std::env::var("PLAID_URL")?)
+        .post(env!("PLAID_URL"))
         .json(&req)
         .headers(headers)
         .send()

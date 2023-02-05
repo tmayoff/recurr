@@ -1,23 +1,25 @@
 use std::str::FromStr;
 
 use crate::{
-    context::SessionContext,
-    dashboard::{accounts::AccountsView, summary::SummaryView},
+    context::{Session, SessionContext},
+    dashboard::{accounts::AccountsView, summary::SummaryView, transactions::TransactionsView},
 };
 use strum::EnumString;
 use wasm_bindgen::JsCast;
 use web_sys::{HtmlElement, MouseEvent};
 use yew::{
     function_component, html, platform::spawn_local, use_context, use_state, Callback, Html,
-    Properties, UseStateHandle,
+    Properties, UseReducerHandle, UseStateHandle,
 };
 
 mod accounts;
 mod summary;
+mod transactions;
 
 #[derive(Debug, PartialEq, EnumString)]
 enum DashboardTab {
     Summary,
+    Transaction,
     Accounts,
 }
 
@@ -41,6 +43,7 @@ fn sidebar(props: &SidebarProps) -> Html {
                 .auth()
                 .sign_out()
                 .await;
+
             if let Err(e) = res {
                 log::error!("{:?}", e);
             }
@@ -70,6 +73,11 @@ fn sidebar(props: &SidebarProps) -> Html {
             tab: DashboardTab::Summary,
         },
         TabButton {
+            active: true,
+            name: "Transaction".to_string(),
+            tab: DashboardTab::Transaction,
+        },
+        TabButton {
             active: false,
             name: "Accounts".to_string(),
             tab: DashboardTab::Accounts,
@@ -82,41 +90,45 @@ fn sidebar(props: &SidebarProps) -> Html {
     }
 
     html! {
-        <div class="column is-one-fifth has-background-info is-flex is-flex-direction-column">
+        <aside class="menu p-3 has-background-primary is-flex is-flex-direction-column is-align-content-center">
             <div class="is-flex-grow-1 is-flex is-flex-direction-column">
                 {
                     tab_buttons.into_iter().map(|tab| {
                         if tab.active {
-                            html!{<button class="button is-info is-active" data={format!("{:?}", tab.tab)}>{tab.name}</button>}
+                            html!{<button class="button is-primary is-active" data={format!("{:?}", tab.tab)}>{tab.name}</button>}
                         } else {
-                            html!{<button class="button is-info" data={format!("{:?}", tab.tab)} onclick={switch_tabs.clone()}>{tab.name}</button>}
+                            html!{<button class="button is-primary" data={format!("{:?}", tab.tab)} onclick={switch_tabs.clone()}>{tab.name}</button>}
                         }
                     }).collect::<Html>()
                 }
             </div>
-
             <div class="is-flex is-justify-content-center">
                 <button onclick={signout} class="button is-danger">{"Signout"}</button>
             </div>
-        </div>
+        </aside>
     }
 }
 
 #[function_component(Dashboard)]
 pub fn dashboard() -> Html {
     let sidebar_state = use_state(|| DashboardTab::Summary);
+    let context = use_context::<UseReducerHandle<Session>>();
 
     html! {
         <div class="full-height columns m-0">
             <Sidebar sidebar_state={sidebar_state.clone()} />
-            <div class="column">
+            <div class="column has-background-light">
                 {
-                    if (*sidebar_state) == DashboardTab::Summary {
-                        html!{<SummaryView />}
-                    } else if (*sidebar_state) == DashboardTab::Accounts {
-                        html!{<AccountsView />}
-                    } else {
-                        html!{}
+                    match *sidebar_state {
+                        DashboardTab::Summary => html!{<SummaryView />},
+                        DashboardTab::Transaction => {
+                                if let Some(session) = context {
+                                    html!{<TransactionsView {session}/>}
+                                }  else {
+                                    html!{""}
+                                }
+                            },
+                        DashboardTab::Accounts => html!{<AccountsView />},
                     }
                 }
             </div>

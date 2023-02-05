@@ -1,8 +1,8 @@
 [package]
 name = "recurr"
-version = "0.0.0"
-description = "A Tauri App"
-authors = ["you"]
+version = "0.0.3"
+description = "Recurr a budgeting up"
+authors = ["Tyler Mayoff"]
 license = ""
 repository = ""
 edition = "2021"
@@ -20,7 +20,7 @@ tauri-build = { version = "2.0.0-alpha.0", features = [] }
 recurr-core = { path = "../recurr-core" }
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
-tauri = { version = "2.0.0-alpha.0", features = ["shell-open"] }
+tauri = { version = "2.0.0-alpha.0", features = ["shell-open", "updater"] }
 reqwest = { version = "0.11.13", features = ["json", "blocking"] }
 log = "0.4.17"
 env_logger = "0.10.0"

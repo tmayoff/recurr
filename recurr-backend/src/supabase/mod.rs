@@ -1,7 +1,6 @@
 use std::fmt::Display;
 
 use postgrest::Postgrest;
-use serde::{Deserialize, Serialize};
 
 use crate::plaid;
 
@@ -39,26 +38,9 @@ impl Display for Error {
     }
 }
 
-fn get_supbase_client() -> Result<Postgrest, Error> {
-    let client = Postgrest::new(env!("SUPABASE_URL")).insert_header("apikey", env!("SUPABASE_KEY"));
+pub fn get_supbase_client() -> Result<Postgrest, Error> {
+    let client = Postgrest::new(env!("SUPABASE_URL").to_owned() + "/rest/v1")
+        .insert_header("apikey", env!("SUPABASE_KEY"));
 
     Ok(client)
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct SchemaAccessToken {
-    #[serde(skip_serializing)]
-    id: i32,
-    access_token: String,
-    user_id: String,
-
-    #[serde(skip_serializing)]
-    plaid_accounts: Option<Vec<SchemaPlaidAccount>>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-struct SchemaPlaidAccount {
-    user_id: String,
-    account_id: String,
-    access_token_id: i32,
 }

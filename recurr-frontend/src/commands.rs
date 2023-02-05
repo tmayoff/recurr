@@ -1,4 +1,4 @@
-use recurr_core::SupabaseAuthCredentials;
+use recurr_core::{Account, SupabaseAuthCredentials, Transaction};
 use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
 
 #[wasm_bindgen(module = "/public/glue.js")]
@@ -7,12 +7,19 @@ extern "C" {
     pub async fn invokeGetSupbaseAuthCredentials() -> Result<JsValue, JsValue>;
 
     #[wasm_bindgen(catch)]
-    pub async fn invokeLinkTokenCreate(anon_key: &str) -> Result<JsValue, JsValue>;
+    pub async fn invokeLinkTokenCreate(anon_key: &str, user_id: &str) -> Result<JsValue, JsValue>;
 
     #[wasm_bindgen(catch)]
     pub async fn invokeItemPublicTokenExchange(
         anon_key: &str,
         public_token: &str,
+    ) -> Result<JsValue, JsValue>;
+
+    #[wasm_bindgen(catch)]
+    pub async fn invokeGetTransactions(
+        auth_key: &str,
+        access_token: &str,
+        account_ids: JsValue,
     ) -> Result<JsValue, JsValue>;
 
     #[wasm_bindgen(catch)]
@@ -37,7 +44,10 @@ extern "C" {
     ) -> Result<JsValue, JsValue>;
 
     #[wasm_bindgen(catch)]
-    pub async fn invokeGetBalances(auth_token: &str, user_id: &str) -> Result<JsValue, JsValue>;
+    pub async fn invokeGetPlaidBalances(
+        auth_token: &str,
+        user_id: &str,
+    ) -> Result<JsValue, JsValue>;
 
     pub fn linkStart(link_token: String, callback: JsValue);
 }
@@ -54,8 +64,29 @@ pub async fn get_supabase_auth_credentials() -> Result<SupabaseAuthCredentials, 
     }
 }
 
-pub async fn get_balances(auth_token: &str, acces_token: &str) -> Result<JsValue, JsValue> {
-    invokeGetBalances(auth_token, acces_token).await
+pub async fn get_transactions(
+    auth_key: &str,
+    access_token: &str,
+    account_ids: Vec<String>,
+) -> Result<(Vec<Account>, Vec<Transaction>), String> {
+    let res = invokeGetTransactions(
+        auth_key,
+        access_token,
+        serde_wasm_bindgen::to_value(&account_ids).expect("Failed to convert to JsValue"),
+    )
+    .await
+    .map_err(|e| e.as_string().unwrap())?;
+
+    let res = serde_wasm_bindgen::from_value(res).map_err(|e| e.to_string())?;
+    Ok(res)
+}
+
+pub async fn get_balances(auth_token: &str, user_id: &str) -> Result<Vec<Account>, String> {
+    let res = invokeGetPlaidBalances(auth_token, user_id).await;
+    match res {
+        Ok(json) => Ok(serde_wasm_bindgen::from_value(json).map_err(|e| e.to_string())?),
+        Err(e) => Err(e.as_string().expect("Failed to get string")),
+    }
 }
 
 pub async fn get_all_accounts(

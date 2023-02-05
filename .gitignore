@@ -1,5 +1,7 @@
 /dist/
 /target/
 /Cargo.lock
-.env
 .fleet
+*.env
+
+.vscode/settings.json

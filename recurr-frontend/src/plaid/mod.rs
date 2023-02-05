@@ -37,8 +37,11 @@ pub struct LinkTokenCreateReponse {
     pub request_id: String,
 }
 
-pub async fn link_token_create(anon_key: &str) -> Result<LinkTokenCreateReponse, String> {
-    let response = invokeLinkTokenCreate(anon_key).await;
+pub async fn link_token_create(
+    anon_key: &str,
+    user_id: &str,
+) -> Result<LinkTokenCreateReponse, String> {
+    let response = invokeLinkTokenCreate(anon_key, user_id).await;
 
     match response {
         Ok(response) => {
@@ -135,7 +138,7 @@ pub fn link() -> Html {
                 .clone()
                 .expect("Needs session already");
 
-            let response = link_token_create(&context.anon_key).await;
+            let response = link_token_create(&session.auth_key, &session.user.id).await;
             let link_token = match response {
                 Ok(res) => res.link_token,
                 Err(e) => {
@@ -156,22 +159,22 @@ pub fn link() -> Html {
 
             let link_status = rx.await.expect("Failed to get link response");
             if let Err(e) = &link_status {
-                log::info!("{:?}", e);
+                log::error!("{:?}", e);
                 return;
             }
 
             let link_status = link_status.expect("Checked for error");
 
             let exchange_status =
-                item_public_token_exchange(&context.anon_key, &link_status.public_token).await;
+                item_public_token_exchange(&session.auth_key, &link_status.public_token).await;
             if let Err(e) = exchange_status {
-                log::info!("{:?}", e);
+                log::error!("{:?}", e);
                 return;
             }
             let exchange_status = exchange_status.ok().unwrap();
 
             let user_id = &session.user.id;
-            let auth_token = &session.access_token;
+            let auth_token = &session.auth_key;
 
             let res =
                 invokeSaveAccessToken(auth_token, user_id, &exchange_status.access_token).await;
