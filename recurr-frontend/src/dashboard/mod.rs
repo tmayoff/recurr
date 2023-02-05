@@ -91,23 +91,20 @@ fn sidebar(props: &SidebarProps) -> Html {
 
     html! {
         <aside class="menu p-3 has-background-primary is-flex is-flex-direction-column is-align-content-center">
-            <div class="is-flex-grow-1">
-                <div class="menu-list ">
-                    <ul>
-                        {
-                            tab_buttons.into_iter().map(|tab| {
-                                if tab.active {
-                                    html!{<li><button class="button is-primary is-active" data={format!("{:?}", tab.tab)}>{tab.name}</button></li>}
-                                } else {
-                                    html!{<li><button class="button is-primary" data={format!("{:?}", tab.tab)} onclick={switch_tabs.clone()}>{tab.name}</button></li>}
-                                }
-                            }).collect::<Html>()
+            <div class="is-flex-grow-1 is-flex is-flex-direction-column">
+                {
+                    tab_buttons.into_iter().map(|tab| {
+                        if tab.active {
+                            html!{<button class="button is-primary is-active" data={format!("{:?}", tab.tab)}>{tab.name}</button>}
+                        } else {
+                            html!{<button class="button is-primary" data={format!("{:?}", tab.tab)} onclick={switch_tabs.clone()}>{tab.name}</button>}
                         }
-                    </ul>
-                </div>
+                    }).collect::<Html>()
+                }
             </div>
-
-            <button onclick={signout} class="button is-danger is-align-self-flex-end">{"Signout"}</button>
+            <div class="is-flex is-justify-content-center">
+                <button onclick={signout} class="button is-danger">{"Signout"}</button>
+            </div>
         </aside>
     }
 }
