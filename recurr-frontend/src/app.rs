@@ -1,7 +1,7 @@
 use crate::{
     auth::Auth,
     commands,
-    context::{Session, SessionProvider},
+    context::{ContextUpdate, Session, SessionProvider},
     dashboard::Dashboard,
     supabase,
 };
@@ -18,10 +18,10 @@ fn setup_auth_handler(context: &UseReducerHandle<Session>, client: &SupabaseClie
             let session: Result<Option<supabase::Session>, Error> =
                 serde_wasm_bindgen::from_value(session);
             match session {
-                Ok(session) => callback_context.dispatch((session, None)),
+                Ok(session) => callback_context.dispatch(ContextUpdate::Session(session)),
                 Err(e) => {
                     log::error!("Auth status changed, but failed {} ", e);
-                    callback_context.dispatch((None, None));
+                    callback_context.dispatch(ContextUpdate::Session(None));
                 }
             }
         });
@@ -59,7 +59,7 @@ impl Component for Main {
             let cred = cred.expect("Failed to get credentials");
             let client = supabase_js_rs::create_client(&cred.auth_url, &cred.anon_key);
             setup_auth_handler(&async_context, &client);
-            async_context.dispatch((None, Some(client)));
+            async_context.dispatch(ContextUpdate::SupabaseClient(Some(client)));
         });
 
         Self {

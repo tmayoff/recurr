@@ -3,6 +3,11 @@ use std::rc::Rc;
 use supabase_js_rs::SupabaseClient;
 use yew::prelude::*;
 
+pub enum ContextUpdate {
+    Session(Option<supabase::Session>),
+    SupabaseClient(Option<SupabaseClient>),
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct Session {
     pub anon_key: String,
@@ -11,23 +16,14 @@ pub struct Session {
 }
 
 impl Reducible for Session {
-    type Action = (Option<supabase::Session>, Option<SupabaseClient>);
+    type Action = ContextUpdate;
 
     fn reduce(self: Rc<Self>, action: Self::Action) -> Rc<Self> {
-        let mut s = Session {
-            supabase_client: self.supabase_client.clone(),
-            supabase_session: self.supabase_session.clone(),
-            anon_key: String::default(),
-        };
+        let mut s = (*self).clone();
 
-        // We don't want to overwrite either session or client if the other isn't provided in the call
-        if let Some(session) = action.0 {
-            s.supabase_session = Some(session.clone());
-            s.anon_key = session.auth_key;
-        }
-
-        if let Some(client) = action.1 {
-            s.supabase_client = Some(client);
+        match action {
+            ContextUpdate::Session(session) => s.supabase_session = session,
+            ContextUpdate::SupabaseClient(client) => s.supabase_client = client,
         }
 
         s.into()
