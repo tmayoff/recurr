@@ -89,14 +89,14 @@ fn sidebar(props: &SidebarProps) -> Html {
     }
 
     html! {
-        <div class="column is-one-fifth has-background-info is-flex is-flex-direction-column">
+        <div class="column is-one-fifth has-background-primary is-flex is-flex-direction-column">
             <div class="is-flex-grow-1 is-flex is-flex-direction-column">
                 {
                     tab_buttons.into_iter().map(|tab| {
                         if tab.active {
-                            html!{<button class="button is-info is-active" data={format!("{:?}", tab.tab)}>{tab.name}</button>}
+                            html!{<button class="button is-primary is-active" data={format!("{:?}", tab.tab)}>{tab.name}</button>}
                         } else {
-                            html!{<button class="button is-info" data={format!("{:?}", tab.tab)} onclick={switch_tabs.clone()}>{tab.name}</button>}
+                            html!{<button class="button is-primary" data={format!("{:?}", tab.tab)} onclick={switch_tabs.clone()}>{tab.name}</button>}
                         }
                     }).collect::<Html>()
                 }
@@ -117,7 +117,7 @@ pub fn dashboard() -> Html {
     html! {
         <div class="full-height columns m-0">
             <Sidebar sidebar_state={sidebar_state.clone()} />
-            <div class="column">
+            <div class="column has-background-light">
                 {
                     match *sidebar_state {
                         DashboardTab::Summary => html!{<SummaryView />},
