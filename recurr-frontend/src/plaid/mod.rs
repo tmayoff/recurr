@@ -138,7 +138,7 @@ pub fn link() -> Html {
                 .clone()
                 .expect("Needs session already");
 
-            let response = link_token_create(&context.anon_key, &session.user.id).await;
+            let response = link_token_create(&session.auth_key, &session.user.id).await;
             let link_token = match response {
                 Ok(res) => res.link_token,
                 Err(e) => {
@@ -159,16 +159,16 @@ pub fn link() -> Html {
 
             let link_status = rx.await.expect("Failed to get link response");
             if let Err(e) = &link_status {
-                log::info!("{:?}", e);
+                log::error!("{:?}", e);
                 return;
             }
 
             let link_status = link_status.expect("Checked for error");
 
             let exchange_status =
-                item_public_token_exchange(&context.anon_key, &link_status.public_token).await;
+                item_public_token_exchange(&session.auth_key, &link_status.public_token).await;
             if let Err(e) = exchange_status {
-                log::info!("{:?}", e);
+                log::error!("{:?}", e);
                 return;
             }
             let exchange_status = exchange_status.ok().unwrap();
