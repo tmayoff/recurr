@@ -1,8 +1,8 @@
 [package]
 name = "recurr"
-version = "0.0.0"
-description = "A Tauri App"
-authors = ["you"]
+version = "0.0.2"
+description = "Recurr a budgeting up"
+authors = ["Tyler Mayoff"]
 license = ""
 repository = ""
 edition = "2021"
