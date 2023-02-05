@@ -3,3 +3,5 @@
 /Cargo.lock
 .fleet
 *.env
+
+.vscode/settings.json
