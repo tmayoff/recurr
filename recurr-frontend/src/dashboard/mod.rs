@@ -44,7 +44,6 @@ fn sidebar(props: &SidebarProps) -> Html {
                 .sign_out()
                 .await;
 
-            log::info!("{:?}", res);
             if let Err(e) = res {
                 log::error!("{:?}", e);
             }
@@ -91,7 +90,7 @@ fn sidebar(props: &SidebarProps) -> Html {
     }
 
     html! {
-        <div class="column is-one-fifth has-background-primary is-flex is-flex-direction-column">
+        <aside class="menu p-3 has-background-primary is-flex is-flex-direction-column is-align-content-center">
             <div class="is-flex-grow-1 is-flex is-flex-direction-column">
                 {
                     tab_buttons.into_iter().map(|tab| {
@@ -103,11 +102,10 @@ fn sidebar(props: &SidebarProps) -> Html {
                     }).collect::<Html>()
                 }
             </div>
-
             <div class="is-flex is-justify-content-center">
                 <button onclick={signout} class="button is-danger">{"Signout"}</button>
             </div>
-        </div>
+        </aside>
     }
 }
 
