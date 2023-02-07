@@ -40,7 +40,7 @@ pub struct Account {
 pub struct Transaction {
     pub name: String,
     pub amount: f64,
-    // pub category_id: Option<String>,
+    pub category_id: Option<String>,
     pub category: Vec<String>,
     pub date: String,
 }
