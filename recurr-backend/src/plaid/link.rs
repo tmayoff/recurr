@@ -53,7 +53,11 @@ pub async fn link_token_create(
         "Recurr",
         "en",
         vec!["CA".to_string()],
-        vec!["auth".to_string(), "transactions".to_string()],
+        vec![
+            "auth".to_string(),
+            "transactions".to_string(),
+            "liabilities".to_string(),
+        ],
         User {
             client_user_id: user_id.to_string(),
         },
