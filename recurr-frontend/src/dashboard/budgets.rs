@@ -2,9 +2,76 @@ use std::collections::HashMap;
 
 use recurr_core::{SchemaAccessToken, Transaction};
 use web_sys::HtmlElement;
-use yew::{html, Callback, Component, Context, Html, NodeRef, Properties, UseReducerHandle};
+use yew::{
+    function_component, html, use_node_ref, Callback, Component, Context, Html, NodeRef,
+    Properties, UseReducerHandle,
+};
+use yew_hooks::use_async;
 
 use crate::{commands, context::Session, supabase::get_supbase_client};
+
+#[function_component(BudgetModal)]
+fn add_budget_modal() -> Html {
+    // let category_async = use_async(async move {
+    //TODO Get Categories
+    // });
+
+    let modal_ref = use_node_ref();
+    let modal_ref_clone = modal_ref.clone();
+    let close_add_modal = Callback::from(move |_| {
+        let div = modal_ref_clone
+            .clone()
+            .cast::<HtmlElement>()
+            .expect("Failed to html element");
+
+        div.set_class_name("modal");
+    });
+
+    let modal_ref_clone = modal_ref.clone();
+    let open_add_modal = move |_| {
+        let div = modal_ref_clone
+            .clone()
+            .cast::<HtmlElement>()
+            .expect("Failed to html element");
+
+        div.set_class_name("modal is-active");
+    };
+
+    html! {
+        <>
+        <div class="modal" ref={modal_ref}>
+            <div class="modal-background" onclick={close_add_modal.clone()}></div>
+            <div class="modal-card">
+                <header class="modal-card-head">
+                    <p class="modal-card-title">{"Add budget"}</p>
+                    <button class="delete" aria-label="close"></button>
+                </header>
+                <section class="modal-card-body">
+                    <form>
+                        <div class="select is-info">
+                            <select placeholder="Choose a category">
+                            </select>
+                        </div>
+
+                        <div class="field">
+                            <label class="label">{"How much"}</label>
+                            <div class="control">
+                                <input class="input is-success" type="number" value="0" />
+                            </div>
+                        </div>
+                    </form>
+                </section>
+                <footer class="modal-card-foot">
+                    <button class="button" onclick={close_add_modal.clone()}>{"Cancel"}</button>
+                    <button class="button is-success">{"Save"}</button>
+                </footer>
+            </div>
+        </div>
+
+        <button class="button is-success" onclick={open_add_modal}>{"Add a budget"}</button>
+        </>
+    }
+}
 
 pub enum Msg {
     GotTransactions((HashMap<String, f64>, HashMap<String, f64>, Vec<Transaction>)),
@@ -133,63 +200,14 @@ impl Component for BudgetsView {
     }
 
     fn view(&self, _ctx: &yew::Context<Self>) -> Html {
-        let div = self.modal_ref.clone();
-        let open_add_modal = move |_| {
-            let div = div
-                .clone()
-                .cast::<HtmlElement>()
-                .expect("Failed to html element");
-
-            div.set_class_name("modal is-active");
-        };
-
-        let div = self.modal_ref.clone();
-        let close_add_modal = Callback::from(move |_| {
-            let div = div
-                .clone()
-                .cast::<HtmlElement>()
-                .expect("Failed to html element");
-
-            div.set_class_name("modal");
-        });
-
         html! {
             <>
-            <div class="modal" ref={self.modal_ref.clone()}>
-                <div class="modal-background" onclick={close_add_modal.clone()}></div>
-                <div class="modal-card">
-                    <header class="modal-card-head">
-                        <p class="modal-card-title">{"Add budget"}</p>
-                        <button class="delete" aria-label="close"></button>
-                    </header>
-                    <section class="modal-card-body">
-                        <form>
-                            <div class="select is-info">
-                                <select placeholder="Choose a category">
-                                </select>
-                            </div>
-
-                            <div class="field">
-                                <label class="label">{"How much"}</label>
-                                <div class="control">
-                                    <input class="input is-success" type="number" value="0" />
-                                </div>
-                            </div>
-                        </form>
-                    </section>
-                    <footer class="modal-card-foot">
-                        <button class="button" onclick={close_add_modal.clone()}>{"Cancel"}</button>
-                        <button class="button is-success">{"Save"}</button>
-                    </footer>
-                </div>
-            </div>
-
             <div>
                 <div class="is-flex is-justify-content-space-around is-align-items-center">
                     <h1 class="is-size-3">{"Budgets"}</h1>
                     </div>
 
-                <button class="button is-success" onclick={open_add_modal}>{"Add a budget"}</button>
+                <BudgetModal />
 
                 <div>
                     <h1 class="is-size-5">{"Income"}</h1>
