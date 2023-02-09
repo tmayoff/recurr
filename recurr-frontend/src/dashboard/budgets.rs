@@ -1,12 +1,14 @@
 use std::collections::HashMap;
 
 use recurr_core::{SchemaAccessToken, Transaction};
-use yew::{html, Component, Context, Html, Properties, UseReducerHandle};
+use wasm_bindgen::prelude::Closure;
+use web_sys::{HtmlElement, MouseEvent};
+use yew::{html, Callback, Component, Context, Html, NodeRef, Properties, UseReducerHandle};
 
 use crate::{commands, context::Session, supabase::get_supbase_client};
 
 pub enum Msg {
-    GotTransactions(HashMap<String, f64>),
+    GotTransactions((f64, Vec<Transaction>, Vec<Transaction>)),
     GetTransactions,
     Error(String),
 }
@@ -17,8 +19,10 @@ pub struct Props {
 }
 
 pub struct BudgetsView {
+    income: f64,
     transactions: HashMap<String, f64>,
     error: Option<String>,
+    modal_ref: NodeRef,
 }
 
 impl BudgetsView {
@@ -52,6 +56,7 @@ impl BudgetsView {
                 res.unwrap().json().await.expect("Failed to get json");
 
             // Get Transactions
+            let mut transactions = Vec::new();
             for row in res {
                 if let Some(accounts) = row.plaid_accounts {
                     let a: Vec<String> = accounts.into_iter().map(|a| a.account_id).collect();
@@ -61,28 +66,33 @@ impl BudgetsView {
                         log::error!("{}", &e);
                         return Msg::Error(e);
                     }
+
                     let res = res.unwrap();
-
-                    // FIXME: This seems to awkward
-                    let mut grouped: HashMap<String, f64> = HashMap::new();
-                    for t in res.1 {
-                        if let Some(id) = &t.category_id {
-                            if grouped.contains_key(id) {
-                                let v = grouped.get_mut(id);
-                                if let Some(v) = v {
-                                    *v += t.amount;
-                                }
-                            } else {
-                                grouped.insert(id.to_string(), t.amount);
-                            }
-                        }
-                    }
-
-                    return Msg::GotTransactions(grouped);
+                    transactions.extend(res.1.clone());
                 }
             }
 
-            Msg::Error("Failed to get transactions".to_string())
+            let income: f64 = transactions
+                .into_iter()
+                .filter(|t| t.amount > 0.0)
+                .map(|t| t.amount)
+                .sum();
+
+            let mut grouped: HashMap<String, f64> = HashMap::new();
+            // for t in transactions {
+            //     if let Some(id) = &t.category_id {
+            //         if grouped.contains_key(id) {
+            //             let v = grouped.get_mut(id);
+            //             if let Some(v) = v {
+            //                 *v += t.amount;
+            //             }
+            //         } else {
+            //             grouped.insert(id.to_string(), t.amount);
+            //         }
+            //     }
+            // }
+
+            Msg::GotTransactions((income, Vec::new(), Vec::new()))
         });
     }
 }
@@ -96,17 +106,61 @@ impl Component for BudgetsView {
 
         Self {
             error: None,
+            income: 0.0,
             transactions: HashMap::new(),
+            modal_ref: NodeRef::default(),
         }
     }
 
     fn view(&self, _ctx: &yew::Context<Self>) -> Html {
+        let div = self.modal_ref.clone();
+        let open_add_modal = move |_| {
+            let div = div
+                .clone()
+                .cast::<HtmlElement>()
+                .expect("Failed to html element");
+
+            div.set_class_name("modal is-active");
+        };
+
+        let div = self.modal_ref.clone();
+        let close_add_modal = Callback::from(move |_| {
+            let div = div
+                .clone()
+                .cast::<HtmlElement>()
+                .expect("Failed to html element");
+
+            div.set_class_name("modal");
+        });
+
         html! {
             <>
-            <div class="modal">
-                <div class="modal-background"></div>
-                <div class="modal-content">
-                    {"Add budget here"}
+            <div class="modal" ref={self.modal_ref.clone()}>
+                <div class="modal-background" onclick={close_add_modal.clone()}></div>
+                <div class="modal-card">
+                    <header class="modal-card-head">
+                        <p class="modal-card-title">{"Add budget"}</p>
+                        <button class="delete" aria-label="close"></button>
+                    </header>
+                    <section class="modal-card-body">
+                        <form>
+                            <div class="select is-info">
+                                <select placeholder="Choose a category">
+                                </select>
+                            </div>
+
+                            <div class="field">
+                                <label class="label">{"How much"}</label>
+                                <div class="control">
+                                    <input class="input is-success" type="number" value="0" />
+                                </div>
+                            </div>
+                        </form>
+                    </section>
+                    <footer class="modal-card-foot">
+                        <button class="button" onclick={close_add_modal.clone()}>{"Cancel"}</button>
+                        <button class="button is-success">{"Save"}</button>
+                    </footer>
                 </div>
             </div>
 
@@ -115,10 +169,11 @@ impl Component for BudgetsView {
                     <h1 class="is-size-3">{"Budgets"}</h1>
                     </div>
 
-                <button class="button is-success">{"Add a budget"}</button>
+                <button class="button is-success" onclick={open_add_modal}>{"Add a budget"}</button>
 
                 <div>
                     <h1 class="is-size-5">{"Income"}</h1>
+                    <p>{format!("${:0.2}", self.income)}</p>
 
                     <h1 class="is-size-5">{"Spending"}</h1>
 
@@ -143,7 +198,7 @@ impl Component for BudgetsView {
 
     fn update(&mut self, ctx: &yew::Context<Self>, msg: Self::Message) -> bool {
         match msg {
-            Msg::GotTransactions(t) => self.transactions = t,
+            Msg::GotTransactions(t) => self.income = t.0,
             Msg::GetTransactions => self.get_transaction(ctx),
             Msg::Error(err) => self.error = Some(err),
         }
