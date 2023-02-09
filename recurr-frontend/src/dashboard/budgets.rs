@@ -1,14 +1,13 @@
 use std::collections::HashMap;
 
 use recurr_core::{SchemaAccessToken, Transaction};
-use wasm_bindgen::prelude::Closure;
-use web_sys::{HtmlElement, MouseEvent};
+use web_sys::HtmlElement;
 use yew::{html, Callback, Component, Context, Html, NodeRef, Properties, UseReducerHandle};
 
 use crate::{commands, context::Session, supabase::get_supbase_client};
 
 pub enum Msg {
-    GotTransactions((f64, Vec<Transaction>, Vec<Transaction>)),
+    GotTransactions((HashMap<String, f64>, HashMap<String, f64>, Vec<Transaction>)),
     GetTransactions,
     Error(String),
 }
@@ -19,8 +18,8 @@ pub struct Props {
 }
 
 pub struct BudgetsView {
-    income: f64,
-    transactions: HashMap<String, f64>,
+    other_income: HashMap<String, f64>,
+    other_spending: HashMap<String, f64>,
     error: Option<String>,
     modal_ref: NodeRef,
 }
@@ -72,27 +71,48 @@ impl BudgetsView {
                 }
             }
 
-            let income: f64 = transactions
+            let income: Vec<Transaction> = transactions
+                .clone()
+                .into_iter()
+                .filter(|t| t.amount < 0.0)
+                .collect();
+
+            let spending: Vec<Transaction> = transactions
                 .into_iter()
                 .filter(|t| t.amount > 0.0)
-                .map(|t| t.amount)
-                .sum();
+                .collect();
 
-            let mut grouped: HashMap<String, f64> = HashMap::new();
-            // for t in transactions {
-            //     if let Some(id) = &t.category_id {
-            //         if grouped.contains_key(id) {
-            //             let v = grouped.get_mut(id);
-            //             if let Some(v) = v {
-            //                 *v += t.amount;
-            //             }
-            //         } else {
-            //             grouped.insert(id.to_string(), t.amount);
-            //         }
-            //     }
-            // }
+            let mut grouped_income: HashMap<String, f64> = HashMap::new();
+            income.into_iter().for_each(|t| {
+                let category = t.category.first();
+                if let Some(category) = category {
+                    if grouped_income.contains_key(category) {
+                        let v = grouped_income.get_mut(category);
+                        if let Some(v) = v {
+                            *v += t.amount;
+                        }
+                    } else {
+                        grouped_income.insert(category.to_string(), t.amount);
+                    }
+                }
+            });
 
-            Msg::GotTransactions((income, Vec::new(), Vec::new()))
+            let mut grouped_spending: HashMap<String, f64> = HashMap::new();
+            for t in spending {
+                let category = t.category.first();
+                if let Some(category) = category {
+                    if grouped_spending.contains_key(category) {
+                        let v = grouped_spending.get_mut(category);
+                        if let Some(v) = v {
+                            *v += t.amount;
+                        }
+                    } else {
+                        grouped_spending.insert(category.to_string(), t.amount);
+                    }
+                }
+            }
+
+            Msg::GotTransactions((grouped_income, grouped_spending, Vec::new()))
         });
     }
 }
@@ -106,8 +126,8 @@ impl Component for BudgetsView {
 
         Self {
             error: None,
-            income: 0.0,
-            transactions: HashMap::new(),
+            other_income: HashMap::new(),
+            other_spending: HashMap::new(),
             modal_ref: NodeRef::default(),
         }
     }
@@ -173,21 +193,64 @@ impl Component for BudgetsView {
 
                 <div>
                     <h1 class="is-size-5">{"Income"}</h1>
-                    <p>{format!("${:0.2}", self.income)}</p>
+                    {
+                        if !self.other_income.is_empty() {
+                            html!{
+                                <div>
+                                    <table class="table">
+                                        <thead>
+                                            <th>{"Other income"}</th>
+                                        </thead>
+                                        <tbody>
+                                        {
+                                            self.other_income.clone().into_iter().map(|(c, a)| {
+                                                html!{
+                                                    <tr>
+                                                        <td>{c}</td>
+                                                        <td>{format!("${:0.2}", a.abs())}</td>
+                                                        // <td><button class="button">{"+"}</button></td>
+                                                    </tr>
+                                                }
+                                            }).collect::<Html>()
+                                        }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            }
+                        } else {
+                            html!{}
+                        }
+                    }
 
                     <h1 class="is-size-5">{"Spending"}</h1>
 
                     {
-                        self.transactions.clone().into_iter().map(|(cat, amount)| {
+                        if !self.other_spending.is_empty() {
                             html!{
                                 <div>
-                                    <h1>{cat}</h1>
-                                    <div class="p-3">
-                                        <p>{format!("${amount:0.2}")}</p>
-                                    </div>
+                                    <table class="table">
+                                        <thead>
+                                            <th>{"Other spending"}</th>
+                                        </thead>
+                                        <tbody>
+                                        {
+                                            self.other_spending.clone().into_iter().map(|(c, a)| {
+                                                html!{
+                                                    <tr>
+                                                        <td>{c}</td>
+                                                        <td>{format!("${a:0.2}")}</td>
+                                                        // <td><button class="button">{"+"}</button></td>
+                                                    </tr>
+                                                }
+                                            }).collect::<Html>()
+                                        }
+                                        </tbody>
+                                    </table>
                                 </div>
                             }
-                        }).collect::<Html>()
+                        } else {
+                            html!{}
+                        }
                     }
 
                 </div>
@@ -198,7 +261,10 @@ impl Component for BudgetsView {
 
     fn update(&mut self, ctx: &yew::Context<Self>, msg: Self::Message) -> bool {
         match msg {
-            Msg::GotTransactions(t) => self.income = t.0,
+            Msg::GotTransactions(t) => {
+                self.other_income = t.0;
+                self.other_spending = t.1;
+            }
             Msg::GetTransactions => self.get_transaction(ctx),
             Msg::Error(err) => self.error = Some(err),
         }

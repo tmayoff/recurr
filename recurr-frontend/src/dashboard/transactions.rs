@@ -109,7 +109,7 @@ impl Component for TransactionsView {
                                 <tr>
                                     <td> {t.date}</td>
                                     <td> {t.name}</td>
-                                    <td> {t.category.clone()[0].clone()}</td>
+                                    <td> {t.category.clone().last()}</td>
                                     {
                                         if t.amount < 0.0 {
                                             html!{<td class="has-text-success">{format!("${:.2}", t.amount)}</td>}
