@@ -1,4 +1,4 @@
-use recurr_core::{Account, SupabaseAuthCredentials, Transaction};
+use recurr_core::{Account, Category, SupabaseAuthCredentials, Transaction};
 use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
 
 #[wasm_bindgen(module = "/public/glue.js")]
@@ -14,6 +14,9 @@ extern "C" {
         anon_key: &str,
         public_token: &str,
     ) -> Result<JsValue, JsValue>;
+
+    #[wasm_bindgen(catch)]
+    pub async fn invokeGetCategories() -> Result<JsValue, JsValue>;
 
     #[wasm_bindgen(catch)]
     pub async fn invokeGetTransactions(
@@ -62,6 +65,15 @@ pub async fn get_supabase_auth_credentials() -> Result<SupabaseAuthCredentials, 
         }
         Err(e) => Err(e.as_string().expect("Failed to get string")),
     }
+}
+
+pub async fn get_categories() -> Result<Vec<Category>, String> {
+    let res = invokeGetCategories()
+        .await
+        .map_err(|e| e.as_string().unwrap())?;
+
+    let res = serde_wasm_bindgen::from_value(res).map_err(|e| e.to_string())?;
+    Ok(res)
 }
 
 pub async fn get_transactions(

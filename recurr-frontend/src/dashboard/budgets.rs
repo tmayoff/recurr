@@ -1,75 +1,140 @@
 use std::collections::HashMap;
 
-use recurr_core::{SchemaAccessToken, Transaction};
-use web_sys::HtmlElement;
-use yew::{
-    function_component, html, use_node_ref, Callback, Component, Context, Html, NodeRef,
-    Properties, UseReducerHandle,
-};
-use yew_hooks::use_async;
+use recurr_core::{Category, SchemaAccessToken, Transaction};
+use web_sys::{HtmlElement, HtmlInputElement, SubmitEvent};
+use yew::{html, Component, Context, Html, NodeRef, Properties, UseReducerHandle};
 
 use crate::{commands, context::Session, supabase::get_supbase_client};
 
-#[function_component(BudgetModal)]
-fn add_budget_modal() -> Html {
-    // let category_async = use_async(async move {
-    //TODO Get Categories
-    // });
+enum BudgetModalMsg {
+    GotCategories(Vec<Category>),
+    OpenModal,
+    CloseModal,
+    Submit,
+}
 
-    let modal_ref = use_node_ref();
-    let modal_ref_clone = modal_ref.clone();
-    let close_add_modal = Callback::from(move |_| {
-        let div = modal_ref_clone
-            .clone()
-            .cast::<HtmlElement>()
-            .expect("Failed to html element");
+struct BudgetModal {
+    modal_ref: NodeRef,
+    categories: Vec<Category>,
 
-        div.set_class_name("modal");
-    });
+    category_ref: NodeRef,
+    amount_ref: NodeRef,
+}
 
-    let modal_ref_clone = modal_ref.clone();
-    let open_add_modal = move |_| {
-        let div = modal_ref_clone
-            .clone()
-            .cast::<HtmlElement>()
-            .expect("Failed to html element");
+impl BudgetModal {
+    async fn get_categories() -> BudgetModalMsg {
+        let categories = commands::get_categories()
+            .await
+            .expect("Failed to get categories");
+        //TODO Would be good to either sort this or group it
+        BudgetModalMsg::GotCategories(categories)
+    }
 
-        div.set_class_name("modal is-active");
-    };
+    fn set_modal_class(&self, class: &str) {
+        let elem = self.modal_ref.cast::<HtmlElement>();
+        if let Some(elem) = elem {
+            elem.set_class_name(class);
+        }
+    }
+}
 
-    html! {
-        <>
-        <div class="modal" ref={modal_ref}>
-            <div class="modal-background" onclick={close_add_modal.clone()}></div>
-            <div class="modal-card">
+impl Component for BudgetModal {
+    type Message = BudgetModalMsg;
+    type Properties = ();
+
+    fn create(ctx: &Context<Self>) -> Self {
+        ctx.link().send_future(Self::get_categories());
+
+        Self {
+            modal_ref: NodeRef::default(),
+            categories: Vec::new(),
+
+            category_ref: NodeRef::default(),
+            amount_ref: NodeRef::default(),
+        }
+    }
+
+    fn view(&self, ctx: &Context<Self>) -> Html {
+        let close_modal = ctx.link().callback(|_| BudgetModalMsg::CloseModal);
+        let open_modal = ctx.link().callback(|_| BudgetModalMsg::OpenModal);
+        let on_submit = ctx.link().callback(|e: SubmitEvent| {
+            e.prevent_default();
+            BudgetModalMsg::Submit
+        });
+
+        html! {
+            <>
+            <div class="modal" ref={self.modal_ref.clone()}>
+                <div class="modal-background" onclick={close_modal.clone()}></div>
+                <div class="modal-card">
                 <header class="modal-card-head">
                     <p class="modal-card-title">{"Add budget"}</p>
-                    <button class="delete" aria-label="close"></button>
+                    <button class="delete" aria-label="close" onclick={close_modal.clone()}></button>
                 </header>
-                <section class="modal-card-body">
-                    <form>
-                        <div class="select is-info">
-                            <select placeholder="Choose a category">
-                            </select>
-                        </div>
+                {
+                    if !self.categories.is_empty() {
+                        html!{
+                            <>
+                            <section class="modal-card-body">
+                                <form onsubmit={on_submit}>
+                                    <div class="select is-info">
+                                        <select placeholder="Choose a category" ref={self.category_ref.clone()}>
+                                            {
+                                                self.categories.clone().iter().map(|c| {
+                                                    html!{<option>{c.hierarchy.last()}</option>}
+                                                }).collect::<Html>()
+                                            }
+                                        </select>
+                                    </div>
 
-                        <div class="field">
-                            <label class="label">{"How much"}</label>
-                            <div class="control">
-                                <input class="input is-success" type="number" value="0" />
-                            </div>
-                        </div>
-                    </form>
-                </section>
-                <footer class="modal-card-foot">
-                    <button class="button" onclick={close_add_modal.clone()}>{"Cancel"}</button>
-                    <button class="button is-success">{"Save"}</button>
-                </footer>
+                                    <div class="field">
+                                        <label class="label">{"How much"}</label>
+                                        <div class="control">
+                                            <input class="input is-success" type="number" value="0" ref={self.amount_ref.clone()}/>
+                                        </div>
+                                    </div>
+                                </form>
+                            </section>
+                            <footer class="modal-card-foot">
+                                <button class="button" onclick={close_modal.clone()}>{"Cancel"}</button>
+                                <button class="button is-success">{"Save"}</button>
+
+                            </footer>
+                            </>
+                        }
+                    } else {
+                        html!{}
+                    }
+                }
+                </div>
             </div>
-        </div>
 
-        <button class="button is-success" onclick={open_add_modal}>{"Add a budget"}</button>
-        </>
+            <button class="button is-success" onclick={open_modal}>{"Add a budget"}</button>
+            </>
+        }
+    }
+
+    fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
+        match msg {
+            BudgetModalMsg::GotCategories(categories) => self.categories = categories,
+            BudgetModalMsg::OpenModal => self.set_modal_class("modal is-active"),
+            BudgetModalMsg::CloseModal => self.set_modal_class("modal"),
+            BudgetModalMsg::Submit => {
+                let _amount = self
+                    .amount_ref
+                    .cast::<HtmlInputElement>()
+                    .expect("Amount ref not an input element");
+
+                let _category = self
+                    .category_ref
+                    .cast::<HtmlInputElement>()
+                    .expect("Category ref not an input element");
+
+                // TODO submit to database
+            }
+        }
+
+        true
     }
 }
 
@@ -88,7 +153,6 @@ pub struct BudgetsView {
     other_income: HashMap<String, f64>,
     other_spending: HashMap<String, f64>,
     error: Option<String>,
-    modal_ref: NodeRef,
 }
 
 impl BudgetsView {
@@ -195,7 +259,6 @@ impl Component for BudgetsView {
             error: None,
             other_income: HashMap::new(),
             other_spending: HashMap::new(),
-            modal_ref: NodeRef::default(),
         }
     }
 

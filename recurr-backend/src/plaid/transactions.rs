@@ -8,7 +8,11 @@ use super::Error;
 
 #[tauri::command]
 pub async fn get_categories() -> Result<Vec<Category>, Error> {
+    let mut authorization = String::from("Bearer ");
+    authorization.push_str(env!("SUPABASE_KEY"));
+
     let mut headers = HeaderMap::new();
+    headers.insert("Authorization", authorization.parse().unwrap());
     headers.insert("Content-Type", HeaderValue::from_static("application/json"));
 
     let req = PlaidRequest {
