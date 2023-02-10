@@ -16,6 +16,13 @@ pub struct Balances {
     pub last_updated_datetime: Option<String>,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+pub struct Category {
+    pub category_id: String,
+    pub group: String,
+    pub hierarchy: Vec<String>,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
 pub struct Institution {
     pub institution_id: String,
