@@ -39,7 +39,7 @@ impl AppBuilder {
                 Ok(())
             })
             .invoke_handler(tauri::generate_handler![
-                plaid::accounts::get_balances,
+                // plaid::accounts::get_balances,
                 // plaid::link::link_token_create,
                 // plaid::item_public_token_exchange,
                 // supabase::access_token::save_access_token,
