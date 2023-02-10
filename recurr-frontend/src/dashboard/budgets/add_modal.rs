@@ -5,6 +5,7 @@ use yew::{html, Component, Context, Html, NodeRef, Properties, UseReducerHandle}
 use crate::{commands, context::Session, supabase::get_supbase_client};
 
 pub enum Msg {
+    Error(String),
     GotCategories(Vec<Category>),
     OpenModal,
     CloseModal,
@@ -79,8 +80,8 @@ impl Component for Modal {
                     if !self.categories.is_empty() {
                         html!{
                             <>
+                            <form onsubmit={on_submit}>
                             <section class="modal-card-body">
-                                <form onsubmit={on_submit}>
                                     <div class="select is-info">
                                         <select placeholder="Choose a category" ref={self.category_ref.clone()}>
                                             {
@@ -97,13 +98,13 @@ impl Component for Modal {
                                             <input class="input is-success" type="number" value="0" ref={self.amount_ref.clone()}/>
                                         </div>
                                     </div>
-                                </form>
-                            </section>
-                            <footer class="modal-card-foot">
-                                <button class="button" onclick={close_modal.clone()}>{"Cancel"}</button>
-                                <button class="button is-success">{"Save"}</button>
+                                    </section>
+                                <footer class="modal-card-foot">
+                                    <button class="button" onclick={close_modal.clone()}>{"Cancel"}</button>
+                                    <button class="button is-success" type="submit">{"Save"}</button>
 
-                            </footer>
+                                </footer>
+                            </form>
                             </>
                         }
                     } else {
@@ -160,20 +161,29 @@ impl Component for Modal {
 
                 ctx.link().send_future(async move {
                     let res = db_client
-                        .from("access_tokens")
+                        .from("budgets")
                         .auth(&auth_key)
                         .insert(schema)
                         .execute()
                         .await;
 
-                    if let Err(e) = res {
-                        log::error!("{:?}", e);
+                    match res {
+                        Ok(r) => {
+                            if r.status().is_success() {
+                                Msg::Submitted
+                            } else {
+                                Msg::Error(r.status().to_string())
+                            }
+                        }
+                        Err(e) => Msg::Error(e.to_string()),
                     }
-
-                    Msg::Submitted
                 });
             }
-            Msg::Submitted => todo!(),
+            Msg::Submitted => {
+                log::info!("Submitted");
+                ctx.link().send_message(Msg::CloseModal);
+            }
+            Msg::Error(e) => log::error!("{e}"),
         }
 
         true
