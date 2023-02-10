@@ -1,14 +1,21 @@
 use std::collections::HashMap;
 
-use recurr_core::{SchemaAccessToken, Transaction};
+use recurr_core::{SchemaAccessToken, SchemaBudget, Transaction};
 use yew::{html, Component, Context, Html, Properties, UseReducerHandle};
 
 use crate::{commands, context::Session, supabase::get_supbase_client};
 
 mod add_modal;
 
+#[derive(Default)]
+pub struct Transactions {
+    other_income: HashMap<String, f64>,
+    budgeted_spending: HashMap<SchemaBudget, f64>,
+    other_spending: HashMap<String, f64>,
+}
+
 pub enum Msg {
-    GotTransactions((HashMap<String, f64>, HashMap<String, f64>, Vec<Transaction>)),
+    GotTransactions(Transactions),
     GetTransactions,
     Error(String),
 }
@@ -19,13 +26,14 @@ pub struct Props {
 }
 
 pub struct BudgetsView {
-    other_income: HashMap<String, f64>,
-    other_spending: HashMap<String, f64>,
+    transactions: Transactions,
     error: Option<String>,
 }
 
 impl BudgetsView {
     fn get_transaction(&self, ctx: &Context<Self>) {
+        // TODO Clean this up
+
         let session = ctx
             .props()
             .session
@@ -43,7 +51,7 @@ impl BudgetsView {
                 .from("access_tokens")
                 .auth(&auth_key)
                 .select("*,plaid_accounts(*)")
-                .eq("user_id", user_id)
+                .eq("user_id", &user_id)
                 .execute()
                 .await;
 
@@ -71,15 +79,24 @@ impl BudgetsView {
                 }
             }
 
+            let res = db_client
+                .from("budgets")
+                .auth(&auth_key)
+                .select("*")
+                .eq("user_id", &user_id)
+                .execute()
+                .await;
+
+            if let Err(e) = res {
+                return Msg::Error(e.to_string());
+            }
+
+            let budgets: Vec<SchemaBudget> = res.unwrap().json().await.expect("Failed to get json");
+
             let income: Vec<Transaction> = transactions
                 .clone()
                 .into_iter()
                 .filter(|t| t.amount < 0.0)
-                .collect();
-
-            let spending: Vec<Transaction> = transactions
-                .into_iter()
-                .filter(|t| t.amount > 0.0)
                 .collect();
 
             let mut grouped_income: HashMap<String, f64> = HashMap::new();
@@ -97,22 +114,44 @@ impl BudgetsView {
                 }
             });
 
-            let mut grouped_spending: HashMap<String, f64> = HashMap::new();
+            let mut spending: Vec<Transaction> = transactions
+                .into_iter()
+                .filter(|t| t.amount > 0.0)
+                .collect();
+
+            let mut other_spending: HashMap<String, f64> = HashMap::new();
+            let mut budgeted_spending: HashMap<SchemaBudget, f64> = HashMap::new();
+            for b in budgets {
+                budgeted_spending.insert(b.clone(), 0.0);
+                let budgeted: Vec<Transaction> = spending
+                    .drain_filter(|t| t.category.contains(&b.category))
+                    .collect();
+                budgeted.into_iter().for_each(|t| {
+                    let v = budgeted_spending.get_mut(&b);
+                    if let Some(v) = v {
+                        *v += t.amount;
+                    }
+                });
+            }
             for t in spending {
-                let category = t.category.first();
-                if let Some(category) = category {
-                    if grouped_spending.contains_key(category) {
-                        let v = grouped_spending.get_mut(category);
+                let general_category = t.category.first();
+                if let Some(category) = general_category {
+                    if other_spending.contains_key(category) {
+                        let v = other_spending.get_mut(category);
                         if let Some(v) = v {
                             *v += t.amount;
                         }
                     } else {
-                        grouped_spending.insert(category.to_string(), t.amount);
+                        other_spending.insert(category.to_string(), t.amount);
                     }
                 }
             }
 
-            Msg::GotTransactions((grouped_income, grouped_spending, Vec::new()))
+            Msg::GotTransactions(Transactions {
+                other_income: grouped_income,
+                budgeted_spending,
+                other_spending,
+            })
         });
     }
 }
@@ -125,9 +164,8 @@ impl Component for BudgetsView {
         ctx.link().send_message(Msg::GetTransactions);
 
         Self {
+            transactions: Transactions::default(),
             error: None,
-            other_income: HashMap::new(),
-            other_spending: HashMap::new(),
         }
     }
 
@@ -146,7 +184,7 @@ impl Component for BudgetsView {
                 <div>
                     <h1 class="is-size-5">{"Income"}</h1>
                     {
-                        if !self.other_income.is_empty() {
+                        if !self.transactions.other_income.is_empty() {
                             html!{
                                 <div>
                                     <table class="table">
@@ -155,7 +193,7 @@ impl Component for BudgetsView {
                                         </thead>
                                         <tbody>
                                         {
-                                            self.other_income.clone().into_iter().map(|(c, a)| {
+                                            self.transactions.other_income.clone().into_iter().map(|(c, a)| {
                                                 html!{
                                                     <tr>
                                                         <td>{c}</td>
@@ -174,10 +212,38 @@ impl Component for BudgetsView {
                         }
                     }
 
-                    <h1 class="is-size-5">{"Spending"}</h1>
+                    {
+                        if !self.transactions.budgeted_spending.is_empty() {
+                            html!{
+                                <div>
+                                    // <table class="table">
+                                    //     <thead>
+                                    //         <th>{"Spending"}</th>
+                                    //     </thead>
+                                    //     <tbody>
+                                        {
+                                            self.transactions.budgeted_spending.clone().into_iter().map(|(c, a)| {
+                                                html!{
+                                                    // <tr>
+                                                        // <td>{c.category}</td>
+                                                        // <td>{format!("${a:0.2}")}</td>
+                                                        // <td><button class="button">{"+"}</button></td>
+                                                        <progress class="progress is-success" value={format!("{:0.2}", a/c.max)} max="1">{format!("{:0.2}", a/c.max)}</progress>
+                                                    // </tr>
+                                                }
+                                            }).collect::<Html>()
+                                        }
+                                    //     </tbody>
+                                    // </table>
+                                </div>
+                            }
+                        } else {
+                            html!{}
+                        }
+                    }
 
                     {
-                        if !self.other_spending.is_empty() {
+                        if !self.transactions.other_spending.is_empty() {
                             html!{
                                 <div>
                                     <table class="table">
@@ -186,7 +252,7 @@ impl Component for BudgetsView {
                                         </thead>
                                         <tbody>
                                         {
-                                            self.other_spending.clone().into_iter().map(|(c, a)| {
+                                            self.transactions.other_spending.clone().into_iter().map(|(c, a)| {
                                                 html!{
                                                     <tr>
                                                         <td>{c}</td>
@@ -213,10 +279,7 @@ impl Component for BudgetsView {
 
     fn update(&mut self, ctx: &yew::Context<Self>, msg: Self::Message) -> bool {
         match msg {
-            Msg::GotTransactions(t) => {
-                self.other_income = t.0;
-                self.other_spending = t.1;
-            }
+            Msg::GotTransactions(t) => self.transactions = t,
             Msg::GetTransactions => self.get_transaction(ctx),
             Msg::Error(err) => self.error = Some(err),
         }
