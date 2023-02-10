@@ -45,7 +45,7 @@ pub async fn get_balances(
 
     let req = PlaidRequest {
         endpoint: "/accounts/balance/get".to_string(),
-        data,
+        data: Some(data),
     };
 
     let client = reqwest::Client::new();
@@ -97,7 +97,7 @@ pub async fn accounts_get(
 
     let req = PlaidRequest {
         endpoint: "/accounts/get".to_string(),
-        data,
+        data: Some(data),
     };
 
     let client = reqwest::Client::new();

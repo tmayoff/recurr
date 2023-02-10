@@ -29,7 +29,7 @@ pub async fn institution_get(
 
     let req = PlaidRequest {
         endpoint: "/institutions/get_by_id".to_string(),
-        data,
+        data: Some(data),
     };
 
     let client = reqwest::Client::new();
