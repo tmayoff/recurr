@@ -61,12 +61,21 @@ pub struct Item {
     pub products: Vec<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct SchemaBudget {
     pub user_id: String,
     pub category: String,
     pub max: f64,
 }
+
+impl std::hash::Hash for SchemaBudget {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.user_id.hash(state);
+        self.category.hash(state);
+    }
+}
+
+impl std::cmp::Eq for SchemaBudget {}
 
 impl SchemaBudget {
     pub fn to_string(&self) -> Result<String, serde_json::Error> {
