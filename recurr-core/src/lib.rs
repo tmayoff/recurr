@@ -62,6 +62,19 @@ pub struct Item {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct SchemaBudget {
+    pub user_id: String,
+    pub category: String,
+    pub max: f64,
+}
+
+impl SchemaBudget {
+    pub fn to_string(&self) -> Result<String, serde_json::Error> {
+        serde_json::to_string(self)
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SchemaAccessToken {
     #[serde(skip_serializing)]
     pub id: i32,
