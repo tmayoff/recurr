@@ -20,9 +20,7 @@ jobs:
             image: debian:bookworm
 
     runs-on: ${{ matrix.os }}
-    
-    if: ${{ contains(matrix, 'image') }}
-    container: debian:bookworm
+    container: ${{ matrix.image }} 
 
     env:
       SUPABASE_BASE_URL: ""
