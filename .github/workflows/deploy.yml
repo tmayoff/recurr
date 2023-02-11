@@ -67,3 +67,4 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: /target/release/bundle/appimage/*
+          # TODO Add windows bundles
