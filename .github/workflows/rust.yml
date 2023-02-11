@@ -51,5 +51,8 @@ jobs:
           crate: trunk
           use-tool-cache: true
 
+      - name: Setup dist dir
+        run: mkdir recurr-frontend/dist
+
       - name: Build the app
         run: cargo build
