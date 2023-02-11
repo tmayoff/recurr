@@ -179,10 +179,7 @@ impl Component for Modal {
                     }
                 });
             }
-            Msg::Submitted => {
-                log::info!("Submitted");
-                ctx.link().send_message(Msg::CloseModal);
-            }
+            Msg::Submitted => ctx.link().send_message(Msg::CloseModal),
             Msg::Error(e) => log::error!("{e}"),
         }
 
