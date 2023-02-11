@@ -187,7 +187,6 @@ impl Component for BudgetsView {
         let session = ctx.props().session.clone();
 
         let modal_cb = ctx.link().callback(|e: edit_modal::ModalMsg| match e {
-            edit_modal::ModalMsg::Open => Msg::ShowModal(None),
             edit_modal::ModalMsg::Close => Msg::HideModal,
             edit_modal::ModalMsg::Save => Msg::Update,
         });
@@ -277,7 +276,7 @@ impl Component for BudgetsView {
                                                 <div>
                                                     <div class="is-flex is-justify-content-space-between">
                                                         <div>{c.category.clone()}</div>
-                                                        <div>{format!("${a:0.2}")}</div>
+                                                        <div>{format!("${:0.2} left", c.max - a)}</div>
                                                     </div>
                                                     <progress class="progress m-0 is-success" value={format!("{:0.2}", a/c.max)} max="1">{format!("{:0.2}", a/c.max)}</progress>
                                                     <div class="is-flex is-justify-content-flex-end">

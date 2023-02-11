@@ -6,7 +6,6 @@ use crate::{commands, context::Session, supabase::get_supbase_client};
 
 #[derive(Debug, PartialEq)]
 pub enum ModalMsg {
-    Open,
     Close,
     Save,
 }
@@ -15,6 +14,7 @@ pub enum Msg {
     Error(String),
     GotCategories(Vec<Category>),
     CloseModal,
+    Delete,
     Submit,
     Submitted,
 }
@@ -69,6 +69,8 @@ impl Component for Modal {
             Msg::Submit
         });
 
+        let delete = ctx.link().callback(|_| Msg::Delete);
+
         if ctx.props().show {
             html! {
                 <>
@@ -113,7 +115,9 @@ impl Component for Modal {
                                     <footer class="modal-card-foot">
                                         <button class="button" onclick={close_modal.clone()}>{"Cancel"}</button>
                                         <button class="button is-success" type="submit">{"Save"}</button>
-
+                                        if ctx.props().detail.is_some() {
+                                            <button class="button is-danger" onclick={delete}>{"Delete"}</button>
+                                        }
                                     </footer>
                                 </form>
                             </>
@@ -181,6 +185,48 @@ impl Component for Modal {
                     match res {
                         Ok(r) => {
                             if r.status().is_success() {
+                                Msg::Submitted
+                            } else {
+                                Msg::Error(r.status().to_string())
+                            }
+                        }
+                        Err(e) => Msg::Error(e.to_string()),
+                    }
+                });
+            }
+            Msg::Delete => {
+                let session = ctx
+                    .props()
+                    .session
+                    .clone()
+                    .supabase_session
+                    .clone()
+                    .expect("Needs session");
+                let auth_key = session.auth_key;
+                let user_id = session.user.id;
+
+                let db_client = get_supbase_client();
+
+                let category = self
+                    .category_ref
+                    .cast::<HtmlInputElement>()
+                    .expect("Category ref not an input element")
+                    .value();
+
+                ctx.link().send_future(async move {
+                    let res = db_client
+                        .from("budgets")
+                        .auth(&auth_key)
+                        .eq("user_id", user_id)
+                        .eq("category", category)
+                        .delete()
+                        .execute()
+                        .await;
+
+                    match res {
+                        Ok(r) => {
+                            if r.status().is_success() {
+                                log::info!("{:?}", r.text().await);
                                 Msg::Submitted
                             } else {
                                 Msg::Error(r.status().to_string())
