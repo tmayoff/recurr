@@ -1,3 +1,3 @@
 [submodule "recurr-frontend/external/bulma"]
 	path = recurr-frontend/external/bulma
-	url = git@github.com:jgthms/bulma.git
+	url = https://github.com/jgthms/bulma.git
