@@ -11,7 +11,17 @@ env:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - os: windows-latest
+          - os: ubuntu-latest
+            image: debian:bookworm
+
+    runs-on: ${{ matrix.os }}
+
+    if: ${{ matrix.image }}
     container: debian:bookworm
 
     env:
