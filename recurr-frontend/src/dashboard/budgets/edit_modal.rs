@@ -1,13 +1,19 @@
 use recurr_core::{Category, SchemaBudget};
-use web_sys::{HtmlElement, HtmlInputElement, SubmitEvent};
-use yew::{html, Component, Context, Html, NodeRef, Properties, UseReducerHandle};
+use web_sys::{HtmlInputElement, SubmitEvent};
+use yew::{html, Callback, Component, Context, Html, NodeRef, Properties, UseReducerHandle};
 
 use crate::{commands, context::Session, supabase::get_supbase_client};
+
+#[derive(Debug, PartialEq)]
+pub enum ModalMsg {
+    Open,
+    Close,
+    Save,
+}
 
 pub enum Msg {
     Error(String),
     GotCategories(Vec<Category>),
-    OpenModal,
     CloseModal,
     Submit,
     Submitted,
@@ -15,7 +21,11 @@ pub enum Msg {
 
 #[derive(Properties, PartialEq)]
 pub struct Props {
+    pub on_change: Callback<ModalMsg>,
     pub session: UseReducerHandle<Session>,
+    pub show: bool,
+
+    pub detail: Option<SchemaBudget>,
 }
 
 pub struct Modal {
@@ -33,13 +43,6 @@ impl Modal {
             .expect("Failed to get categories");
         //TODO Would be good to either sort this or group it
         Msg::GotCategories(categories)
-    }
-
-    fn set_modal_class(&self, class: &str) {
-        let elem = self.modal_ref.cast::<HtmlElement>();
-        if let Some(elem) = elem {
-            elem.set_class_name(class);
-        }
     }
 }
 
@@ -61,69 +64,77 @@ impl Component for Modal {
 
     fn view(&self, ctx: &Context<Self>) -> Html {
         let close_modal = ctx.link().callback(|_| Msg::CloseModal);
-        let open_modal = ctx.link().callback(|_| Msg::OpenModal);
         let on_submit = ctx.link().callback(|e: SubmitEvent| {
             e.prevent_default();
             Msg::Submit
         });
 
-        html! {
-            <>
-            <div class="modal" ref={self.modal_ref.clone()}>
-                <div class="modal-background" onclick={close_modal.clone()}></div>
-                <div class="modal-card">
-                <header class="modal-card-head">
-                    <p class="modal-card-title">{"Add budget"}</p>
-                    <button class="delete" aria-label="close" onclick={close_modal.clone()}></button>
-                </header>
-                {
-                    if !self.categories.is_empty() {
-                        html!{
-                            <>
-                            <form onsubmit={on_submit}>
-                            <section class="modal-card-body">
-                                    <div class="select is-info">
-                                        <select placeholder="Choose a category" ref={self.category_ref.clone()}>
-                                            {
-                                                self.categories.clone().iter().map(|c| {
-                                                    html!{<option>{c.hierarchy.last()}</option>}
-                                                }).collect::<Html>()
-                                            }
-                                        </select>
-                                    </div>
-
-                                    <div class="field">
-                                        <label class="label">{"How much"}</label>
-                                        <div class="control">
-                                            <input class="input is-success" type="number" value="0" ref={self.amount_ref.clone()}/>
-                                        </div>
-                                    </div>
-                                    </section>
-                                <footer class="modal-card-foot">
-                                    <button class="button" onclick={close_modal.clone()}>{"Cancel"}</button>
-                                    <button class="button is-success" type="submit">{"Save"}</button>
-
-                                </footer>
-                            </form>
-                            </>
+        if ctx.props().show {
+            html! {
+                <>
+                <div class="modal is-active" ref={self.modal_ref.clone()}>
+                    <div class="modal-background" onclick={close_modal.clone()}></div>
+                    <div class="modal-card">
+                    <header class="modal-card-head">
+                        {
+                        if ctx.props().detail.is_some() {
+                            html!{<p class="modal-card-title">{"Edit budget"}</p>}
+                        }else{
+                            html!{<p class="modal-card-title">{"Add budget"}</p>}
                         }
-                    } else {
-                        html!{}
-                    }
-                }
-                </div>
-            </div>
+                        }
+                        <button class="delete" aria-label="close" onclick={close_modal.clone()}></button>
+                    </header>
+                    {
+                        if !self.categories.is_empty() {
+                            html!{
+                            <>
+                                <form onsubmit={on_submit}>
+                                    <section class="modal-card-body">
+                                        <div class="select is-info">
+                                            <select placeholder="Choose a category" ref={self.category_ref.clone()}>
+                                                {
+                                                    self.categories.clone().iter().map(|c| {
+                                                        let cat = c.hierarchy.last().expect("Requires an option").clone();
+                                                        let selected = ctx.props().detail.clone().map_or(false, |d| d.category == cat);
+                                                        html!{<option {selected}>{cat}</option>}
+                                                    }).collect::<Html>()
+                                                }
+                                            </select>
+                                        </div>
 
-            <button class="button is-success" onclick={open_modal}>{"Add a budget"}</button>
-            </>
+                                        <div class="field">
+                                            <label class="label">{"How much"}</label>
+                                            <div class="control">
+                                                <input class="input is-success" type="number" value={ctx.props().detail.clone().map_or(0.0, |d| d.max).to_string()} ref={self.amount_ref.clone()}/>
+                                            </div>
+                                        </div>
+                                    </section>
+                                    <footer class="modal-card-foot">
+                                        <button class="button" onclick={close_modal.clone()}>{"Cancel"}</button>
+                                        <button class="button is-success" type="submit">{"Save"}</button>
+
+                                    </footer>
+                                </form>
+                            </>
+                            }
+                        } else {
+                            html!{}
+                        }
+                    }
+                    </div>
+                </div>
+                </>
+            }
+        } else {
+            html! {}
         }
     }
 
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
             Msg::GotCategories(categories) => self.categories = categories,
-            Msg::OpenModal => self.set_modal_class("modal is-active"),
-            Msg::CloseModal => self.set_modal_class("modal"),
+            Msg::CloseModal => ctx.props().on_change.emit(ModalMsg::Close),
             Msg::Submit => {
                 let amount = self
                     .amount_ref
@@ -163,7 +174,7 @@ impl Component for Modal {
                     let res = db_client
                         .from("budgets")
                         .auth(&auth_key)
-                        .insert(schema)
+                        .upsert(schema)
                         .execute()
                         .await;
 
@@ -179,7 +190,10 @@ impl Component for Modal {
                     }
                 });
             }
-            Msg::Submitted => ctx.link().send_message(Msg::CloseModal),
+            Msg::Submitted => {
+                ctx.link().send_message(Msg::CloseModal);
+                ctx.props().on_change.emit(ModalMsg::Save);
+            }
             Msg::Error(e) => log::error!("{e}"),
         }
 
