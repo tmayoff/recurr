@@ -20,8 +20,8 @@ jobs:
             image: debian:bookworm
 
     runs-on: ${{ matrix.os }}
-
-    if: ${{ matrix.image }}
+    
+    if: contains(matrix, 'image')
     container: debian:bookworm
 
     env:
