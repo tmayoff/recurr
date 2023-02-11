@@ -176,101 +176,102 @@ impl Component for BudgetsView {
             <>
             <div>
                 <div class="is-flex is-justify-content-space-around is-align-items-center">
-                    <h1 class="is-size-3">{"Budgets"}</h1>
-                    </div>
+                    <h1 class="title">{"Budgets"}</h1>
+                </div>
 
                 <add_modal::Modal {session}/>
 
-                <div>
-                    <h1 class="is-size-5">{"Income"}</h1>
-                    {
-                        if !self.transactions.other_income.is_empty() {
-                            html!{
-                                <div>
-                                    <table class="table">
-                                        <thead>
-                                            <th>{"Other income"}</th>
-                                        </thead>
-                                        <tbody>
-                                        {
-                                            self.transactions.other_income.clone().into_iter().map(|(c, a)| {
-                                                html!{
-                                                    <tr>
-                                                        <td>{c}</td>
-                                                        <td>{format!("${:0.2}", a.abs())}</td>
-                                                        // <td><button class="button">{"+"}</button></td>
-                                                    </tr>
-                                                }
-                                            }).collect::<Html>()
-                                        }
-                                        </tbody>
-                                    </table>
-                                </div>
-                            }
-                        } else {
-                            html!{}
-                        }
-                    }
+                <div class="columns m-1">
+                    <div class="column is-half is-flex is-flex-direction-column">
 
-                    {
-                        if !self.transactions.budgeted_spending.is_empty() {
-                            html!{
-                                <div>
-                                    // <table class="table">
-                                    //     <thead>
-                                    //         <th>{"Spending"}</th>
-                                    //     </thead>
-                                    //     <tbody>
-                                        {
-                                            self.transactions.budgeted_spending.clone().into_iter().map(|(c, a)| {
-                                                html!{
-                                                    // <tr>
-                                                        // <td>{c.category}</td>
-                                                        // <td>{format!("${a:0.2}")}</td>
-                                                        // <td><button class="button">{"+"}</button></td>
-                                                        <progress class="progress is-success" value={format!("{:0.2}", a/c.max)} max="1">{format!("{:0.2}", a/c.max)}</progress>
-                                                    // </tr>
+                        <div>
+                            <h1 class="is-size-5">{"Income"}</h1>
+                            {
+                                if !self.transactions.other_income.is_empty() {
+                                    html!{
+                                        <div>
+                                            <table class="table">
+                                                <thead>
+                                                    <th>{"Other income"}</th>
+                                                </thead>
+                                                <tbody>
+                                                {
+                                                    self.transactions.other_income.clone().into_iter().map(|(c, a)| {
+                                                        html!{
+                                                            <tr>
+                                                                <td>{c}</td>
+                                                                <td>{format!("${:0.2}", a.abs())}</td>
+                                                                // <td><button class="button">{"+"}</button></td>
+                                                            </tr>
+                                                        }
+                                                    }).collect::<Html>()
                                                 }
-                                            }).collect::<Html>()
-                                        }
-                                    //     </tbody>
-                                    // </table>
-                                </div>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    }
+                                } else {
+                                    html!{}
+                                }
                             }
-                        } else {
-                            html!{}
-                        }
-                    }
+                        </div>
 
-                    {
-                        if !self.transactions.other_spending.is_empty() {
-                            html!{
-                                <div>
-                                    <table class="table">
-                                        <thead>
-                                            <th>{"Other spending"}</th>
-                                        </thead>
-                                        <tbody>
-                                        {
-                                            self.transactions.other_spending.clone().into_iter().map(|(c, a)| {
-                                                html!{
-                                                    <tr>
-                                                        <td>{c}</td>
-                                                        <td>{format!("${a:0.2}")}</td>
-                                                        // <td><button class="button">{"+"}</button></td>
-                                                    </tr>
-                                                }
-                                            }).collect::<Html>()
-                                        }
-                                        </tbody>
-                                    </table>
-                                </div>
+                        <div class="separator m-1"></div>
+
+                        <div>
+                            <h1 class="is-size-5">{"Spending"}</h1>
+                        {
+                            if !self.transactions.budgeted_spending.is_empty() {
+                                html!{
+                                    {
+                                        self.transactions.budgeted_spending.clone().into_iter().map(|(c, a)| {
+                                            html!{
+                                                <div>
+                                                    <div class="is-flex is-justify-content-space-between">
+                                                        <div>{c.category}</div>
+                                                        <div>{format!("${a:0.2}")}</div>
+                                                    </div>
+                                                    <progress class="progress is-success" value={format!("{:0.2}", a/c.max)} max="1">{format!("{:0.2}", a/c.max)}</progress>
+                                                </div>
+                                            }
+                                        }).collect::<Html>()
+                                    }
+                                }
+                            } else {
+                                html!{}
                             }
-                        } else {
-                            html!{}
                         }
-                    }
+                        </div>
 
+                        {
+                            if !self.transactions.other_spending.is_empty() {
+                                html!{
+                                    <div>
+                                        <table class="table">
+                                            <thead>
+                                                <th>{"Other spending"}</th>
+                                            </thead>
+                                            <tbody>
+                                            {
+                                                self.transactions.other_spending.clone().into_iter().map(|(c, a)| {
+                                                    html!{
+                                                        <tr>
+                                                            <td>{c}</td>
+                                                            <td>{format!("${a:0.2}")}</td>
+                                                            // <td><button class="button">{"+"}</button></td>
+                                                        </tr>
+                                                    }
+                                                }).collect::<Html>()
+                                            }
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                }
+                            } else {
+                                html!{}
+                            }
+                        }
+                    </div>
                 </div>
             </div>
             </>
