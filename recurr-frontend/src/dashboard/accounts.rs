@@ -27,10 +27,7 @@ pub fn accounts() -> Html {
     let user_id = session.user.id.clone();
     let access_token = session.auth_key.clone();
 
-    let accounts = use_async(async move {
-        let accounts = get_all_accounts(&access_token, &user_id).await;
-        accounts
-    });
+    let accounts = use_async(async move { get_all_accounts(&access_token, &user_id).await });
 
     use_state(|| accounts.run());
 
