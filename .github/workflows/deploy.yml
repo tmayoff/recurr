@@ -66,5 +66,5 @@ jobs:
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
-          files: /target/release/bundle/appimage/*
+          files: /target/release/bundle/**
           # TODO Add windows bundles
