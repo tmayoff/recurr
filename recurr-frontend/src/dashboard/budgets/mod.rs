@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 
 use recurr_core::{SchemaAccessToken, SchemaBudget, Transaction};
+use wasm_bindgen::JsCast;
+use web_sys::{HtmlElement, MouseEvent};
 use yew::{html, Component, Context, Html, Properties, UseReducerHandle};
 
 use crate::{commands, context::Session, supabase::get_supbase_client};
@@ -172,6 +174,23 @@ impl Component for BudgetsView {
     fn view(&self, ctx: &yew::Context<Self>) -> Html {
         let session = ctx.props().session.clone();
 
+        let edit_budget = |e: MouseEvent| {
+            let target = e.target();
+
+            let t = target.and_then(|t| t.dyn_into::<HtmlElement>().ok());
+
+            if let Some(t) = t {
+                let category = t.get_attribute("data-category").expect("Missing data");
+                let max: f64 = t
+                    .get_attribute("data-amount")
+                    .expect("Missing data")
+                    .parse()
+                    .expect("Failed to parse budget max");
+
+                // TODO open edit budget modal
+            }
+        };
+
         html! {
             <>
             <div>
@@ -228,10 +247,13 @@ impl Component for BudgetsView {
                                             html!{
                                                 <div>
                                                     <div class="is-flex is-justify-content-space-between">
-                                                        <div>{c.category}</div>
+                                                        <div>{c.category.clone()}</div>
                                                         <div>{format!("${a:0.2}")}</div>
                                                     </div>
-                                                    <progress class="progress is-success" value={format!("{:0.2}", a/c.max)} max="1">{format!("{:0.2}", a/c.max)}</progress>
+                                                    <progress class="progress m-0 is-success" value={format!("{:0.2}", a/c.max)} max="1">{format!("{:0.2}", a/c.max)}</progress>
+                                                    <div class="is-flex is-justify-content-flex-end">
+                                                        <a onclick={edit_budget} data-category={c.category} data-amount={format!("{:0.2}", c.max)}>{"Edit"}</a>
+                                                    </div>
                                                 </div>
                                             }
                                         }).collect::<Html>()
