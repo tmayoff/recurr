@@ -1,11 +1,13 @@
 use std::collections::HashMap;
 
 use recurr_core::{SchemaAccessToken, SchemaBudget, Transaction};
+use wasm_bindgen::JsCast;
+use web_sys::{HtmlElement, MouseEvent};
 use yew::{html, Component, Context, Html, Properties, UseReducerHandle};
 
 use crate::{commands, context::Session, supabase::get_supbase_client};
 
-mod add_modal;
+mod edit_modal;
 
 #[derive(Default)]
 pub struct Transactions {
@@ -15,8 +17,14 @@ pub struct Transactions {
 }
 
 pub enum Msg {
+    ShowModal(Option<SchemaBudget>),
+    HideModal,
+
     GotTransactions(Transactions),
     GetTransactions,
+
+    Update,
+
     Error(String),
 }
 
@@ -28,6 +36,10 @@ pub struct Props {
 pub struct BudgetsView {
     transactions: Transactions,
     error: Option<String>,
+
+    budget_details: Option<SchemaBudget>,
+
+    modal_show: bool,
 }
 
 impl BudgetsView {
@@ -166,11 +178,45 @@ impl Component for BudgetsView {
         Self {
             transactions: Transactions::default(),
             error: None,
+            budget_details: None,
+            modal_show: false,
         }
     }
 
     fn view(&self, ctx: &yew::Context<Self>) -> Html {
         let session = ctx.props().session.clone();
+
+        let modal_cb = ctx.link().callback(|e: edit_modal::ModalMsg| match e {
+            edit_modal::ModalMsg::Close => Msg::HideModal,
+            edit_modal::ModalMsg::Save => Msg::Update,
+        });
+
+        let edit_budget = ctx.link().callback(move |e: MouseEvent| {
+            let target = e.target();
+
+            let t = target.and_then(|t| t.dyn_into::<HtmlElement>().ok());
+
+            if let Some(t) = t {
+                let category = t.get_attribute("data-category");
+                let max = t.get_attribute("data-amount");
+
+                if let (Some(category), Some(max)) = (category, max) {
+                    let max: f64 = max.parse().expect("Failed to parse budget max");
+
+                    let b = SchemaBudget {
+                        user_id: "".to_string(),
+                        category,
+                        max,
+                    };
+
+                    Msg::ShowModal(Some(b))
+                } else {
+                    Msg::ShowModal(None)
+                }
+            } else {
+                Msg::Error("Failed to edit modal".to_string())
+            }
+        });
 
         html! {
             <>
@@ -179,7 +225,8 @@ impl Component for BudgetsView {
                     <h1 class="title">{"Budgets"}</h1>
                 </div>
 
-                <add_modal::Modal {session}/>
+                <button class="button is-success" onclick={edit_budget.clone()}>{"Add Budget"}</button>
+                <edit_modal::Modal on_change={modal_cb} {session} show={self.modal_show} detail={self.budget_details.clone()}/>
 
                 <div class="columns m-1">
                     <div class="column is-half is-flex is-flex-direction-column">
@@ -228,10 +275,13 @@ impl Component for BudgetsView {
                                             html!{
                                                 <div>
                                                     <div class="is-flex is-justify-content-space-between">
-                                                        <div>{c.category}</div>
-                                                        <div>{format!("${a:0.2}")}</div>
+                                                        <div>{c.category.clone()}</div>
+                                                        <div>{format!("${:0.2} left", c.max - a)}</div>
                                                     </div>
-                                                    <progress class="progress is-success" value={format!("{:0.2}", a/c.max)} max="1">{format!("{:0.2}", a/c.max)}</progress>
+                                                    <progress class="progress m-0 is-success" value={format!("{:0.2}", a/c.max)} max="1">{format!("{:0.2}", a/c.max)}</progress>
+                                                    <div class="is-flex is-justify-content-flex-end">
+                                                        <a onclick={edit_budget.clone()} data-category={c.category} data-amount={format!("{:0.2}", c.max)}>{"Edit"}</a>
+                                                    </div>
                                                 </div>
                                             }
                                         }).collect::<Html>()
@@ -283,6 +333,12 @@ impl Component for BudgetsView {
             Msg::GotTransactions(t) => self.transactions = t,
             Msg::GetTransactions => self.get_transaction(ctx),
             Msg::Error(err) => self.error = Some(err),
+            Msg::ShowModal(b) => {
+                self.budget_details = b;
+                self.modal_show = true;
+            }
+            Msg::HideModal => self.modal_show = false,
+            Msg::Update => self.get_transaction(ctx),
         }
 
         true
