@@ -65,7 +65,7 @@ pub async fn link_token_create(
 
     let req = PlaidRequest {
         endpoint: "/link/token/create".to_string(),
-        data,
+        data: Some(data),
     };
 
     let client = reqwest::Client::new();
