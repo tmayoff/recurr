@@ -7,16 +7,16 @@ export async function invokeGetSupbaseAuthCredentials() {
 export async function invokeGetTransactions(
   auth_key,
   access_token,
-  account_ids,
   start_date,
   end_date,
+  options,
 ) {
   return await invoke("get_transactions", {
     authKey: auth_key,
     accessToken: access_token,
-    accountIds: account_ids,
     startDate: start_date,
     endDate: end_date,
+    options: options,
   });
 }
 

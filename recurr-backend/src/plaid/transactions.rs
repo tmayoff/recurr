@@ -1,4 +1,4 @@
-use recurr_core::{Account, Category, Transaction};
+use recurr_core::{Category, TransactionOption, Transactions};
 use reqwest::header::{HeaderMap, HeaderValue};
 use serde::{Deserialize, Serialize};
 
@@ -42,10 +42,10 @@ pub async fn get_categories() -> Result<Vec<Category>, Error> {
 pub async fn get_transactions(
     auth_key: &str,
     access_token: &str,
-    account_ids: Vec<String>,
     start_date: String,
     end_date: String,
-) -> Result<(Vec<Account>, Vec<Transaction>), Error> {
+    options: TransactionOption,
+) -> Result<Transactions, Error> {
     let mut authorization = String::from("Bearer ");
     authorization.push_str(auth_key);
 
@@ -54,14 +54,9 @@ pub async fn get_transactions(
     headers.insert("Content-Type", HeaderValue::from_static("application/json"));
 
     #[derive(Serialize)]
-    struct Options {
-        account_ids: Vec<String>,
-    }
-
-    #[derive(Serialize)]
     struct Request {
         access_token: String,
-        options: Option<Options>,
+        options: TransactionOption,
 
         start_date: String,
         end_date: String,
@@ -69,7 +64,7 @@ pub async fn get_transactions(
 
     let data = serde_json::to_value(Request {
         access_token: access_token.to_string(),
-        options: Some(Options { account_ids }),
+        options,
         start_date,
         end_date,
     })?;
@@ -88,12 +83,5 @@ pub async fn get_transactions(
         .await?
         .error_for_status()?;
 
-    #[derive(Debug, Deserialize)]
-    struct Response {
-        accounts: Vec<Account>,
-        transactions: Vec<Transaction>,
-    }
-
-    let json: Response = res.json().await?;
-    Ok((json.accounts, json.transactions))
+    Ok(res.json().await?)
 }
