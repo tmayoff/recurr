@@ -1,4 +1,5 @@
-use recurr_core::{Account, SupabaseAuthCredentials, Transaction};
+use chrono::{Local, Months, NaiveDate};
+use recurr_core::{Account, Category, SupabaseAuthCredentials, TransactionOption, Transactions};
 use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
 
 #[wasm_bindgen(module = "/public/glue.js")]
@@ -16,10 +17,15 @@ extern "C" {
     ) -> Result<JsValue, JsValue>;
 
     #[wasm_bindgen(catch)]
+    pub async fn invokeGetCategories() -> Result<JsValue, JsValue>;
+
+    #[wasm_bindgen(catch)]
     pub async fn invokeGetTransactions(
         auth_key: &str,
         access_token: &str,
-        account_ids: JsValue,
+        start_date: String,
+        end_date: String,
+        options: JsValue,
     ) -> Result<JsValue, JsValue>;
 
     #[wasm_bindgen(catch)]
@@ -64,15 +70,42 @@ pub async fn get_supabase_auth_credentials() -> Result<SupabaseAuthCredentials, 
     }
 }
 
+pub async fn get_categories() -> Result<Vec<Category>, String> {
+    let res = invokeGetCategories()
+        .await
+        .map_err(|e| e.as_string().unwrap())?;
+
+    let res = serde_wasm_bindgen::from_value(res).map_err(|e| e.to_string())?;
+    Ok(res)
+}
+
 pub async fn get_transactions(
     auth_key: &str,
     access_token: &str,
-    account_ids: Vec<String>,
-) -> Result<(Vec<Account>, Vec<Transaction>), String> {
+    start_date: Option<NaiveDate>,
+    end_date: Option<NaiveDate>,
+    options: TransactionOption,
+) -> Result<Transactions, String> {
+    let start_date = start_date
+        .unwrap_or(NaiveDate::from_ymd_opt(1900, 1, 1).unwrap())
+        .format("%Y-%m-%d")
+        .to_string();
+    let end_date = end_date
+        .unwrap_or(
+            Local::now()
+                .date_naive()
+                .checked_add_months(Months::new(1))
+                .expect("Date must be valid"),
+        )
+        .format("%Y-%m-%d")
+        .to_string();
+
     let res = invokeGetTransactions(
         auth_key,
         access_token,
-        serde_wasm_bindgen::to_value(&account_ids).expect("Failed to convert to JsValue"),
+        start_date,
+        end_date,
+        serde_wasm_bindgen::to_value(&options).expect("Failed to serialize"),
     )
     .await
     .map_err(|e| e.as_string().unwrap())?;

@@ -2,7 +2,10 @@ use std::str::FromStr;
 
 use crate::{
     context::{Session, SessionContext},
-    dashboard::{accounts::AccountsView, summary::SummaryView, transactions::TransactionsView},
+    dashboard::{
+        accounts::AccountsView, budgets::BudgetsView, summary::SummaryView,
+        transactions::TransactionsView,
+    },
 };
 use strum::EnumString;
 use wasm_bindgen::JsCast;
@@ -13,12 +16,14 @@ use yew::{
 };
 
 mod accounts;
+mod budgets;
 mod summary;
 mod transactions;
 
 #[derive(Debug, PartialEq, EnumString)]
 enum DashboardTab {
     Summary,
+    Budgets,
     Transaction,
     Accounts,
 }
@@ -73,6 +78,11 @@ fn sidebar(props: &SidebarProps) -> Html {
             tab: DashboardTab::Summary,
         },
         TabButton {
+            active: false,
+            name: "Budgets".to_string(),
+            tab: DashboardTab::Budgets,
+        },
+        TabButton {
             active: true,
             name: "Transaction".to_string(),
             tab: DashboardTab::Transaction,
@@ -111,7 +121,7 @@ fn sidebar(props: &SidebarProps) -> Html {
 
 #[function_component(Dashboard)]
 pub fn dashboard() -> Html {
-    let sidebar_state = use_state(|| DashboardTab::Summary);
+    let sidebar_state = use_state(|| DashboardTab::Transaction);
     let context = use_context::<UseReducerHandle<Session>>();
 
     html! {
@@ -121,6 +131,12 @@ pub fn dashboard() -> Html {
                 {
                     match *sidebar_state {
                         DashboardTab::Summary => html!{<SummaryView />},
+                        DashboardTab::Budgets =>
+                            if let Some(session) = context {
+                                html!{<BudgetsView  {session}/>}
+                            }  else {
+                                html!{""}
+                            },
                         DashboardTab::Transaction => {
                                 if let Some(session) = context {
                                     html!{<TransactionsView {session}/>}

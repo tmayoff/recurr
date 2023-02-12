@@ -11,8 +11,11 @@ env:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-    container: debian:bookworm
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    runs-on: ${{ matrix.os }}
 
     env:
       SUPABASE_BASE_URL: ""
@@ -23,19 +26,42 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Update System
-        run: apt-get -y update && apt-get -y upgrade
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            ~/.cargo/.crates.toml
+            ~/.cargo/.crates2.json
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - run: |
+          git submodule update --init --recursive
 
       - name: Install dependencies
-        run: apt-get -y install build-essential curl wget libssl-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev libsoup2.4-dev libjavascriptcoregtk-4.0-dev libwebkit2gtk-4.0-dev
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get -y update && sudo apt-get -y upgrade 
+          sudo apt-get -y install build-essential curl wget libssl-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev libsoup2.4-dev libjavascriptcoregtk-4.0-dev libwebkit2gtk-4.0-dev
+
+      - name: Sync node version and setup cache
+        uses: actions/setup-node@v3
+        with:
+          node-version: "lts/*"
 
       - name: Install latest stable
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
 
+      - name: Install trunk
+        run: cargo install trunk
+
       - name: Setup dist dir
         run: mkdir recurr-frontend/dist
 
-      - name: Build
+      - name: Build the app
         run: cargo build

@@ -16,6 +16,13 @@ pub struct Balances {
     pub last_updated_datetime: Option<String>,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+pub struct Category {
+    pub category_id: String,
+    pub group: String,
+    pub hierarchy: Vec<String>,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
 pub struct Institution {
     pub institution_id: String,
@@ -36,11 +43,25 @@ pub struct Account {
     // verification_status: String,
 }
 
+#[derive(Debug, Default, Serialize, Deserialize, Clone, PartialEq)]
+pub struct Transactions {
+    pub accounts: Vec<Account>,
+    pub transactions: Vec<Transaction>,
+    pub total_transactions: u64,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+pub struct TransactionOption {
+    pub account_ids: Vec<String>,
+    pub count: Option<i32>,
+    pub offset: Option<u32>,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct Transaction {
     pub name: String,
     pub amount: f64,
-    // pub category_id: Option<String>,
+    pub category_id: Option<String>,
     pub category: Vec<String>,
     pub date: String,
 }
@@ -52,6 +73,28 @@ pub struct Item {
 
     pub available_products: Vec<String>,
     pub products: Vec<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+pub struct SchemaBudget {
+    pub user_id: String,
+    pub category: String,
+    pub max: f64,
+}
+
+impl std::hash::Hash for SchemaBudget {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.user_id.hash(state);
+        self.category.hash(state);
+    }
+}
+
+impl std::cmp::Eq for SchemaBudget {}
+
+impl SchemaBudget {
+    pub fn to_string(&self) -> Result<String, serde_json::Error> {
+        serde_json::to_string(self)
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
