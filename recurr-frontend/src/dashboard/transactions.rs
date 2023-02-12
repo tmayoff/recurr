@@ -1,4 +1,4 @@
-use recurr_core::{Account, SchemaAccessToken, Transaction};
+use recurr_core::{Account, SchemaAccessToken, Transaction, TransactionOption};
 use yew::{html, Component, Context, Html, Properties, UseReducerHandle};
 
 use crate::{commands, context::Session, supabase::get_supbase_client};
@@ -53,9 +53,16 @@ impl TransactionsView {
             for row in res {
                 if let Some(accounts) = row.plaid_accounts {
                     let a: Vec<String> = accounts.into_iter().map(|a| a.account_id).collect();
+
+                    let a = TransactionOption {
+                        account_ids: a,
+                        count: Some(25),
+                        offset: None,
+                    };
                     let res =
-                        commands::get_transactions(&auth_key, &row.access_token, a, None, None)
+                        commands::get_transactions(&auth_key, &row.access_token, None, None, a)
                             .await;
+
                     match res {
                         Ok(t) => return Msg::GotTransactions(t),
                         Err(e) => {
@@ -143,16 +150,4 @@ impl Component for TransactionsView {
 
         true
     }
-
-    fn changed(&mut self, _ctx: &yew::Context<Self>, _old_props: &Self::Properties) -> bool {
-        true
-    }
-
-    fn rendered(&mut self, _ctx: &yew::Context<Self>, _first_render: bool) {}
-
-    fn prepare_state(&self) -> Option<String> {
-        None
-    }
-
-    fn destroy(&mut self, _ctx: &yew::Context<Self>) {}
 }

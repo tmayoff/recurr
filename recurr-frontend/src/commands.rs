@@ -1,5 +1,5 @@
-use chrono::{DateTime, Local, NaiveDate, NaiveDateTime};
-use recurr_core::{Account, Category, SupabaseAuthCredentials, Transaction};
+use chrono::NaiveDate;
+use recurr_core::{Account, Category, SupabaseAuthCredentials, Transaction, TransactionOption};
 use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
 
 #[wasm_bindgen(module = "/public/glue.js")]
@@ -23,9 +23,9 @@ extern "C" {
     pub async fn invokeGetTransactions(
         auth_key: &str,
         access_token: &str,
-        account_ids: JsValue,
         start_date: String,
         end_date: String,
+        options: JsValue,
     ) -> Result<JsValue, JsValue>;
 
     #[wasm_bindgen(catch)]
@@ -82,9 +82,9 @@ pub async fn get_categories() -> Result<Vec<Category>, String> {
 pub async fn get_transactions(
     auth_key: &str,
     access_token: &str,
-    account_ids: Vec<String>,
     start_date: Option<NaiveDate>,
     end_date: Option<NaiveDate>,
+    options: TransactionOption,
 ) -> Result<(Vec<Account>, Vec<Transaction>), String> {
     let start_date = start_date
         .unwrap_or(NaiveDate::from_ymd_opt(1900, 1, 1).unwrap())
@@ -98,9 +98,9 @@ pub async fn get_transactions(
     let res = invokeGetTransactions(
         auth_key,
         access_token,
-        serde_wasm_bindgen::to_value(&account_ids).expect("Failed to convert to JsValue"),
         start_date,
         end_date,
+        serde_wasm_bindgen::to_value(&options).expect("Failed to serialize"),
     )
     .await
     .map_err(|e| e.as_string().unwrap())?;

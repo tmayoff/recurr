@@ -44,6 +44,13 @@ pub struct Account {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+pub struct TransactionOption {
+    pub account_ids: Vec<String>,
+    pub count: Option<i32>,
+    pub offset: Option<u32>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct Transaction {
     pub name: String,
     pub amount: f64,
