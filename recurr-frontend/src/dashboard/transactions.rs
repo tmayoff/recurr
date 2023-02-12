@@ -11,6 +11,10 @@ pub struct Props {
 pub enum Msg {
     GotTransactions(Transactions),
     GetTransactions,
+
+    NextPage,
+    PrevPage,
+
     Error(String),
 }
 
@@ -18,7 +22,9 @@ pub struct TransactionsView {
     transactions: Transactions,
     error: Option<String>,
 
+    transactions_per_page: u64,
     page: u64,
+    total_pages: u64,
     visible_page_buttons: u64,
     total_transactions: u64,
 }
@@ -37,6 +43,8 @@ impl TransactionsView {
 
         let db_client = get_supbase_client();
 
+        let page = self.page as u32;
+        let per_page = self.transactions_per_page as i32;
         ctx.link().send_future(async move {
             let res = db_client
                 .from("access_tokens")
@@ -60,8 +68,8 @@ impl TransactionsView {
 
                     let options = TransactionOption {
                         account_ids: a,
-                        count: Some(25),
-                        offset: None,
+                        count: Some(per_page),
+                        offset: Some(per_page as u32 * page),
                     };
                     let res = commands::get_transactions(
                         &auth_key,
@@ -97,13 +105,18 @@ impl Component for TransactionsView {
         Self {
             error: None,
             transactions: Transactions::default(),
+            transactions_per_page: 25,
             page: 1,
+            total_pages: 1,
             visible_page_buttons: 5,
             total_transactions: 0,
         }
     }
 
-    fn view(&self, _ctx: &yew::Context<Self>) -> yew::Html {
+    fn view(&self, ctx: &yew::Context<Self>) -> yew::Html {
+        let next_page = ctx.link().callback(|_| Msg::NextPage);
+        let prev_page = ctx.link().callback(|_| Msg::PrevPage);
+
         html! {
             <>
                 <h1 class="is-size-3"> {"Transaction"} </h1>
@@ -144,10 +157,19 @@ impl Component for TransactionsView {
                     </table>
 
                     <div class="is-flex is-justify-content-left is-align-content-center is-align-items-center">
-                        <p class="is-6 mr-3">{"Showing 25 transactions"}</p>
-                        <nav class="pagination is-small is-centered" role="navigation" aria-label="pagination">
-                            <a class="pagination-previous">{"Prev"}</a>
-                            <a class="pagination-next">{"Next"}</a>
+                        <h1 class="is-size-7 mr-3">{"Showing 25 transactions"}</h1>
+                        <h1 class="is-size-7 mr-2"> {format!("{}-{} of {}", ((self.page - 1) * self.transactions_per_page + 1), (self.transactions_per_page * self.page).clamp(0, self.total_transactions), self.total_transactions)} </h1>
+                        <nav class="pagination is-size-6 is-centered" role="navigation" aria-label="pagination">
+                            if self.page == 1 {
+                                <a class="pagination-previous is-disabled">{"Prev"}</a>
+                            } else {
+                                <a class="pagination-previous" onclick={prev_page}>{"Prev"}</a>
+                            }
+                            if self.page == self.total_pages {
+                                <a class="pagination-next is-disabled">{"Next"}</a>
+                            } else {
+                                <a class="pagination-next" onclick={next_page}>{"Next"}</a>
+                            }
                             <ul class="pagination-list">
                             //   <li>
                             //       <a class="pagination-link" aria-label="Goto page 1">{"1"}</a>
@@ -183,7 +205,20 @@ impl Component for TransactionsView {
 
         match msg {
             Msg::GetTransactions => self.get_transaction(ctx),
-            Msg::GotTransactions(t) => self.transactions = t,
+            Msg::GotTransactions(t) => {
+                self.total_transactions = t.total_transactions;
+                self.total_pages = self.total_transactions / self.transactions_per_page;
+                self.transactions = t;
+            }
+            Msg::NextPage => {
+                self.page = (self.page + 1).clamp(0, self.total_pages);
+                ctx.link().send_message(Msg::GetTransactions);
+            }
+            Msg::PrevPage => {
+                self.page = (self.page - 1).clamp(0, self.total_pages);
+                ctx.link().send_message(Msg::GetTransactions);
+            }
+
             Msg::Error(e) => {
                 log::error!("Got error: {}", &e);
                 self.error = Some(e);
