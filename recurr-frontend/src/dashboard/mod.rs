@@ -121,7 +121,7 @@ fn sidebar(props: &SidebarProps) -> Html {
 
 #[function_component(Dashboard)]
 pub fn dashboard() -> Html {
-    let sidebar_state = use_state(|| DashboardTab::Budgets);
+    let sidebar_state = use_state(|| DashboardTab::Transaction);
     let context = use_context::<UseReducerHandle<Session>>();
 
     html! {

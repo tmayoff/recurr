@@ -101,42 +101,72 @@ impl Component for TransactionsView {
             <>
                 <h1 class="is-size-3"> {"Transaction"} </h1>
 
-                {
-                    if let Some(e) = &self.error {
-                        html!{{e}}
-                    } else {
-                        html!{}
-                    }
+                if let Some(e) = &self.error {
+                    {e}
                 }
 
-                <table class="table is-hoverable is-full-width">
-                    <thead>
-                        <th>{"Data"}</th>
-                        <th>{"Name"}</th>
-                        <th>{"Category"}</th>
-                        <th>{"Amount"}</th>
-                    </thead>
-                    <tbody>
-                    {
-                        self.transactions.1.clone().into_iter().map(|t| {
-                            html!{
-                                <tr>
-                                    <td> {t.date}</td>
-                                    <td> {t.name}</td>
-                                    <td> {t.category.clone().last()}</td>
-                                    {
-                                        if t.amount < 0.0 {
-                                            html!{<td class="has-text-success">{format!("${:.2}", t.amount)}</td>}
-                                        } else {
-                                            html!{<td> {format!("${:.2}", t.amount)}</td>}
+                <div>
+
+                    <table class="table is-hoverable is-full-width mb-0">
+                        <thead>
+                            <th>{"Data"}</th>
+                            <th>{"Name"}</th>
+                            <th>{"Category"}</th>
+                            <th>{"Amount"}</th>
+                        </thead>
+                        <tbody>
+                        {
+                            self.transactions.1.clone().into_iter().map(|t| {
+                                html!{
+                                    <tr>
+                                        <td> {t.date}</td>
+                                        <td> {t.name}</td>
+                                        <td> {t.category.clone().last()}</td>
+                                        {
+                                            if t.amount < 0.0 {
+                                                html!{<td class="has-text-success">{format!("${:.2}", t.amount)}</td>}
+                                            } else {
+                                                html!{<td> {format!("${:.2}", t.amount)}</td>}
+                                            }
                                         }
-                                    }
-                                </tr>
-                            }
-                        }).collect::<Html>()
-                    }
-                    </tbody>
-                </table>
+                                    </tr>
+                                }
+                            }).collect::<Html>()
+                        }
+                        </tbody>
+                    </table>
+
+                    <div class="is-flex is-justify-content-left is-align-content-center is-align-items-center">
+                        <p class="is-6 mr-3">{"Showing 25 transactions"}</p>
+                        <nav class="pagination is-small is-centered" role="navigation" aria-label="pagination">
+                            <a class="pagination-previous">{"Prev"}</a>
+                            <a class="pagination-next">{"Next"}</a>
+                            <ul class="pagination-list">
+                              <li>
+                                  <a class="pagination-link" aria-label="Goto page 1">{"1"}</a>
+                              </li>
+                              <li>
+                                  <span class="pagination-ellipsis">{"..."}</span>
+                              </li>
+                              <li>
+                                  <a class="pagination-link" aria-label="Goto page 45">{"45"}</a>
+                              </li>
+                              <li>
+                                  <a class="pagination-link is-current" aria-label="Page 46" aria-current="page">{"46"}</a>
+                              </li>
+                              <li>
+                                  <a class="pagination-link" aria-label="Goto page 47">{"47"}</a>
+                              </li>
+                              <li>
+                                  <span class="pagination-ellipsis">{"..."}</span>
+                              </li>
+                              <li>
+                                  <a class="pagination-link" aria-label="Goto page 86">{"86"}</a>
+                              </li>
+                            </ul>
+                        </nav>
+                    </div>
+                </div>
             </>
         }
     }
