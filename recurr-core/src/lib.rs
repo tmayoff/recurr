@@ -47,7 +47,7 @@ pub struct Account {
 pub struct Transactions {
     pub accounts: Vec<Account>,
     pub transactions: Vec<Transaction>,
-    pub total_transactions: i64,
+    pub total_transactions: u64,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
