@@ -121,7 +121,7 @@ fn sidebar(props: &SidebarProps) -> Html {
 
 #[function_component(Dashboard)]
 pub fn dashboard() -> Html {
-    let sidebar_state = use_state(|| DashboardTab::Transaction);
+    let sidebar_state = use_state(|| DashboardTab::Summary);
     let context = use_context::<UseReducerHandle<Session>>();
 
     html! {
@@ -129,22 +129,15 @@ pub fn dashboard() -> Html {
             <Sidebar sidebar_state={sidebar_state.clone()} />
             <div class="column has-background-light">
                 {
-                    match *sidebar_state {
-                        DashboardTab::Summary => html!{<SummaryView />},
-                        DashboardTab::Budgets =>
-                            if let Some(session) = context {
-                                html!{<BudgetsView  {session}/>}
-                            }  else {
-                                html!{""}
-                            },
-                        DashboardTab::Transaction => {
-                                if let Some(session) = context {
-                                    html!{<TransactionsView {session}/>}
-                                }  else {
-                                    html!{""}
-                                }
-                            },
-                        DashboardTab::Accounts => html!{<AccountsView />},
+                    if let Some(session) = context {
+                        match *sidebar_state {
+                            DashboardTab::Summary => html!{<SummaryView {session} />},
+                            DashboardTab::Budgets => html!{<BudgetsView  {session}/>},
+                            DashboardTab::Transaction => html!{<TransactionsView {session}/>},
+                            DashboardTab::Accounts => html!{<AccountsView />},
+                        }
+                    }  else {
+                        html!{""}
                     }
                 }
             </div>

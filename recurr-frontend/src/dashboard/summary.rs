@@ -1,46 +1,71 @@
 use recurr_core::Account;
-use yew::{function_component, html, use_context, use_state, Html};
-use yew_hooks::use_async;
+use yew::{html, Component, Context, Html, Properties, UseReducerHandle};
 
-use crate::{commands, context::SessionContext};
+use crate::{commands, context::Session};
 
-async fn get_balances(auth_key: &str, user_id: &str) -> Result<Vec<Account>, String> {
-    commands::get_balances(auth_key, user_id).await
+#[derive(Properties, PartialEq)]
+pub struct Props {
+    pub session: UseReducerHandle<Session>,
 }
 
-#[function_component(SummaryView)]
-pub fn summary_view() -> Html {
-    let context = use_context::<SessionContext>().expect("Requires context");
-    let access_token = context
-        .supabase_session
-        .clone()
-        .expect("Requires supabase session")
-        .auth_key;
+pub enum Msg {
+    GotBalances(Vec<Account>),
+    GetBalances,
 
-    let user_id = context
-        .supabase_session
-        .clone()
-        .expect("Requires supabase session")
-        .user
-        .id;
+    Error(String),
+}
 
-    let balances = use_async(async move { get_balances(&access_token, &user_id).await });
+pub struct SummaryView {
+    balances: Vec<Account>,
+}
 
-    use_state(|| balances.run());
+impl SummaryView {
+    fn get_balances(&self, ctx: &Context<Self>) {
+        let auth_key = ctx
+            .props()
+            .session
+            .clone()
+            .supabase_session
+            .clone()
+            .unwrap()
+            .auth_key;
+        let user_id = ctx
+            .props()
+            .session
+            .clone()
+            .supabase_session
+            .clone()
+            .unwrap()
+            .user
+            .id;
 
-    html! {
-        <div>
-        {
-            if balances.loading {
-                html!{"Loading..."}
-            } else {
-                html!{}
+        ctx.link().send_future(async move {
+            let balances = commands::get_balances(&auth_key, &user_id).await;
+            match balances {
+                Ok(b) => Msg::GotBalances(b),
+                Err(e) => Msg::Error(e),
             }
-        }
+        });
+    }
+}
 
-        {
-            if let Some(data) = &balances.data {
-                data.clone().into_iter().map(|account| {
+impl Component for SummaryView {
+    type Message = Msg;
+    type Properties = Props;
+
+    fn create(ctx: &yew::Context<Self>) -> Self {
+        ctx.link().send_message(Msg::GetBalances);
+
+        Self {
+            balances: Vec::new(),
+        }
+    }
+
+    fn view(&self, ctx: &yew::Context<Self>) -> Html {
+        html! {
+            <div>
+            {
+                self.balances.clone().into_iter().map(|account| {
                     html!{
                         <div class="m-3 card">
                             <div class="card-header">
@@ -53,10 +78,18 @@ pub fn summary_view() -> Html {
                         </div>
                     }
                 }).collect::<Html>()
-            } else {
-                html!{""}
             }
+            </div>
         }
-        </div>
+    }
+
+    fn update(&mut self, ctx: &yew::Context<Self>, msg: Self::Message) -> bool {
+        match msg {
+            Msg::GetBalances => self.get_balances(ctx),
+            Msg::GotBalances(b) => self.balances = b,
+            Msg::Error(e) => log::error!("{e}"),
+        }
+
+        true
     }
 }
