@@ -54,14 +54,19 @@ impl TransactionsView {
                 if let Some(accounts) = row.plaid_accounts {
                     let a: Vec<String> = accounts.into_iter().map(|a| a.account_id).collect();
 
-                    let a = TransactionOption {
+                    let options = TransactionOption {
                         account_ids: a,
                         count: Some(25),
                         offset: None,
                     };
-                    let res =
-                        commands::get_transactions(&auth_key, &row.access_token, None, None, a)
-                            .await;
+                    let res = commands::get_transactions(
+                        &auth_key,
+                        &row.access_token,
+                        None,
+                        None,
+                        options,
+                    )
+                    .await;
 
                     match res {
                         Ok(t) => return Msg::GotTransactions(t),
