@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use chrono::Local;
 use recurr_core::{SchemaAccessToken, SchemaBudget, Transaction};
 use wasm_bindgen::JsCast;
 use web_sys::{HtmlElement, MouseEvent};
@@ -78,8 +79,18 @@ impl BudgetsView {
             let mut transactions = Vec::new();
             for row in res {
                 if let Some(accounts) = row.plaid_accounts {
+                    let start_date = Local::now();
+                    let end_date = Local::now();
+
                     let a: Vec<String> = accounts.into_iter().map(|a| a.account_id).collect();
-                    let res = commands::get_transactions(&auth_key, &row.access_token, a).await;
+                    let res = commands::get_transactions(
+                        &auth_key,
+                        &row.access_token,
+                        a,
+                        Some(start_date.naive_local().date()),
+                        Some(end_date.naive_local().date()),
+                    )
+                    .await;
 
                     if let Err(e) = res {
                         log::error!("{}", &e);
