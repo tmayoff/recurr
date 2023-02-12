@@ -1,4 +1,4 @@
-use recurr_core::{Account, SchemaAccessToken, Transaction, TransactionOption};
+use recurr_core::{SchemaAccessToken, TransactionOption, Transactions};
 use yew::{html, Component, Context, Html, Properties, UseReducerHandle};
 
 use crate::{commands, context::Session, supabase::get_supbase_client};
@@ -9,14 +9,18 @@ pub struct Props {
 }
 
 pub enum Msg {
-    GotTransactions((Vec<Account>, Vec<Transaction>)),
+    GotTransactions(Transactions),
     GetTransactions,
     Error(String),
 }
 
 pub struct TransactionsView {
-    transactions: (Vec<Account>, Vec<Transaction>),
+    transactions: Transactions,
     error: Option<String>,
+
+    page: u64,
+    visible_page_buttons: u64,
+    total_transactions: u64,
 }
 
 impl TransactionsView {
@@ -92,7 +96,10 @@ impl Component for TransactionsView {
 
         Self {
             error: None,
-            transactions: (Vec::new(), Vec::new()),
+            transactions: Transactions::default(),
+            page: 1,
+            visible_page_buttons: 5,
+            total_transactions: 0,
         }
     }
 
@@ -116,7 +123,7 @@ impl Component for TransactionsView {
                         </thead>
                         <tbody>
                         {
-                            self.transactions.1.clone().into_iter().map(|t| {
+                            self.transactions.transactions.clone().into_iter().map(|t| {
                                 html!{
                                     <tr>
                                         <td> {t.date}</td>
@@ -142,27 +149,27 @@ impl Component for TransactionsView {
                             <a class="pagination-previous">{"Prev"}</a>
                             <a class="pagination-next">{"Next"}</a>
                             <ul class="pagination-list">
-                              <li>
-                                  <a class="pagination-link" aria-label="Goto page 1">{"1"}</a>
-                              </li>
-                              <li>
-                                  <span class="pagination-ellipsis">{"..."}</span>
-                              </li>
-                              <li>
-                                  <a class="pagination-link" aria-label="Goto page 45">{"45"}</a>
-                              </li>
-                              <li>
-                                  <a class="pagination-link is-current" aria-label="Page 46" aria-current="page">{"46"}</a>
-                              </li>
-                              <li>
-                                  <a class="pagination-link" aria-label="Goto page 47">{"47"}</a>
-                              </li>
-                              <li>
-                                  <span class="pagination-ellipsis">{"..."}</span>
-                              </li>
-                              <li>
-                                  <a class="pagination-link" aria-label="Goto page 86">{"86"}</a>
-                              </li>
+                            //   <li>
+                            //       <a class="pagination-link" aria-label="Goto page 1">{"1"}</a>
+                            //   </li>
+                            //   <li>
+                            //       <span class="pagination-ellipsis">{"..."}</span>
+                            //   </li>
+                            //   <li>
+                            //       <a class="pagination-link" aria-label="Goto page 45">{"45"}</a>
+                            //   </li>
+                            //   <li>
+                            //       <a class="pagination-link is-current" aria-label="Page 46" aria-current="page">{"46"}</a>
+                            //   </li>
+                            //   <li>
+                            //       <a class="pagination-link" aria-label="Goto page 47">{"47"}</a>
+                            //   </li>
+                            //   <li>
+                            //       <span class="pagination-ellipsis">{"..."}</span>
+                            //   </li>
+                            //   <li>
+                            //       <a class="pagination-link" aria-label="Goto page 86">{"86"}</a>
+                            //   </li>
                             </ul>
                         </nav>
                     </div>

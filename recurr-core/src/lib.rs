@@ -43,6 +43,13 @@ pub struct Account {
     // verification_status: String,
 }
 
+#[derive(Debug, Default, Serialize, Deserialize, Clone, PartialEq)]
+pub struct Transactions {
+    pub accounts: Vec<Account>,
+    pub transactions: Vec<Transaction>,
+    pub total_transactions: i64,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct TransactionOption {
     pub account_ids: Vec<String>,

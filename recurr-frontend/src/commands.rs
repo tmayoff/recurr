@@ -1,5 +1,5 @@
 use chrono::NaiveDate;
-use recurr_core::{Account, Category, SupabaseAuthCredentials, Transaction, TransactionOption};
+use recurr_core::{Account, Category, SupabaseAuthCredentials, TransactionOption, Transactions};
 use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
 
 #[wasm_bindgen(module = "/public/glue.js")]
@@ -85,7 +85,7 @@ pub async fn get_transactions(
     start_date: Option<NaiveDate>,
     end_date: Option<NaiveDate>,
     options: TransactionOption,
-) -> Result<(Vec<Account>, Vec<Transaction>), String> {
+) -> Result<Transactions, String> {
     let start_date = start_date
         .unwrap_or(NaiveDate::from_ymd_opt(1900, 1, 1).unwrap())
         .format("%Y-%m-%d")

@@ -104,7 +104,7 @@ impl BudgetsView {
                     }
 
                     let res = res.unwrap();
-                    transactions.extend(res.1.clone());
+                    transactions.extend(res.transactions.clone());
                 }
             }
 
