@@ -21,6 +21,18 @@ jobs:
         with:
           submodules: true
 
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            ~/.cargo/.crates.toml
+            ~/.cargo/.crates2.json
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
       - name: Install dependencies
         if: matrix.os == 'ubuntu-latest'
         run: |
@@ -39,10 +51,7 @@ jobs:
           node-version: "lts/*"
 
       - name: Install trunk
-        uses: actions-rs/install@v0.1.2
-        with:
-          crate: trunk
-          use-tool-cache: true
+        run: cargo install trunk
 
       - name: Build the app
         uses: tauri-apps/tauri-action@v0
