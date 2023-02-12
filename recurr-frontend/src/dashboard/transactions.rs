@@ -1,5 +1,6 @@
 use recurr_core::{SchemaAccessToken, TransactionOption, Transactions};
-use yew::{html, Component, Context, Html, Properties, UseReducerHandle};
+use web_sys::{HtmlElement, MouseEvent};
+use yew::{html, Component, Context, Html, Properties, TargetCast, UseReducerHandle};
 
 use crate::{commands, context::Session, supabase::get_supbase_client};
 
@@ -13,6 +14,7 @@ pub enum Msg {
     GetTransactions,
 
     NextPage,
+    GotoPage(u64),
     PrevPage,
 
     Error(String),
@@ -116,6 +118,17 @@ impl Component for TransactionsView {
     fn view(&self, ctx: &yew::Context<Self>) -> yew::Html {
         let next_page = ctx.link().callback(|_| Msg::NextPage);
         let prev_page = ctx.link().callback(|_| Msg::PrevPage);
+        let goto_page = ctx.link().callback(|e: MouseEvent| {
+            if let Some(t) = e.target_dyn_into::<HtmlElement>() {
+                let page = t.get_attribute("data-page");
+                match page {
+                    Some(p) => Msg::GotoPage(p.parse().expect("Page not a number")),
+                    None => Msg::Error("Failed to find page".to_string()),
+                }
+            } else {
+                Msg::Error("Couldn't find page".to_string())
+            }
+        });
 
         html! {
             <>
@@ -157,9 +170,9 @@ impl Component for TransactionsView {
                     </table>
 
                     <div class="is-flex is-justify-content-left is-align-content-center is-align-items-center">
-                        <h1 class="is-size-7 mr-3">{"Showing 25 transactions"}</h1>
-                        <h1 class="is-size-7 mr-2"> {format!("{}-{} of {}", ((self.page - 1) * self.transactions_per_page + 1), (self.transactions_per_page * self.page).clamp(0, self.total_transactions), self.total_transactions)} </h1>
-                        <nav class="pagination is-size-6 is-centered" role="navigation" aria-label="pagination">
+                        <h1 class="is-size-7 mr-2">{"Showing 25 transactions"}</h1>
+                        <h1 class="is-size-7 mr-3"> {format!("{}-{} of {}", ((self.page - 1) * self.transactions_per_page + 1), (self.transactions_per_page * self.page).clamp(0, self.total_transactions), self.total_transactions)} </h1>
+                        <nav class="pagination is-small is-centered" role="navigation" aria-label="pagination">
                             if self.page == 1 {
                                 <a class="pagination-previous is-disabled">{"Prev"}</a>
                             } else {
@@ -171,27 +184,19 @@ impl Component for TransactionsView {
                                 <a class="pagination-next" onclick={next_page}>{"Next"}</a>
                             }
                             <ul class="pagination-list">
-                            //   <li>
-                            //       <a class="pagination-link" aria-label="Goto page 1">{"1"}</a>
-                            //   </li>
-                            //   <li>
-                            //       <span class="pagination-ellipsis">{"..."}</span>
-                            //   </li>
-                            //   <li>
-                            //       <a class="pagination-link" aria-label="Goto page 45">{"45"}</a>
-                            //   </li>
-                            //   <li>
-                            //       <a class="pagination-link is-current" aria-label="Page 46" aria-current="page">{"46"}</a>
-                            //   </li>
-                            //   <li>
-                            //       <a class="pagination-link" aria-label="Goto page 47">{"47"}</a>
-                            //   </li>
-                            //   <li>
-                            //       <span class="pagination-ellipsis">{"..."}</span>
-                            //   </li>
-                            //   <li>
-                            //       <a class="pagination-link" aria-label="Goto page 86">{"86"}</a>
-                            //   </li>
+                            {
+                                (1..self.total_pages+1).map(|p| {
+                                    html!{
+                                        <li>
+                                            if self.page == p {
+                                                <a class="pagination-link is-current" aria-label={format!("Goto page {p}")}>{p}</a>
+                                            } else {
+                                                <a onclick={goto_page.clone()} data-page={p.to_string()} class="pagination-link" aria-label={format!("Goto page {p}")}>{p}</a>
+                                            }
+                                        </li>
+                                    }
+                                }).collect::<Html>()
+                            }
                             </ul>
                         </nav>
                     </div>
@@ -218,7 +223,10 @@ impl Component for TransactionsView {
                 self.page = (self.page - 1).clamp(0, self.total_pages);
                 ctx.link().send_message(Msg::GetTransactions);
             }
-
+            Msg::GotoPage(p) => {
+                self.page = p;
+                ctx.link().send_message(Msg::GetTransactions);
+            }
             Msg::Error(e) => {
                 log::error!("Got error: {}", &e);
                 self.error = Some(e);

@@ -1,4 +1,4 @@
-use chrono::NaiveDate;
+use chrono::{Local, Months, NaiveDate};
 use recurr_core::{Account, Category, SupabaseAuthCredentials, TransactionOption, Transactions};
 use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
 
@@ -91,7 +91,12 @@ pub async fn get_transactions(
         .format("%Y-%m-%d")
         .to_string();
     let end_date = end_date
-        .unwrap_or(NaiveDate::from_ymd_opt(2500, 1, 1).unwrap())
+        .unwrap_or(
+            Local::now()
+                .date_naive()
+                .checked_add_months(Months::new(1))
+                .expect("Date must be valid"),
+        )
         .format("%Y-%m-%d")
         .to_string();
 
