@@ -1,3 +1,4 @@
+use chrono::{DateTime, Local, NaiveDate, NaiveDateTime};
 use recurr_core::{Account, Category, SupabaseAuthCredentials, Transaction};
 use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
 
@@ -23,6 +24,8 @@ extern "C" {
         auth_key: &str,
         access_token: &str,
         account_ids: JsValue,
+        start_date: String,
+        end_date: String,
     ) -> Result<JsValue, JsValue>;
 
     #[wasm_bindgen(catch)]
@@ -80,11 +83,24 @@ pub async fn get_transactions(
     auth_key: &str,
     access_token: &str,
     account_ids: Vec<String>,
+    start_date: Option<NaiveDate>,
+    end_date: Option<NaiveDate>,
 ) -> Result<(Vec<Account>, Vec<Transaction>), String> {
+    let start_date = start_date
+        .unwrap_or(NaiveDate::from_ymd_opt(1900, 1, 1).unwrap())
+        .format("%Y-%m-%d")
+        .to_string();
+    let end_date = end_date
+        .unwrap_or(NaiveDate::from_ymd_opt(2500, 1, 1).unwrap())
+        .format("%Y-%m-%d")
+        .to_string();
+
     let res = invokeGetTransactions(
         auth_key,
         access_token,
         serde_wasm_bindgen::to_value(&account_ids).expect("Failed to convert to JsValue"),
+        start_date,
+        end_date,
     )
     .await
     .map_err(|e| e.as_string().unwrap())?;

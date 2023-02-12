@@ -53,7 +53,9 @@ impl TransactionsView {
             for row in res {
                 if let Some(accounts) = row.plaid_accounts {
                     let a: Vec<String> = accounts.into_iter().map(|a| a.account_id).collect();
-                    let res = commands::get_transactions(&auth_key, &row.access_token, a).await;
+                    let res =
+                        commands::get_transactions(&auth_key, &row.access_token, a, None, None)
+                            .await;
                     match res {
                         Ok(t) => return Msg::GotTransactions(t),
                         Err(e) => {
@@ -134,7 +136,7 @@ impl Component for TransactionsView {
             Msg::GetTransactions => self.get_transaction(ctx),
             Msg::GotTransactions(t) => self.transactions = t,
             Msg::Error(e) => {
-                log::info!("Got error: {}", &e);
+                log::error!("Got error: {}", &e);
                 self.error = Some(e);
             }
         }

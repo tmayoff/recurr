@@ -226,7 +226,6 @@ impl Component for Modal {
                     match res {
                         Ok(r) => {
                             if r.status().is_success() {
-                                log::info!("{:?}", r.text().await);
                                 Msg::Submitted
                             } else {
                                 Msg::Error(r.status().to_string())

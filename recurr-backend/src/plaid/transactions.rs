@@ -43,6 +43,8 @@ pub async fn get_transactions(
     auth_key: &str,
     access_token: &str,
     account_ids: Vec<String>,
+    start_date: String,
+    end_date: String,
 ) -> Result<(Vec<Account>, Vec<Transaction>), Error> {
     let mut authorization = String::from("Bearer ");
     authorization.push_str(auth_key);
@@ -68,8 +70,8 @@ pub async fn get_transactions(
     let data = serde_json::to_value(Request {
         access_token: access_token.to_string(),
         options: Some(Options { account_ids }),
-        start_date: "2022-01-01".to_string(),
-        end_date: "2023-01-01".to_string(),
+        start_date,
+        end_date,
     })?;
 
     let req = PlaidRequest {
