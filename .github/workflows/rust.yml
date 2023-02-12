@@ -56,10 +56,7 @@ jobs:
           toolchain: stable
 
       - name: Install trunk
-        uses: actions-rs/install@v0.1.2
-        with:
-          crate: trunk
-          use-tool-cache: true
+        run: cargo install trunk
 
       - name: Setup dist dir
         run: mkdir recurr-frontend/dist

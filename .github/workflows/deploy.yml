@@ -39,10 +39,7 @@ jobs:
           node-version: "lts/*"
 
       - name: Install trunk
-        uses: actions-rs/install@v0.1.2
-        with:
-          crate: trunk
-          use-tool-cache: true
+        run: cargo install trunk
 
       - name: Build the app
         uses: tauri-apps/tauri-action@v0
