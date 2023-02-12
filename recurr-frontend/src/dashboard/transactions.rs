@@ -1,3 +1,5 @@
+use std::collections::VecDeque;
+
 use recurr_core::{SchemaAccessToken, TransactionOption, Transactions};
 use web_sys::{HtmlElement, MouseEvent};
 use yew::{html, Component, Context, Html, Properties, TargetCast, UseReducerHandle};
@@ -27,7 +29,6 @@ pub struct TransactionsView {
     transactions_per_page: u64,
     page: u64,
     total_pages: u64,
-    visible_page_buttons: u64,
     total_transactions: u64,
 }
 
@@ -110,7 +111,6 @@ impl Component for TransactionsView {
             transactions_per_page: 25,
             page: 1,
             total_pages: 1,
-            visible_page_buttons: 5,
             total_transactions: 0,
         }
     }
@@ -118,17 +118,62 @@ impl Component for TransactionsView {
     fn view(&self, ctx: &yew::Context<Self>) -> yew::Html {
         let next_page = ctx.link().callback(|_| Msg::NextPage);
         let prev_page = ctx.link().callback(|_| Msg::PrevPage);
-        let goto_page = ctx.link().callback(|e: MouseEvent| {
+
+        let current_page = self.page;
+        let goto_page = ctx.link().callback(move |e: MouseEvent| {
             if let Some(t) = e.target_dyn_into::<HtmlElement>() {
                 let page = t.get_attribute("data-page");
                 match page {
-                    Some(p) => Msg::GotoPage(p.parse().expect("Page not a number")),
+                    Some(p) => {
+                        let p = p.parse().unwrap_or(current_page);
+                        Msg::GotoPage(p)
+                    }
                     None => Msg::Error("Failed to find page".to_string()),
                 }
             } else {
                 Msg::Error("Couldn't find page".to_string())
             }
         });
+
+        let paginate = |current_page: i64, page_count: i64| -> VecDeque<String> {
+            const GAP: &str = "...";
+            let center = vec![
+                current_page - 2,
+                current_page - 1,
+                current_page,
+                current_page + 1,
+                current_page + 2,
+            ];
+            let mut center_deque: VecDeque<String> = center
+                .iter()
+                .filter(|&p| *p > 1i64 && *p < page_count)
+                .map(i64::to_string)
+                .collect();
+            let include_three_left = current_page == 5;
+            let include_three_right = current_page == page_count - 4;
+            let include_left_dots = current_page > 5;
+            let include_right_dots = current_page < page_count - 4;
+
+            if include_three_left {
+                center_deque.push_front("2".into());
+            }
+            if include_three_right {
+                center_deque.push_back((page_count - 1i64).to_string());
+            }
+            if include_left_dots {
+                center_deque.push_front(GAP.into());
+            }
+            if include_right_dots {
+                center_deque.push_back(GAP.into());
+            }
+            center_deque.push_front("1".into());
+            if page_count > 1i64 {
+                center_deque.push_back(page_count.to_string());
+            }
+            center_deque
+        };
+
+        let pagination = paginate(self.page as i64, self.total_pages as i64);
 
         html! {
             <>
@@ -185,13 +230,13 @@ impl Component for TransactionsView {
                             }
                             <ul class="pagination-list">
                             {
-                                (1..self.total_pages+1).map(|p| {
+                                pagination.into_iter().map(|p| {
                                     html!{
                                         <li>
-                                            if self.page == p {
+                                            if self.page.to_string() == p {
                                                 <a class="pagination-link is-current" aria-label={format!("Goto page {p}")}>{p}</a>
                                             } else {
-                                                <a onclick={goto_page.clone()} data-page={p.to_string()} class="pagination-link" aria-label={format!("Goto page {p}")}>{p}</a>
+                                                <a onclick={goto_page.clone()} data-page={p.clone()} class="pagination-link" aria-label={format!("Goto page {p}")}>{p}</a>
                                             }
                                         </li>
                                     }
