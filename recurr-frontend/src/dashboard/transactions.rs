@@ -1,15 +1,15 @@
-use std::collections::VecDeque;
-
 use chrono::NaiveDate;
 use recurr_core::{SchemaAccessToken, TransactionOption, Transactions};
-use web_sys::{HtmlElement, HtmlInputElement, MouseEvent};
+use web_sys::HtmlInputElement;
 use yew::{
     function_component, html, use_node_ref, Callback, Component, Context, Html, Properties,
-    TargetCast, UseReducerHandle,
+    UseReducerHandle,
 };
 use yew_hooks::use_bool_toggle;
 
-use crate::{commands, context::Session, supabase::get_supbase_client};
+use crate::{
+    commands, components::pagination::Paginate, context::Session, supabase::get_supbase_client,
+};
 
 #[derive(Properties, PartialEq)]
 pub struct Props {
@@ -133,24 +133,10 @@ impl Component for TransactionsView {
     fn view(&self, ctx: &yew::Context<Self>) -> yew::Html {
         let next_page = ctx.link().callback(|_| Msg::NextPage);
         let prev_page = ctx.link().callback(|_| Msg::PrevPage);
+        let goto_page = ctx.link().callback(|p| Msg::GotoPage(p as u64));
 
-        let current_page = self.page;
-        let goto_page = ctx.link().callback(move |e: MouseEvent| {
-            if let Some(t) = e.target_dyn_into::<HtmlElement>() {
-                let page = t.get_attribute("data-page");
-                match page {
-                    Some(p) => {
-                        let p = p.parse().unwrap_or(current_page);
-                        Msg::GotoPage(p)
-                    }
-                    None => Msg::Error("Failed to find page".to_string()),
-                }
-            } else {
-                Msg::Error("Couldn't find page".to_string())
-            }
-        });
-
-        let pagination = paginate(self.page as i64, self.total_pages as i64);
+        let current_page = self.page as i64;
+        let total_pages = self.total_pages as i64;
 
         let filter_cb = ctx.link().callback(Msg::SetFilter);
         let filter = self.filter.clone();
@@ -197,33 +183,7 @@ impl Component for TransactionsView {
                     <div class="is-flex is-justify-content-left is-align-content-center is-align-items-center">
                         <h1 class="is-size-7 mr-2">{"Showing 25 transactions"}</h1>
                         <h1 class="is-size-7 mr-3"> {format!("{}-{} of {}", ((self.page - 1) * self.transactions_per_page + 1), (self.transactions_per_page * self.page).clamp(0, self.total_transactions), self.total_transactions)} </h1>
-                        <nav class="pagination is-small is-centered" role="navigation" aria-label="pagination">
-                            if self.page == 1 {
-                                <a class="pagination-previous is-disabled">{"Prev"}</a>
-                            } else {
-                                <a class="pagination-previous" onclick={prev_page}>{"Prev"}</a>
-                            }
-                            if self.page == self.total_pages {
-                                <a class="pagination-next is-disabled">{"Next"}</a>
-                            } else {
-                                <a class="pagination-next" onclick={next_page}>{"Next"}</a>
-                            }
-                            <ul class="pagination-list">
-                            {
-                                pagination.into_iter().map(|p| {
-                                    html!{
-                                        <li>
-                                            if self.page.to_string() == p {
-                                                <a class="pagination-link is-current" aria-label={format!("Goto page {p}")}>{p}</a>
-                                            } else {
-                                                <a onclick={goto_page.clone()} data-page={p.clone()} class="pagination-link" aria-label={format!("Goto page {p}")}>{p}</a>
-                                            }
-                                        </li>
-                                    }
-                                }).collect::<Html>()
-                            }
-                            </ul>
-                        </nav>
+                        <Paginate {next_page} {prev_page} {goto_page} {current_page} {total_pages} />
                     </div>
                 </div>
             </>
@@ -361,42 +321,4 @@ fn filters(props: &FilterProps) -> Html {
             }
         </div>
     }
-}
-
-fn paginate(current_page: i64, page_count: i64) -> VecDeque<String> {
-    const GAP: &str = "...";
-    let center = vec![
-        current_page - 2,
-        current_page - 1,
-        current_page,
-        current_page + 1,
-        current_page + 2,
-    ];
-    let mut center_deque: VecDeque<String> = center
-        .iter()
-        .filter(|&p| *p > 1i64 && *p < page_count)
-        .map(i64::to_string)
-        .collect();
-    let include_three_left = current_page == 5;
-    let include_three_right = current_page == page_count - 4;
-    let include_left_dots = current_page > 5;
-    let include_right_dots = current_page < page_count - 4;
-
-    if include_three_left {
-        center_deque.push_front("2".into());
-    }
-    if include_three_right {
-        center_deque.push_back((page_count - 1i64).to_string());
-    }
-    if include_left_dots {
-        center_deque.push_front(GAP.into());
-    }
-    if include_right_dots {
-        center_deque.push_back(GAP.into());
-    }
-    center_deque.push_front("1".into());
-    if page_count > 1i64 {
-        center_deque.push_back(page_count.to_string());
-    }
-    center_deque
 }
