@@ -1,40 +1,21 @@
-use std::str::FromStr;
-
 use crate::{
-    context::{Session, SessionContext},
+    context::SessionContext,
     dashboard::{
         accounts::AccountsView, budgets::BudgetsView, summary::SummaryView,
         transactions::TransactionsView,
     },
 };
-use strum::EnumString;
-use wasm_bindgen::JsCast;
-use web_sys::{HtmlElement, MouseEvent};
-use yew::{
-    function_component, html, platform::spawn_local, use_context, use_state, Callback, Html,
-    Properties, UseReducerHandle, UseStateHandle,
-};
+use web_sys::MouseEvent;
+use yew::{function_component, html, platform::spawn_local, use_context, Html};
+use yew_router::{prelude::use_route, BrowserRouter, Routable, Switch};
 
 mod accounts;
 mod budgets;
 mod summary;
 mod transactions;
 
-#[derive(Debug, PartialEq, EnumString)]
-enum DashboardTab {
-    Summary,
-    Budgets,
-    Transaction,
-    Accounts,
-}
-
-#[derive(Properties, PartialEq)]
-struct SidebarProps {
-    sidebar_state: UseStateHandle<DashboardTab>,
-}
-
 #[function_component(Sidebar)]
-fn sidebar(props: &SidebarProps) -> Html {
+fn sidebar() -> Html {
     let context = use_context::<SessionContext>().unwrap();
     let use_context = context;
 
@@ -55,59 +36,42 @@ fn sidebar(props: &SidebarProps) -> Html {
         });
     };
 
-    let switch_tabs = {
-        let tab = props.sidebar_state.clone();
-        Callback::from(move |e: MouseEvent| {
-            let target = e.target().expect("Event should come with a target");
-            let target = target.unchecked_into::<HtmlElement>();
-            let data = target.get_attribute("data").expect("Invalid Tab Button");
-            tab.set(DashboardTab::from_str(&data).expect("Invalid Tab button"));
-        })
-    };
-
+    // TODO this could be cleaned up probably
     struct TabButton {
-        active: bool,
-        name: String,
-        tab: DashboardTab,
+        route: Route,
+        endpoint: String,
     }
 
-    let mut tab_buttons = vec![
+    let tab_buttons = vec![
         TabButton {
-            active: false,
-            name: "Summary".to_string(),
-            tab: DashboardTab::Summary,
+            route: Route::Summary,
+            endpoint: "/".to_string(),
         },
         TabButton {
-            active: false,
-            name: "Budgets".to_string(),
-            tab: DashboardTab::Budgets,
+            route: Route::Budgets,
+            endpoint: "/budgets".to_string(),
         },
         TabButton {
-            active: true,
-            name: "Transaction".to_string(),
-            tab: DashboardTab::Transaction,
+            route: Route::Transactions,
+            endpoint: "/transactions".to_string(),
         },
         TabButton {
-            active: false,
-            name: "Accounts".to_string(),
-            tab: DashboardTab::Accounts,
+            route: Route::Accounts,
+            endpoint: "/accounts".to_string(),
         },
     ];
 
-    let tabs = props.sidebar_state.clone();
-    for button in &mut tab_buttons {
-        button.active = button.tab == *tabs;
-    }
+    let route: Route = use_route().unwrap();
 
     html! {
         <aside class="menu p-3 has-background-primary is-flex is-flex-direction-column is-align-content-center">
             <div class="is-flex-grow-1 is-flex is-flex-direction-column">
                 {
                     tab_buttons.into_iter().map(|tab| {
-                        if tab.active {
-                            html!{<button class="button is-primary is-active" data={format!("{:?}", tab.tab)}>{tab.name}</button>}
+                        if tab.route == route {
+                            html!{<a href={tab.endpoint} class="button is-primary is-active">{format!("{:?}", tab.route)}</a>}
                         } else {
-                            html!{<button class="button is-primary" data={format!("{:?}", tab.tab)} onclick={switch_tabs.clone()}>{tab.name}</button>}
+                            html!{<a href={tab.endpoint} class="button is-primary">{format!("{:?}", tab.route)}</a>}
                         }
                     }).collect::<Html>()
                 }
@@ -119,28 +83,54 @@ fn sidebar(props: &SidebarProps) -> Html {
     }
 }
 
+#[derive(Debug, Clone, Routable, PartialEq)]
+enum Route {
+    #[at("/")]
+    Summary,
+    #[at("/budgets")]
+    Budgets,
+    #[at("/transactions")]
+    Transactions,
+    #[at("/accounts")]
+    Accounts,
+}
+
+fn switch(route: Route) -> Html {
+    match route {
+        Route::Summary => html! {
+            <>
+            <Sidebar />
+            <SummaryView />
+            </>
+        },
+        Route::Budgets => html! {
+            <>
+            <Sidebar />
+            <BudgetsView />
+            </>
+        },
+        Route::Transactions => html! {
+            <>
+            <Sidebar />
+            <TransactionsView />
+            </>
+        },
+        Route::Accounts => html! {
+            <>
+            <Sidebar />
+            <AccountsView />
+            </>
+        },
+    }
+}
+
 #[function_component(Dashboard)]
 pub fn dashboard() -> Html {
-    let sidebar_state = use_state(|| DashboardTab::Transaction);
-    let context = use_context::<UseReducerHandle<Session>>();
-
     html! {
         <div class="full-height columns m-0">
-            <Sidebar sidebar_state={sidebar_state.clone()} />
-            <div class="column has-background-light">
-                {
-                    if let Some(session) = context {
-                        match *sidebar_state {
-                            DashboardTab::Summary => html!{<SummaryView {session} />},
-                            DashboardTab::Budgets => html!{<BudgetsView  {session}/>},
-                            DashboardTab::Transaction => html!{<TransactionsView {session}/>},
-                            DashboardTab::Accounts => html!{<AccountsView />},
-                        }
-                    }  else {
-                        html!{""}
-                    }
-                }
-            </div>
+            <BrowserRouter>
+                <Switch <Route> render={switch} />
+            </BrowserRouter>
         </div>
     }
 }
