@@ -1,10 +1,10 @@
 use recurr_core::Account;
 use yew::{
-    function_component, html, Callback, Component, Context, ContextHandle, Html, Properties,
+    function_component, html, Callback, Component, Context, Html, Properties, UseReducerHandle,
 };
 use yew_hooks::use_bool_toggle;
 
-use crate::{commands, context::SessionContext};
+use crate::{commands, context::Session};
 
 #[derive(Default)]
 pub struct Balances {
@@ -14,28 +14,42 @@ pub struct Balances {
     loans: (Vec<Account>, f64),
 }
 
-pub enum Msg {
-    UpdatedContext(SessionContext),
+#[derive(Properties, PartialEq)]
+pub struct Props {
+    pub session: UseReducerHandle<Session>,
+}
 
+pub enum Msg {
     GotBalances(Balances),
     GetBalances,
 
     Error(String),
 }
 
+#[derive(Default)]
 pub struct SummaryView {
     balances: Option<Balances>,
-
-    context: SessionContext,
-    _context_listener: ContextHandle<SessionContext>,
 }
 
 impl SummaryView {
     fn get_balances(&self, ctx: &Context<Self>) {
-        let session = self.context.supabase_session.clone().unwrap();
-
-        let auth_key = session.auth_key;
-        let user_id = session.user.id;
+        let auth_key = ctx
+            .props()
+            .session
+            .clone()
+            .supabase_session
+            .clone()
+            .unwrap()
+            .auth_key;
+        let user_id = ctx
+            .props()
+            .session
+            .clone()
+            .supabase_session
+            .clone()
+            .unwrap()
+            .user
+            .id;
 
         ctx.link().send_future(async move {
             let balances = commands::get_balances(&auth_key, &user_id).await;
@@ -75,21 +89,12 @@ impl SummaryView {
 
 impl Component for SummaryView {
     type Message = Msg;
-    type Properties = ();
+    type Properties = Props;
 
     fn create(ctx: &yew::Context<Self>) -> Self {
-        let (context, context_listener) = ctx
-            .link()
-            .context(ctx.link().callback(Msg::UpdatedContext))
-            .expect("No context provided");
-
         ctx.link().send_message(Msg::GetBalances);
 
-        Self {
-            balances: None,
-            context,
-            _context_listener: context_listener,
-        }
+        Self::default()
     }
 
     fn view(&self, _ctx: &yew::Context<Self>) -> Html {
@@ -120,9 +125,6 @@ impl Component for SummaryView {
             Msg::GetBalances => self.get_balances(ctx),
             Msg::GotBalances(b) => self.balances = Some(b),
             Msg::Error(e) => log::error!("{e}"),
-            Msg::UpdatedContext(context) => {
-                self.context = context;
-            }
         }
 
         true

@@ -2,19 +2,22 @@ use chrono::NaiveDate;
 use recurr_core::{SchemaAccessToken, TransactionOption, Transactions};
 use web_sys::HtmlInputElement;
 use yew::{
-    function_component, html, use_node_ref, Callback, Component, Context, ContextHandle, Html,
-    Properties, TargetCast,
+    function_component, html, use_node_ref, Callback, Component, Context, Html, Properties,
+    TargetCast, UseReducerHandle,
 };
 use yew_hooks::use_bool_toggle;
 
 use crate::{
-    commands, components::pagination::Paginate, context::SessionContext,
+    commands, components::pagination::Paginate, context::Session,
     supabase::get_supbase_client,
 };
 
-pub enum Msg {
-    UpdatedContext(SessionContext),
+#[derive(Properties, PartialEq)]
+pub struct Props {
+    pub session: UseReducerHandle<Session>,
+}
 
+pub enum Msg {
     GotTransactions(Transactions),
     GetTransactions,
     SetFilter(Filter),
@@ -26,10 +29,8 @@ pub enum Msg {
     Error(String),
 }
 
+#[derive(Default)]
 pub struct TransactionsView {
-    context: SessionContext,
-    _context_listener: ContextHandle<SessionContext>,
-
     filter: Filter,
     transactions: Transactions,
     error: Option<String>,
@@ -42,8 +43,10 @@ pub struct TransactionsView {
 
 impl TransactionsView {
     fn get_transaction(&self, ctx: &Context<Self>) {
-        let session = self
-            .context
+        let session = ctx
+            .props()
+            .session
+            .clone()
             .supabase_session
             .clone()
             .expect("Needs session");
@@ -112,27 +115,19 @@ impl TransactionsView {
 
 impl Component for TransactionsView {
     type Message = Msg;
-    type Properties = ();
+    type Properties = Props;
 
     fn create(ctx: &yew::Context<Self>) -> Self {
-        let (context, context_listener) = ctx
-            .link()
-            .context(ctx.link().callback(Msg::UpdatedContext))
-            .expect("No context provided");
-
         ctx.link().send_message(Msg::GetTransactions);
 
         Self {
-            context,
-            _context_listener: context_listener,
-
             error: None,
             transactions: Transactions::default(),
             transactions_per_page: 25,
             page: 1,
             total_pages: 1,
             total_transactions: 0,
-            filter: Filter::default(),
+            ..Default::default()
         }
     }
 
@@ -148,7 +143,7 @@ impl Component for TransactionsView {
         let filter = self.filter.clone();
 
         html! {
-            <div class="column">
+            <>
                 <h1 class="is-size-3"> {"Transaction"} </h1>
 
                 if let Some(e) = &self.error {
@@ -192,7 +187,7 @@ impl Component for TransactionsView {
                         <Paginate {next_page} {prev_page} {goto_page} {current_page} {total_pages} />
                     </div>
                 </div>
-            </div>
+            </>
         }
     }
 
@@ -226,7 +221,6 @@ impl Component for TransactionsView {
                 self.filter = f;
                 ctx.link().send_message(Msg::GetTransactions)
             }
-            Msg::UpdatedContext(context) => self.context = context,
         }
 
         true
