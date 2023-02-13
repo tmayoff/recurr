@@ -3,6 +3,7 @@
 mod app;
 mod auth;
 mod commands;
+mod components;
 mod context;
 mod dashboard;
 mod plaid;
