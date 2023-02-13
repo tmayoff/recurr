@@ -1,8 +1,13 @@
 use std::collections::VecDeque;
 
+use chrono::NaiveDate;
 use recurr_core::{SchemaAccessToken, TransactionOption, Transactions};
-use web_sys::{HtmlElement, MouseEvent};
-use yew::{html, Component, Context, Html, Properties, TargetCast, UseReducerHandle};
+use web_sys::{HtmlElement, HtmlInputElement, MouseEvent};
+use yew::{
+    function_component, html, use_node_ref, Callback, Component, Context, Html, Properties,
+    TargetCast, UseReducerHandle,
+};
+use yew_hooks::use_bool_toggle;
 
 use crate::{commands, context::Session, supabase::get_supbase_client};
 
@@ -14,6 +19,7 @@ pub struct Props {
 pub enum Msg {
     GotTransactions(Transactions),
     GetTransactions,
+    SetFilter(Filter),
 
     NextPage,
     GotoPage(u64),
@@ -22,7 +28,9 @@ pub enum Msg {
     Error(String),
 }
 
+#[derive(Default)]
 pub struct TransactionsView {
+    filter: Filter,
     transactions: Transactions,
     error: Option<String>,
 
@@ -48,6 +56,9 @@ impl TransactionsView {
 
         let page = self.page as u32;
         let per_page = self.transactions_per_page as i32;
+        let start_date = self.filter.start_date.clone();
+        let end_date = self.filter.end_date.clone();
+
         ctx.link().send_future(async move {
             let res = db_client
                 .from("access_tokens")
@@ -64,6 +75,9 @@ impl TransactionsView {
             let res: Vec<SchemaAccessToken> =
                 res.unwrap().json().await.expect("Failed to get json");
 
+            let start_date = start_date.map(|d| NaiveDate::parse_from_str(&d, "%Y-%m-%d").unwrap());
+            let end_date = end_date.map(|d| NaiveDate::parse_from_str(&d, "%Y-%m-%d").unwrap());
+
             // Get Transactions
             for row in res {
                 if let Some(accounts) = row.plaid_accounts {
@@ -72,13 +86,13 @@ impl TransactionsView {
                     let options = TransactionOption {
                         account_ids: a,
                         count: Some(per_page),
-                        offset: Some(per_page as u32 * page),
+                        offset: Some(per_page as u32 * (page - 1)),
                     };
                     let res = commands::get_transactions(
                         &auth_key,
                         &row.access_token,
-                        None,
-                        None,
+                        start_date,
+                        end_date,
                         options,
                     )
                     .await;
@@ -112,6 +126,7 @@ impl Component for TransactionsView {
             page: 1,
             total_pages: 1,
             total_transactions: 0,
+            ..Default::default()
         }
     }
 
@@ -135,45 +150,10 @@ impl Component for TransactionsView {
             }
         });
 
-        let paginate = |current_page: i64, page_count: i64| -> VecDeque<String> {
-            const GAP: &str = "...";
-            let center = vec![
-                current_page - 2,
-                current_page - 1,
-                current_page,
-                current_page + 1,
-                current_page + 2,
-            ];
-            let mut center_deque: VecDeque<String> = center
-                .iter()
-                .filter(|&p| *p > 1i64 && *p < page_count)
-                .map(i64::to_string)
-                .collect();
-            let include_three_left = current_page == 5;
-            let include_three_right = current_page == page_count - 4;
-            let include_left_dots = current_page > 5;
-            let include_right_dots = current_page < page_count - 4;
-
-            if include_three_left {
-                center_deque.push_front("2".into());
-            }
-            if include_three_right {
-                center_deque.push_back((page_count - 1i64).to_string());
-            }
-            if include_left_dots {
-                center_deque.push_front(GAP.into());
-            }
-            if include_right_dots {
-                center_deque.push_back(GAP.into());
-            }
-            center_deque.push_front("1".into());
-            if page_count > 1i64 {
-                center_deque.push_back(page_count.to_string());
-            }
-            center_deque
-        };
-
         let pagination = paginate(self.page as i64, self.total_pages as i64);
+
+        let filter_cb = ctx.link().callback(Msg::SetFilter);
+        let filter = self.filter.clone();
 
         html! {
             <>
@@ -184,7 +164,7 @@ impl Component for TransactionsView {
                 }
 
                 <div>
-
+                    <Filters apply_filter={filter_cb} {filter}/>
                     <table class="table is-hoverable is-full-width mb-0">
                         <thead>
                             <th>{"Data"}</th>
@@ -276,8 +256,147 @@ impl Component for TransactionsView {
                 log::error!("Got error: {}", &e);
                 self.error = Some(e);
             }
+            Msg::SetFilter(f) => {
+                self.filter = f;
+                ctx.link().send_message(Msg::GetTransactions)
+            }
         }
 
         true
     }
+}
+
+#[derive(Debug, Default, PartialEq, Clone)]
+pub struct Filter {
+    start_date: Option<String>,
+    end_date: Option<String>,
+}
+
+#[derive(Properties, PartialEq)]
+struct FilterProps {
+    apply_filter: Callback<Filter>,
+    filter: Filter,
+}
+
+#[function_component(Filters)]
+fn filters(props: &FilterProps) -> Html {
+    let open = use_bool_toggle(false);
+    let start_date_ref = use_node_ref();
+    let end_date_ref = use_node_ref();
+
+    let onclick = {
+        let open = open.clone();
+
+        Callback::from(move |_| {
+            open.toggle();
+        })
+    };
+
+    let apply = {
+        let cb = props.apply_filter.clone();
+        let start_date_ref = start_date_ref.clone();
+        let end_date_ref = end_date_ref.clone();
+
+        Callback::from(move |_| {
+            let start_date = start_date_ref.cast::<HtmlInputElement>().unwrap().value();
+            let end_date = end_date_ref.cast::<HtmlInputElement>().unwrap().value();
+
+            let start_date = if start_date.is_empty() {
+                None
+            } else {
+                Some(start_date)
+            };
+
+            let end_date = if end_date.is_empty() {
+                None
+            } else {
+                Some(end_date)
+            };
+
+            cb.emit(Filter {
+                start_date,
+                end_date,
+            });
+        })
+    };
+
+    let start_date = props.filter.start_date.clone().unwrap_or_default();
+    let end_date = props.filter.end_date.clone().unwrap_or_default();
+
+    html! {
+        <div class="dropdown is-active">
+            <div class="dropdown-trigger">
+                <button {onclick} class="button" aria-haspopup="true" aria-controls="dropdown-menu">
+                    <span>{"Filters"}</span>
+                    <span class="icon is-small">
+                        if *open {
+                            <i class="fas fa-angle-up" aria-hidden="true"></i>
+                        } else {
+                            <i class="fas fa-angle-down" aria-hidden="true"></i>
+                        }
+                    </span>
+                </button>
+            </div>
+
+            if *open {
+                <div class="dropdown-menu" id="dropdown-menu" role="menu">
+                    <div class="dropdown-content">
+                        <hr class="dropdown-divider" />
+                        <div class="dropdown-item">
+                            <label>{"Start date"}</label>
+                            <br />
+                            <input ref={start_date_ref} class="input is-small" type="date" value={start_date}/>
+                        </div>
+                        <div class="dropdown-item">
+                            <label>{"End date"}</label>
+                            <br />
+                            <input ref={end_date_ref} class="input is-small" type="date" value={end_date}/>
+                        </div>
+                        <div class="dropdown-item">
+                            <button class="button is-small mr-3">{"Clear"}</button>
+                            <button onclick={apply} class="button is-success is-small">{"Apply"}</button>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+}
+
+fn paginate(current_page: i64, page_count: i64) -> VecDeque<String> {
+    const GAP: &str = "...";
+    let center = vec![
+        current_page - 2,
+        current_page - 1,
+        current_page,
+        current_page + 1,
+        current_page + 2,
+    ];
+    let mut center_deque: VecDeque<String> = center
+        .iter()
+        .filter(|&p| *p > 1i64 && *p < page_count)
+        .map(i64::to_string)
+        .collect();
+    let include_three_left = current_page == 5;
+    let include_three_right = current_page == page_count - 4;
+    let include_left_dots = current_page > 5;
+    let include_right_dots = current_page < page_count - 4;
+
+    if include_three_left {
+        center_deque.push_front("2".into());
+    }
+    if include_three_right {
+        center_deque.push_back((page_count - 1i64).to_string());
+    }
+    if include_left_dots {
+        center_deque.push_front(GAP.into());
+    }
+    if include_right_dots {
+        center_deque.push_back(GAP.into());
+    }
+    center_deque.push_front("1".into());
+    if page_count > 1i64 {
+        center_deque.push_back(page_count.to_string());
+    }
+    center_deque
 }
