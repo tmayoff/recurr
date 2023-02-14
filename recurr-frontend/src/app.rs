@@ -82,19 +82,13 @@ impl Component for Main {
         let has_session = self.context.supabase_session.is_some();
         html! {
             <main class="hero is-fullheight">
-            {
-                if context.supabase_client.is_some() {
-                    html!{
-                        if has_session {
-                            <Dashboard />
-                        } else {
-                            <Auth />
-                        }
+                if has_session {
+                    if has_session {
+                        <Dashboard context={context.clone()}/>
+                    } else {
+                        <Auth />
                     }
-                } else {
-                    html!{}
                 }
-            }
             </main>
         }
     }

@@ -31,7 +31,7 @@ pub enum Msg {
 
 #[derive(Properties, PartialEq)]
 pub struct Props {
-    pub session: UseReducerHandle<Session>,
+    pub context: UseReducerHandle<Session>,
 }
 
 pub struct BudgetsView {
@@ -49,7 +49,7 @@ impl BudgetsView {
 
         let session = ctx
             .props()
-            .session
+            .context
             .clone()
             .supabase_session
             .clone()
@@ -201,7 +201,7 @@ impl Component for BudgetsView {
     }
 
     fn view(&self, ctx: &yew::Context<Self>) -> Html {
-        let session = ctx.props().session.clone();
+        let session = ctx.props().context.clone();
 
         let modal_cb = ctx.link().callback(|e: edit_modal::ModalMsg| match e {
             edit_modal::ModalMsg::Close => Msg::HideModal,

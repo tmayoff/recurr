@@ -16,7 +16,7 @@ pub struct Balances {
 
 #[derive(Properties, PartialEq)]
 pub struct Props {
-    pub session: UseReducerHandle<Session>,
+    pub context: UseReducerHandle<Session>,
 }
 
 pub enum Msg {
@@ -35,7 +35,7 @@ impl SummaryView {
     fn get_balances(&self, ctx: &Context<Self>) {
         let auth_key = ctx
             .props()
-            .session
+            .context
             .clone()
             .supabase_session
             .clone()
@@ -43,7 +43,7 @@ impl SummaryView {
             .auth_key;
         let user_id = ctx
             .props()
-            .session
+            .context
             .clone()
             .supabase_session
             .clone()
