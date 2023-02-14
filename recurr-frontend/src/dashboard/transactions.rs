@@ -1,10 +1,10 @@
 use chrono::NaiveDate;
 use recurr_core::{SchemaAccessToken, TransactionOption, Transactions};
 use serde::{Deserialize, Serialize};
-use web_sys::HtmlInputElement;
+use web_sys::{HtmlElement, HtmlInputElement, MouseEvent};
 use yew::{
     function_component, html, use_node_ref, Callback, Component, Context, ContextHandle, Html,
-    Properties, UseReducerHandle,
+    Properties, TargetCast, UseReducerHandle,
 };
 use yew_hooks::use_bool_toggle;
 
@@ -160,6 +160,18 @@ impl Component for TransactionsView {
         let filter_cb = ctx.link().callback(Msg::SetFilter);
         let filter = self.filter.clone();
 
+        let cat_onclick = {
+            let filter = self.filter.clone();
+            ctx.link().callback(move |e: MouseEvent| {
+                let mut filter = filter.clone();
+                let target = e.target_dyn_into::<HtmlElement>().unwrap();
+                let cat = target.get_attribute("data-category");
+                filter.category = cat;
+
+                Msg::SetFilter(filter)
+            })
+        };
+
         html! {
             <div class="column">
                 <h1 class="is-size-3"> {"Transaction"} </h1>
@@ -180,11 +192,12 @@ impl Component for TransactionsView {
                         <tbody>
                         {
                             self.transactions.transactions.clone().into_iter().map(|t| {
+                                let cat = t.category.last().unwrap();
                                 html!{
                                     <tr>
                                         <td> {t.date}</td>
                                         <td> {t.name}</td>
-                                        <td><a class="has-hover-underline"> {t.category.clone().last()} </a></td>
+                                        <td><a class="has-hover-underline" data-category={cat.clone()} onclick={cat_onclick.clone()}> {cat} </a></td>
                                         {
                                             if t.amount < 0.0 {
                                                 html!{<td class="has-text-success">{format!("${:.2}", t.amount)}</td>}
@@ -215,8 +228,20 @@ impl Component for TransactionsView {
         match msg {
             Msg::GetTransactions => self.get_transaction(ctx),
             Msg::GotTransactions(t) => {
-                self.total_transactions = t.total_transactions;
+                let mut transactions = t.transactions.clone();
+
+                if let Some(cat) = &self.filter.category {
+                    log::info!("Filtering");
+                    transactions = transactions
+                        .drain_filter(|t| t.category.last().unwrap() == cat)
+                        .collect();
+                }
+
+                self.total_transactions = transactions.len() as u64;
                 self.total_pages = self.total_transactions / self.transactions_per_page;
+
+                let mut t = t;
+                t.transactions = transactions;
                 self.transactions = t;
             }
             Msg::NextPage => {
@@ -237,6 +262,7 @@ impl Component for TransactionsView {
             }
             Msg::SetFilter(f) => {
                 self.filter = f;
+                log::info!("Set filter {:?}", self.filter);
                 ctx.link().send_message(Msg::GetTransactions)
             }
             Msg::UpdatedContext(context) => self.context = context,
@@ -250,6 +276,7 @@ impl Component for TransactionsView {
 pub struct Filter {
     start_date: Option<String>,
     end_date: Option<String>,
+    category: Option<String>,
 }
 
 #[derive(Properties, PartialEq)]
@@ -296,6 +323,7 @@ fn filters(props: &FilterProps) -> Html {
             cb.emit(Filter {
                 start_date,
                 end_date,
+                category: None,
             });
         })
     };
@@ -304,6 +332,7 @@ fn filters(props: &FilterProps) -> Html {
     let end_date = props.filter.end_date.clone().unwrap_or_default();
 
     html! {
+        <>
         <div class="dropdown is-active">
             <div class="dropdown-trigger">
                 <button {onclick} class="button" aria-haspopup="true" aria-controls="dropdown-menu">
@@ -340,5 +369,6 @@ fn filters(props: &FilterProps) -> Html {
                 </div>
             }
         </div>
+        </>
     }
 }
