@@ -1,10 +1,10 @@
 use recurr_core::Account;
 use yew::{
-    function_component, html, Callback, Component, Context, Html, Properties, UseReducerHandle,
+    function_component, html, Callback, Component, Context, ContextHandle, Html, Properties,
 };
 use yew_hooks::use_bool_toggle;
 
-use crate::{commands, context::Session};
+use crate::{commands, context::SessionContext};
 
 #[derive(Default)]
 pub struct Balances {
@@ -20,15 +20,19 @@ pub struct Props {
 }
 
 pub enum Msg {
+    UpdatedContext(SessionContext),
+
     GotBalances(Balances),
     GetBalances,
 
     Error(String),
 }
 
-#[derive(Default)]
 pub struct SummaryView {
     balances: Option<Balances>,
+
+    context: SessionContext,
+    _context_listener: ContextHandle<SessionContext>,
 }
 
 impl SummaryView {
@@ -89,12 +93,21 @@ impl SummaryView {
 
 impl Component for SummaryView {
     type Message = Msg;
-    type Properties = Props;
+    type Properties = ();
 
     fn create(ctx: &yew::Context<Self>) -> Self {
+        let (context, context_listener) = ctx
+            .link()
+            .context(ctx.link().callback(Msg::UpdatedContext))
+            .expect("No context provided");
+
         ctx.link().send_message(Msg::GetBalances);
 
-        Self::default()
+        Self {
+            balances: None,
+            context,
+            _context_listener: context_listener,
+        }
     }
 
     fn view(&self, _ctx: &yew::Context<Self>) -> Html {
@@ -125,6 +138,9 @@ impl Component for SummaryView {
             Msg::GetBalances => self.get_balances(ctx),
             Msg::GotBalances(b) => self.balances = Some(b),
             Msg::Error(e) => log::error!("{e}"),
+            Msg::UpdatedContext(context) => {
+                self.context = context;
+            }
         }
 
         true

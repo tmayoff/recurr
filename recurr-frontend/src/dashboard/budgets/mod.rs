@@ -4,9 +4,9 @@ use chrono::Local;
 use recurr_core::{SchemaAccessToken, SchemaBudget, Transaction, TransactionOption};
 use wasm_bindgen::JsCast;
 use web_sys::{HtmlElement, MouseEvent};
-use yew::{html, Component, Context, Html, Properties, UseReducerHandle};
+use yew::{html, Component, Context, ContextHandle, Html};
 
-use crate::{commands, context::Session, supabase::get_supbase_client};
+use crate::{commands, context::SessionContext, supabase::get_supbase_client};
 
 mod edit_modal;
 
@@ -18,6 +18,8 @@ pub struct Transactions {
 }
 
 pub enum Msg {
+    UpdatedContext(SessionContext),
+
     ShowModal(Option<SchemaBudget>),
     HideModal,
 
@@ -35,6 +37,9 @@ pub struct Props {
 }
 
 pub struct BudgetsView {
+    context: SessionContext,
+    _context_listener: ContextHandle<SessionContext>,
+
     transactions: Transactions,
     error: Option<String>,
 
@@ -187,9 +192,14 @@ impl BudgetsView {
 
 impl Component for BudgetsView {
     type Message = Msg;
-    type Properties = Props;
+    type Properties = ();
 
     fn create(ctx: &yew::Context<Self>) -> Self {
+        let (context, context_listener) = ctx
+            .link()
+            .context(ctx.link().callback(Msg::UpdatedContext))
+            .expect("No context provided");
+
         ctx.link().send_message(Msg::GetTransactions);
 
         Self {
@@ -197,6 +207,8 @@ impl Component for BudgetsView {
             error: None,
             budget_details: None,
             modal_show: false,
+            context,
+            _context_listener: context_listener,
         }
     }
 
@@ -237,7 +249,7 @@ impl Component for BudgetsView {
 
         html! {
             <>
-            <div>
+            <div class="column">
                 <div class="is-flex is-justify-content-space-around is-align-items-center">
                     <h1 class="title">{"Budgets"}</h1>
                 </div>
@@ -356,6 +368,7 @@ impl Component for BudgetsView {
             }
             Msg::HideModal => self.modal_show = false,
             Msg::Update => self.get_transaction(ctx),
+            Msg::UpdatedContext(context) => self.context = context,
         }
 
         true
