@@ -331,6 +331,19 @@ fn filters(props: &FilterProps) -> Html {
     let start_date = props.filter.start_date.clone().unwrap_or_default();
     let end_date = props.filter.end_date.clone().unwrap_or_default();
 
+    let remove_date_filter = {
+        let cb = props.apply_filter.clone();
+        let filter = props.filter.clone();
+
+        Callback::from(move |_| {
+            let mut filter = filter.clone();
+            filter.start_date = None;
+            filter.end_date = None;
+
+            cb.emit(filter);
+        })
+    };
+
     let remove_cat_filter = {
         let cb = props.apply_filter.clone();
         let filter = props.filter.clone();
@@ -383,20 +396,24 @@ fn filters(props: &FilterProps) -> Html {
         </div>
         <br />
         <div class="m-1 is-flex">
-            {
-                if let Some(cat) = &props.filter.category {
-                    html!{
-                        <span class="has-background-grey-light has-radius-1 px-2 icon-text">
-                            <span class="has-text-weight-bold">{"Category: "} <span class="has-text-weight-normal">{cat}</span></span>
-                            <span onclick={remove_cat_filter} class="icon has-cursor-pointer">
-                                <i class="fas fa-solid fa-times-circle"></i>
-                            </span>
-                        </span>
-                    }
-                } else {
-                    html!{""}
-                }
+            if let (Some(start), Some(end)) = (&props.filter.start_date, &props.filter.end_date) {
+                <span class="has-background-grey-light has-radius-1 px-2 icon-text">
+                    <span>{"Date: "} <span class="has-text-weight-bold">{format!("{start}-{end}")}</span></span>
+                    <span onclick={remove_date_filter} class="icon has-cursor-pointer">
+                        <i class="fas fa-solid fa-times-circle"></i>
+                    </span>
+                </span>
             }
+
+            if let Some(cat) = &props.filter.category {
+                <span class="has-background-grey-light has-radius-1 px-2 icon-text">
+                    <span>{"Category: "} <span class="has-text-weight-bold">{cat}</span></span>
+                    <span onclick={remove_cat_filter} class="icon has-cursor-pointer">
+                        <i class="fas fa-solid fa-times-circle"></i>
+                    </span>
+                </span>
+            }
+
         </div>
         </>
     }
