@@ -388,7 +388,7 @@ fn filters(props: &FilterProps) -> Html {
                     html!{
                         <span class="has-background-grey-light has-radius-1 px-2 icon-text">
                             <span class="has-text-weight-bold">{"Category: "} <span class="has-text-weight-normal">{cat}</span></span>
-                            <span onclick={remove_cat_filter} class="icon">
+                            <span onclick={remove_cat_filter} class="icon has-cursor-pointer">
                                 <i class="fas fa-solid fa-times-circle"></i>
                             </span>
                         </span>
