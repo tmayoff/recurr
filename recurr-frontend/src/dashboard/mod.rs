@@ -1,21 +1,44 @@
+use std::str::FromStr;
+use std::string::ToString;
+
 use crate::{
-    context::SessionContext,
+    context::{Session, SessionContext},
     dashboard::{
         accounts::AccountsView, budgets::BudgetsView, summary::SummaryView,
         transactions::TransactionsView,
     },
 };
-use web_sys::MouseEvent;
-use yew::{function_component, html, platform::spawn_local, use_context, Html};
-use yew_router::{prelude::use_route, BrowserRouter, Routable, Switch};
+use strum::{Display, EnumIter, EnumString, IntoEnumIterator};
+use wasm_bindgen::JsCast;
+use web_sys::{HtmlElement, MouseEvent};
+use yew::{
+    function_component, html, platform::spawn_local, use_context, Callback, Component, Html,
+    Properties, UseReducerHandle,
+};
+
+use self::transactions::Filter;
 
 mod accounts;
 mod budgets;
 mod summary;
 mod transactions;
 
+#[derive(Debug, Display, Clone, PartialEq, EnumString, EnumIter)]
+pub enum DashboardTab {
+    Summary,
+    Budgets,
+    Transaction(Filter),
+    Accounts,
+}
+
+#[derive(Properties, PartialEq)]
+struct SidebarProps {
+    active_tab: DashboardTab,
+    switch_tab: Callback<DashboardTab>,
+}
+
 #[function_component(Sidebar)]
-fn sidebar() -> Html {
+fn sidebar(props: &SidebarProps) -> Html {
     let context = use_context::<SessionContext>().unwrap();
     let use_context = context;
 
@@ -36,42 +59,26 @@ fn sidebar() -> Html {
         });
     };
 
-    // TODO this could be cleaned up probably
-    struct TabButton {
-        route: Route,
-        endpoint: String,
-    }
-
-    let tab_buttons = vec![
-        TabButton {
-            route: Route::Summary,
-            endpoint: "/".to_string(),
-        },
-        TabButton {
-            route: Route::Budgets,
-            endpoint: "/budgets".to_string(),
-        },
-        TabButton {
-            route: Route::Transactions,
-            endpoint: "/transactions".to_string(),
-        },
-        TabButton {
-            route: Route::Accounts,
-            endpoint: "/accounts".to_string(),
-        },
-    ];
-
-    let route: Route = use_route().unwrap();
+    let switch_tabs = {
+        let tab_switch = props.switch_tab.clone();
+        Callback::from(move |e: MouseEvent| {
+            let target = e.target().expect("Event should come with a target");
+            let target = target.unchecked_into::<HtmlElement>();
+            let data = target.get_attribute("data").expect("Invalid Tab Button");
+            tab_switch.emit(DashboardTab::from_str(&data).expect("Invalid Tab button"));
+        })
+    };
 
     html! {
         <aside class="menu p-3 has-background-primary is-flex is-flex-direction-column is-align-content-center">
             <div class="is-flex-grow-1 is-flex is-flex-direction-column">
                 {
-                    tab_buttons.into_iter().map(|tab| {
-                        if tab.route == route {
-                            html!{<a href={tab.endpoint} class="button is-primary is-active">{format!("{:?}", tab.route)}</a>}
+                    DashboardTab::iter().map(|tab| {
+                        let tab_name = tab.to_string();
+                        if tab == props.active_tab {
+                            html!{<button class="button is-primary is-active" data={tab_name.clone()}>{tab_name}</button>}
                         } else {
-                            html!{<a href={tab.endpoint} class="button is-primary">{format!("{:?}", tab.route)}</a>}
+                            html!{<button class="button is-primary" data={tab_name.clone()} onclick={switch_tabs.clone()}>{tab_name}</button>}
                         }
                     }).collect::<Html>()
                 }
@@ -83,54 +90,57 @@ fn sidebar() -> Html {
     }
 }
 
-#[derive(Debug, Clone, Routable, PartialEq)]
-enum Route {
-    #[at("/")]
-    Summary,
-    #[at("/budgets")]
-    Budgets,
-    #[at("/transactions")]
-    Transactions,
-    #[at("/accounts")]
-    Accounts,
+#[derive(Properties, PartialEq)]
+pub struct Props {
+    pub context: UseReducerHandle<Session>,
 }
 
-fn switch(route: Route) -> Html {
-    match route {
-        Route::Summary => html! {
-            <>
-            <Sidebar />
-            <SummaryView />
-            </>
-        },
-        Route::Budgets => html! {
-            <>
-            <Sidebar />
-            <BudgetsView />
-            </>
-        },
-        Route::Transactions => html! {
-            <>
-            <Sidebar />
-            <TransactionsView />
-            </>
-        },
-        Route::Accounts => html! {
-            <>
-            <Sidebar />
-            <AccountsView />
-            </>
-        },
+pub enum Msg {
+    SwitchTabs(DashboardTab),
+}
+
+pub struct Dashboard {
+    active_tab: DashboardTab,
+}
+
+impl Component for Dashboard {
+    type Message = Msg;
+    type Properties = Props;
+
+    fn create(_ctx: &yew::Context<Self>) -> Self {
+        Self {
+            active_tab: DashboardTab::Summary,
+        }
     }
-}
 
-#[function_component(Dashboard)]
-pub fn dashboard() -> Html {
-    html! {
-        <div class="full-height columns m-0">
-            <BrowserRouter>
-                <Switch <Route> render={switch} />
-            </BrowserRouter>
-        </div>
+    fn view(&self, ctx: &yew::Context<Self>) -> Html {
+        let context = &ctx.props().context;
+
+        let active_tab = &self.active_tab;
+        let switch_tab = ctx.link().callback(Msg::SwitchTabs);
+
+        html! {
+            <div class="full-height columns m-0">
+                <Sidebar active_tab={active_tab.clone()} {switch_tab} />
+                <div class="column has-background-light">
+                    {
+                        match &self.active_tab {
+                            DashboardTab::Summary => html!{<SummaryView context={context.clone()} />},
+                            DashboardTab::Budgets => html!{<BudgetsView context={context.clone()} />},
+                            DashboardTab::Transaction(filter) => html!{<TransactionsView context={context.clone()} filter={filter.clone()}/>},
+                            DashboardTab::Accounts => html!{<AccountsView />},
+                        }
+                    }
+                </div>
+            </div>
+        }
+    }
+
+    fn update(&mut self, _ctx: &yew::Context<Self>, msg: Self::Message) -> bool {
+        match msg {
+            Msg::SwitchTabs(tab) => self.active_tab = tab,
+        }
+
+        true
     }
 }

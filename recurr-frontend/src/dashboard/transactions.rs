@@ -3,14 +3,22 @@ use recurr_core::{SchemaAccessToken, TransactionOption, Transactions};
 use web_sys::HtmlInputElement;
 use yew::{
     function_component, html, use_node_ref, Callback, Component, Context, ContextHandle, Html,
-    Properties, TargetCast,
+    Properties, UseReducerHandle,
 };
 use yew_hooks::use_bool_toggle;
 
 use crate::{
-    commands, components::pagination::Paginate, context::SessionContext,
+    commands,
+    components::pagination::Paginate,
+    context::{Session, SessionContext},
     supabase::get_supbase_client,
 };
+
+#[derive(Properties, PartialEq)]
+pub struct Props {
+    pub context: UseReducerHandle<Session>,
+    pub filter: Filter,
+}
 
 pub enum Msg {
     UpdatedContext(SessionContext),
@@ -42,8 +50,10 @@ pub struct TransactionsView {
 
 impl TransactionsView {
     fn get_transaction(&self, ctx: &Context<Self>) {
-        let session = self
+        let session = ctx
+            .props()
             .context
+            .clone()
             .supabase_session
             .clone()
             .expect("Needs session");
@@ -112,7 +122,7 @@ impl TransactionsView {
 
 impl Component for TransactionsView {
     type Message = Msg;
-    type Properties = ();
+    type Properties = Props;
 
     fn create(ctx: &yew::Context<Self>) -> Self {
         let (context, context_listener) = ctx
@@ -121,6 +131,8 @@ impl Component for TransactionsView {
             .expect("No context provided");
 
         ctx.link().send_message(Msg::GetTransactions);
+
+        let filter = ctx.props().filter.clone();
 
         Self {
             context,
@@ -132,7 +144,7 @@ impl Component for TransactionsView {
             page: 1,
             total_pages: 1,
             total_transactions: 0,
-            filter: Filter::default(),
+            filter,
         }
     }
 

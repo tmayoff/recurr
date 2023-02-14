@@ -1,10 +1,14 @@
 use recurr_core::Account;
 use yew::{
     function_component, html, Callback, Component, Context, ContextHandle, Html, Properties,
+    UseReducerHandle,
 };
 use yew_hooks::use_bool_toggle;
 
-use crate::{commands, context::SessionContext};
+use crate::{
+    commands,
+    context::{Session, SessionContext},
+};
 
 #[derive(Default)]
 pub struct Balances {
@@ -12,6 +16,11 @@ pub struct Balances {
     credit: (Vec<Account>, f64),
     investments: (Vec<Account>, f64),
     loans: (Vec<Account>, f64),
+}
+
+#[derive(Properties, PartialEq)]
+pub struct Props {
+    pub context: UseReducerHandle<Session>,
 }
 
 pub enum Msg {
@@ -32,10 +41,23 @@ pub struct SummaryView {
 
 impl SummaryView {
     fn get_balances(&self, ctx: &Context<Self>) {
-        let session = self.context.supabase_session.clone().unwrap();
-
-        let auth_key = session.auth_key;
-        let user_id = session.user.id;
+        let auth_key = ctx
+            .props()
+            .context
+            .clone()
+            .supabase_session
+            .clone()
+            .unwrap()
+            .auth_key;
+        let user_id = ctx
+            .props()
+            .context
+            .clone()
+            .supabase_session
+            .clone()
+            .unwrap()
+            .user
+            .id;
 
         ctx.link().send_future(async move {
             let balances = commands::get_balances(&auth_key, &user_id).await;
@@ -75,7 +97,7 @@ impl SummaryView {
 
 impl Component for SummaryView {
     type Message = Msg;
-    type Properties = ();
+    type Properties = Props;
 
     fn create(ctx: &yew::Context<Self>) -> Self {
         let (context, context_listener) = ctx

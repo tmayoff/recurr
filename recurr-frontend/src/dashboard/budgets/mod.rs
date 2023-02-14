@@ -4,9 +4,13 @@ use chrono::Local;
 use recurr_core::{SchemaAccessToken, SchemaBudget, Transaction, TransactionOption};
 use wasm_bindgen::JsCast;
 use web_sys::{HtmlElement, MouseEvent};
-use yew::{html, Component, Context, ContextHandle, Html};
+use yew::{html, Component, Context, ContextHandle, Html, Properties, UseReducerHandle};
 
-use crate::{commands, context::SessionContext, supabase::get_supbase_client};
+use crate::{
+    commands,
+    context::{Session, SessionContext},
+    supabase::get_supbase_client,
+};
 
 mod edit_modal;
 
@@ -31,6 +35,11 @@ pub enum Msg {
     Error(String),
 }
 
+#[derive(Properties, PartialEq)]
+pub struct Props {
+    pub context: UseReducerHandle<Session>,
+}
+
 pub struct BudgetsView {
     context: SessionContext,
     _context_listener: ContextHandle<SessionContext>,
@@ -47,8 +56,10 @@ impl BudgetsView {
     fn get_transaction(&self, ctx: &Context<Self>) {
         // TODO Clean this up
 
-        let session = self
+        let session = ctx
+            .props()
             .context
+            .clone()
             .supabase_session
             .clone()
             .expect("Needs session");
@@ -185,7 +196,7 @@ impl BudgetsView {
 
 impl Component for BudgetsView {
     type Message = Msg;
-    type Properties = ();
+    type Properties = Props;
 
     fn create(ctx: &yew::Context<Self>) -> Self {
         let (context, context_listener) = ctx
@@ -206,7 +217,7 @@ impl Component for BudgetsView {
     }
 
     fn view(&self, ctx: &yew::Context<Self>) -> Html {
-        let session = self.context.clone();
+        let session = ctx.props().context.clone();
 
         let modal_cb = ctx.link().callback(|e: edit_modal::ModalMsg| match e {
             edit_modal::ModalMsg::Close => Msg::HideModal,
