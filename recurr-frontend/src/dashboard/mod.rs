@@ -8,6 +8,8 @@ use crate::{
         transactions::TransactionsView,
     },
 };
+use gloo_storage::{LocalStorage, Storage};
+use serde::{Deserialize, Serialize};
 use strum::{Display, EnumIter, EnumString, IntoEnumIterator};
 use wasm_bindgen::JsCast;
 use web_sys::{HtmlElement, MouseEvent};
@@ -23,7 +25,7 @@ mod budgets;
 mod summary;
 mod transactions;
 
-#[derive(Debug, Display, Clone, PartialEq, EnumString, EnumIter)]
+#[derive(Debug, Deserialize, Display, Clone, PartialEq, EnumString, EnumIter, Serialize)]
 pub enum DashboardTab {
     Summary,
     Budgets,
@@ -108,9 +110,9 @@ impl Component for Dashboard {
     type Properties = Props;
 
     fn create(_ctx: &yew::Context<Self>) -> Self {
-        Self {
-            active_tab: DashboardTab::Summary,
-        }
+        let tab = LocalStorage::get("SavedTab").unwrap_or(DashboardTab::Summary);
+
+        Self { active_tab: tab }
     }
 
     fn view(&self, ctx: &yew::Context<Self>) -> Html {
@@ -138,7 +140,10 @@ impl Component for Dashboard {
 
     fn update(&mut self, _ctx: &yew::Context<Self>, msg: Self::Message) -> bool {
         match msg {
-            Msg::SwitchTabs(tab) => self.active_tab = tab,
+            Msg::SwitchTabs(tab) => {
+                LocalStorage::set("SavedTab", &tab).expect("Failed to save tab to local storage");
+                self.active_tab = tab
+            }
         }
 
         true
