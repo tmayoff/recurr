@@ -4,9 +4,13 @@ use chrono::Local;
 use recurr_core::{SchemaAccessToken, SchemaBudget, Transaction, TransactionOption};
 use wasm_bindgen::JsCast;
 use web_sys::{HtmlElement, MouseEvent};
-use yew::{html, Component, Context, ContextHandle, Html};
+use yew::{html, Component, Context, ContextHandle, Html, Properties, UseReducerHandle};
 
-use crate::{commands, context::SessionContext, supabase::get_supbase_client};
+use crate::{
+    commands,
+    context::{Session, SessionContext},
+    supabase::get_supbase_client,
+};
 
 mod edit_modal;
 
@@ -192,7 +196,7 @@ impl BudgetsView {
 
 impl Component for BudgetsView {
     type Message = Msg;
-    type Properties = ();
+    type Properties = Props;
 
     fn create(ctx: &yew::Context<Self>) -> Self {
         let (context, context_listener) = ctx

@@ -3,12 +3,14 @@ use recurr_core::{SchemaAccessToken, TransactionOption, Transactions};
 use web_sys::HtmlInputElement;
 use yew::{
     function_component, html, use_node_ref, Callback, Component, Context, ContextHandle, Html,
-    Properties, TargetCast,
+    Properties, UseReducerHandle,
 };
 use yew_hooks::use_bool_toggle;
 
 use crate::{
-    commands, components::pagination::Paginate, context::SessionContext,
+    commands,
+    components::pagination::Paginate,
+    context::{Session, SessionContext},
     supabase::get_supbase_client,
 };
 
@@ -120,7 +122,7 @@ impl TransactionsView {
 
 impl Component for TransactionsView {
     type Message = Msg;
-    type Properties = ();
+    type Properties = Props;
 
     fn create(ctx: &yew::Context<Self>) -> Self {
         let (context, context_listener) = ctx

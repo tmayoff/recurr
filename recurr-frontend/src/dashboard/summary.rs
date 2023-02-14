@@ -1,10 +1,14 @@
 use recurr_core::Account;
 use yew::{
     function_component, html, Callback, Component, Context, ContextHandle, Html, Properties,
+    UseReducerHandle,
 };
 use yew_hooks::use_bool_toggle;
 
-use crate::{commands, context::SessionContext};
+use crate::{
+    commands,
+    context::{Session, SessionContext},
+};
 
 #[derive(Default)]
 pub struct Balances {
@@ -93,7 +97,7 @@ impl SummaryView {
 
 impl Component for SummaryView {
     type Message = Msg;
-    type Properties = ();
+    type Properties = Props;
 
     fn create(ctx: &yew::Context<Self>) -> Self {
         let (context, context_listener) = ctx

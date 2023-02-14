@@ -1,5 +1,7 @@
+use std::str::FromStr;
+
 use crate::{
-    context::SessionContext,
+    context::{Session, SessionContext},
     dashboard::{
         accounts::AccountsView, budgets::BudgetsView, summary::SummaryView,
         transactions::TransactionsView,
@@ -35,7 +37,7 @@ struct SidebarProps {
 }
 
 #[function_component(Sidebar)]
-fn sidebar() -> Html {
+fn sidebar(props: &SidebarProps) -> Html {
     let context = use_context::<SessionContext>().unwrap();
     let use_context = context;
 
@@ -84,47 +86,6 @@ fn sidebar() -> Html {
                 <button onclick={signout} class="button is-danger">{"Signout"}</button>
             </div>
         </aside>
-    }
-}
-
-#[derive(Debug, Clone, Routable, PartialEq)]
-enum Route {
-    #[at("/")]
-    Summary,
-    #[at("/budgets")]
-    Budgets,
-    #[at("/transactions")]
-    Transactions,
-    #[at("/accounts")]
-    Accounts,
-}
-
-fn switch(route: Route) -> Html {
-    match route {
-        Route::Summary => html! {
-            <>
-            <Sidebar />
-            <SummaryView />
-            </>
-        },
-        Route::Budgets => html! {
-            <>
-            <Sidebar />
-            <BudgetsView />
-            </>
-        },
-        Route::Transactions => html! {
-            <>
-            <Sidebar />
-            <TransactionsView />
-            </>
-        },
-        Route::Accounts => html! {
-            <>
-            <Sidebar />
-            <AccountsView />
-            </>
-        },
     }
 }
 
