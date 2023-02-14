@@ -231,7 +231,6 @@ impl Component for TransactionsView {
                 let mut transactions = t.transactions.clone();
 
                 if let Some(cat) = &self.filter.category {
-                    log::info!("Filtering");
                     transactions = transactions
                         .drain_filter(|t| t.category.last().unwrap() == cat)
                         .collect();
@@ -303,6 +302,7 @@ fn filters(props: &FilterProps) -> Html {
         let cb = props.apply_filter.clone();
         let start_date_ref = start_date_ref.clone();
         let end_date_ref = end_date_ref.clone();
+        let filter = props.filter.clone();
 
         Callback::from(move |_| {
             let start_date = start_date_ref.cast::<HtmlInputElement>().unwrap().value();
@@ -320,16 +320,28 @@ fn filters(props: &FilterProps) -> Html {
                 Some(end_date)
             };
 
-            cb.emit(Filter {
-                start_date,
-                end_date,
-                category: None,
-            });
+            let mut filter = filter.clone();
+            filter.start_date = start_date;
+            filter.end_date = end_date;
+
+            cb.emit(filter);
         })
     };
 
     let start_date = props.filter.start_date.clone().unwrap_or_default();
     let end_date = props.filter.end_date.clone().unwrap_or_default();
+
+    let remove_cat_filter = {
+        let cb = props.apply_filter.clone();
+        let filter = props.filter.clone();
+
+        Callback::from(move |_| {
+            let mut filter = filter.clone();
+            filter.category = None;
+
+            cb.emit(filter);
+        })
+    };
 
     html! {
         <>
@@ -367,6 +379,23 @@ fn filters(props: &FilterProps) -> Html {
                         </div>
                     </div>
                 </div>
+            }
+        </div>
+        <br />
+        <div class="m-1 is-flex">
+            {
+                if let Some(cat) = &props.filter.category {
+                    html!{
+                        <span class="has-background-grey-light has-radius-1 px-2 icon-text">
+                            <span class="has-text-weight-bold">{"Category: "} <span class="has-text-weight-normal">{cat}</span></span>
+                            <span onclick={remove_cat_filter} class="icon">
+                                <i class="fas fa-solid fa-times-circle"></i>
+                            </span>
+                        </span>
+                    }
+                } else {
+                    html!{""}
+                }
             }
         </div>
         </>
