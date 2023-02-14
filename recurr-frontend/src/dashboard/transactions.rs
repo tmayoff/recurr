@@ -1,5 +1,6 @@
 use chrono::NaiveDate;
 use recurr_core::{SchemaAccessToken, TransactionOption, Transactions};
+use serde::{Deserialize, Serialize};
 use web_sys::HtmlInputElement;
 use yew::{
     function_component, html, use_node_ref, Callback, Component, Context, ContextHandle, Html,
@@ -245,7 +246,7 @@ impl Component for TransactionsView {
     }
 }
 
-#[derive(Debug, Default, PartialEq, Clone)]
+#[derive(Debug, Default, Deserialize, PartialEq, Clone, Serialize)]
 pub struct Filter {
     start_date: Option<String>,
     end_date: Option<String>,
