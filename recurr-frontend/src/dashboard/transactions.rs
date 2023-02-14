@@ -183,7 +183,7 @@ impl Component for TransactionsView {
                                     <tr>
                                         <td> {t.date}</td>
                                         <td> {t.name}</td>
-                                        <td> {t.category.clone().last()}</td>
+                                        <td><a class="has-hover-underline"> {t.category.clone().last()} </a></td>
                                         {
                                             if t.amount < 0.0 {
                                                 html!{<td class="has-text-success">{format!("${:.2}", t.amount)}</td>}
