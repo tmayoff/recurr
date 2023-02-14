@@ -1,4 +1,5 @@
 use std::str::FromStr;
+use std::string::ToString;
 
 use crate::{
     context::{Session, SessionContext},
@@ -7,7 +8,7 @@ use crate::{
         transactions::TransactionsView,
     },
 };
-use strum::{EnumIter, EnumString, IntoEnumIterator};
+use strum::{Display, EnumIter, EnumString, IntoEnumIterator};
 use wasm_bindgen::JsCast;
 use web_sys::{HtmlElement, MouseEvent};
 use yew::{
@@ -22,7 +23,7 @@ mod budgets;
 mod summary;
 mod transactions;
 
-#[derive(Debug, Clone, PartialEq, EnumString, EnumIter)]
+#[derive(Debug, Display, Clone, PartialEq, EnumString, EnumIter)]
 pub enum DashboardTab {
     Summary,
     Budgets,
@@ -73,7 +74,7 @@ fn sidebar(props: &SidebarProps) -> Html {
             <div class="is-flex-grow-1 is-flex is-flex-direction-column">
                 {
                     DashboardTab::iter().map(|tab| {
-                        let tab_name = format!("{tab:#?}");
+                        let tab_name = tab.to_string();
                         if tab == props.active_tab {
                             html!{<button class="button is-primary is-active" data={tab_name.clone()}>{tab_name}</button>}
                         } else {
