@@ -1,4 +1,5 @@
 use std::str::FromStr;
+use std::string::ToString;
 
 use crate::{
     context::{Session, SessionContext},
@@ -7,30 +8,35 @@ use crate::{
         transactions::TransactionsView,
     },
 };
-use strum::EnumString;
+use gloo_storage::{LocalStorage, Storage};
+use serde::{Deserialize, Serialize};
+use strum::{Display, EnumIter, EnumString, IntoEnumIterator};
 use wasm_bindgen::JsCast;
 use web_sys::{HtmlElement, MouseEvent};
 use yew::{
-    function_component, html, platform::spawn_local, use_context, use_state, Callback, Html,
-    Properties, UseReducerHandle, UseStateHandle,
+    function_component, html, platform::spawn_local, use_context, Callback, Component, Html,
+    Properties, UseReducerHandle,
 };
+
+use self::transactions::Filter;
 
 mod accounts;
 mod budgets;
 mod summary;
 mod transactions;
 
-#[derive(Debug, PartialEq, EnumString)]
-enum DashboardTab {
+#[derive(Debug, Deserialize, Display, Clone, PartialEq, EnumString, EnumIter, Serialize)]
+pub enum DashboardTab {
     Summary,
     Budgets,
-    Transaction,
+    Transaction(Filter),
     Accounts,
 }
 
 #[derive(Properties, PartialEq)]
 struct SidebarProps {
-    sidebar_state: UseStateHandle<DashboardTab>,
+    active_tab: DashboardTab,
+    switch_tab: Callback<DashboardTab>,
 }
 
 #[function_component(Sidebar)]
@@ -56,58 +62,25 @@ fn sidebar(props: &SidebarProps) -> Html {
     };
 
     let switch_tabs = {
-        let tab = props.sidebar_state.clone();
+        let tab_switch = props.switch_tab.clone();
         Callback::from(move |e: MouseEvent| {
             let target = e.target().expect("Event should come with a target");
             let target = target.unchecked_into::<HtmlElement>();
             let data = target.get_attribute("data").expect("Invalid Tab Button");
-            tab.set(DashboardTab::from_str(&data).expect("Invalid Tab button"));
+            tab_switch.emit(DashboardTab::from_str(&data).expect("Invalid Tab button"));
         })
     };
-
-    struct TabButton {
-        active: bool,
-        name: String,
-        tab: DashboardTab,
-    }
-
-    let mut tab_buttons = vec![
-        TabButton {
-            active: false,
-            name: "Summary".to_string(),
-            tab: DashboardTab::Summary,
-        },
-        TabButton {
-            active: false,
-            name: "Budgets".to_string(),
-            tab: DashboardTab::Budgets,
-        },
-        TabButton {
-            active: true,
-            name: "Transaction".to_string(),
-            tab: DashboardTab::Transaction,
-        },
-        TabButton {
-            active: false,
-            name: "Accounts".to_string(),
-            tab: DashboardTab::Accounts,
-        },
-    ];
-
-    let tabs = props.sidebar_state.clone();
-    for button in &mut tab_buttons {
-        button.active = button.tab == *tabs;
-    }
 
     html! {
         <aside class="menu p-3 has-background-primary is-flex is-flex-direction-column is-align-content-center">
             <div class="is-flex-grow-1 is-flex is-flex-direction-column">
                 {
-                    tab_buttons.into_iter().map(|tab| {
-                        if tab.active {
-                            html!{<button class="button is-primary is-active" data={format!("{:?}", tab.tab)}>{tab.name}</button>}
+                    DashboardTab::iter().map(|tab| {
+                        let tab_name = tab.to_string();
+                        if tab == props.active_tab {
+                            html!{<button class="button is-primary is-active" data={tab_name.clone()}>{tab_name}</button>}
                         } else {
-                            html!{<button class="button is-primary" data={format!("{:?}", tab.tab)} onclick={switch_tabs.clone()}>{tab.name}</button>}
+                            html!{<button class="button is-primary" data={tab_name.clone()} onclick={switch_tabs.clone()}>{tab_name}</button>}
                         }
                     }).collect::<Html>()
                 }
@@ -119,35 +92,60 @@ fn sidebar(props: &SidebarProps) -> Html {
     }
 }
 
-#[function_component(Dashboard)]
-pub fn dashboard() -> Html {
-    let sidebar_state = use_state(|| DashboardTab::Transaction);
-    let context = use_context::<UseReducerHandle<Session>>();
+#[derive(Properties, PartialEq)]
+pub struct Props {
+    pub context: UseReducerHandle<Session>,
+}
 
-    html! {
-        <div class="full-height columns m-0">
-            <Sidebar sidebar_state={sidebar_state.clone()} />
-            <div class="column has-background-light">
-                {
-                    match *sidebar_state {
-                        DashboardTab::Summary => html!{<SummaryView />},
-                        DashboardTab::Budgets =>
-                            if let Some(session) = context {
-                                html!{<BudgetsView  {session}/>}
-                            }  else {
-                                html!{""}
-                            },
-                        DashboardTab::Transaction => {
-                                if let Some(session) = context {
-                                    html!{<TransactionsView {session}/>}
-                                }  else {
-                                    html!{""}
-                                }
-                            },
-                        DashboardTab::Accounts => html!{<AccountsView />},
+pub enum Msg {
+    SwitchTabs(DashboardTab),
+}
+
+pub struct Dashboard {
+    active_tab: DashboardTab,
+}
+
+impl Component for Dashboard {
+    type Message = Msg;
+    type Properties = Props;
+
+    fn create(_ctx: &yew::Context<Self>) -> Self {
+        let tab = LocalStorage::get("SavedTab").unwrap_or(DashboardTab::Summary);
+
+        Self { active_tab: tab }
+    }
+
+    fn view(&self, ctx: &yew::Context<Self>) -> Html {
+        let context = &ctx.props().context;
+
+        let active_tab = &self.active_tab;
+        let switch_tab = ctx.link().callback(Msg::SwitchTabs);
+
+        html! {
+            <div class="full-height columns m-0">
+                <Sidebar active_tab={active_tab.clone()} {switch_tab} />
+                <div class="column has-background-light">
+                    {
+                        match &self.active_tab {
+                            DashboardTab::Summary => html!{<SummaryView context={context.clone()} />},
+                            DashboardTab::Budgets => html!{<BudgetsView context={context.clone()} />},
+                            DashboardTab::Transaction(filter) => html!{<TransactionsView context={context.clone()} filter={filter.clone()}/>},
+                            DashboardTab::Accounts => html!{<AccountsView />},
+                        }
                     }
-                }
+                </div>
             </div>
-        </div>
+        }
+    }
+
+    fn update(&mut self, _ctx: &yew::Context<Self>, msg: Self::Message) -> bool {
+        match msg {
+            Msg::SwitchTabs(tab) => {
+                LocalStorage::set("SavedTab", &tab).expect("Failed to save tab to local storage");
+                self.active_tab = tab
+            }
+        }
+
+        true
     }
 }

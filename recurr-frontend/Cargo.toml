@@ -22,3 +22,5 @@ dotenv = "0.15.0"
 strum = { version = "0.24.1", features = ["derive", "strum_macros"] }
 postgrest = "1.5.0"
 chrono = "0.4.23"
+yew-router = "0.17.0"
+gloo-storage = "0.2.2"
