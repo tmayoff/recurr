@@ -1,10 +1,10 @@
 use chrono::NaiveDate;
 use recurr_core::{SchemaAccessToken, TransactionOption, Transactions};
 use serde::{Deserialize, Serialize};
-use web_sys::HtmlInputElement;
+use web_sys::{HtmlElement, HtmlInputElement, MouseEvent};
 use yew::{
     function_component, html, use_node_ref, Callback, Component, Context, ContextHandle, Html,
-    Properties, UseReducerHandle,
+    Properties, TargetCast, UseReducerHandle,
 };
 use yew_hooks::use_bool_toggle;
 
@@ -160,6 +160,18 @@ impl Component for TransactionsView {
         let filter_cb = ctx.link().callback(Msg::SetFilter);
         let filter = self.filter.clone();
 
+        let cat_onclick = {
+            let filter = self.filter.clone();
+            ctx.link().callback(move |e: MouseEvent| {
+                let mut filter = filter.clone();
+                let target = e.target_dyn_into::<HtmlElement>().unwrap();
+                let cat = target.get_attribute("data-category");
+                filter.category = cat;
+
+                Msg::SetFilter(filter)
+            })
+        };
+
         html! {
             <div class="column">
                 <h1 class="is-size-3"> {"Transaction"} </h1>
@@ -180,11 +192,12 @@ impl Component for TransactionsView {
                         <tbody>
                         {
                             self.transactions.transactions.clone().into_iter().map(|t| {
+                                let cat = t.category.last().unwrap();
                                 html!{
                                     <tr>
                                         <td> {t.date}</td>
                                         <td> {t.name}</td>
-                                        <td> {t.category.clone().last()}</td>
+                                        <td><a class="has-hover-underline" data-category={cat.clone()} onclick={cat_onclick.clone()}> {cat} </a></td>
                                         {
                                             if t.amount < 0.0 {
                                                 html!{<td class="has-text-success">{format!("${:.2}", t.amount)}</td>}
@@ -215,8 +228,19 @@ impl Component for TransactionsView {
         match msg {
             Msg::GetTransactions => self.get_transaction(ctx),
             Msg::GotTransactions(t) => {
-                self.total_transactions = t.total_transactions;
+                let mut transactions = t.transactions.clone();
+
+                if let Some(cat) = &self.filter.category {
+                    transactions = transactions
+                        .drain_filter(|t| t.category.last().unwrap() == cat)
+                        .collect();
+                }
+
+                self.total_transactions = transactions.len() as u64;
                 self.total_pages = self.total_transactions / self.transactions_per_page;
+
+                let mut t = t;
+                t.transactions = transactions;
                 self.transactions = t;
             }
             Msg::NextPage => {
@@ -237,6 +261,7 @@ impl Component for TransactionsView {
             }
             Msg::SetFilter(f) => {
                 self.filter = f;
+                log::info!("Set filter {:?}", self.filter);
                 ctx.link().send_message(Msg::GetTransactions)
             }
             Msg::UpdatedContext(context) => self.context = context,
@@ -250,6 +275,7 @@ impl Component for TransactionsView {
 pub struct Filter {
     start_date: Option<String>,
     end_date: Option<String>,
+    category: Option<String>,
 }
 
 #[derive(Properties, PartialEq)]
@@ -276,6 +302,7 @@ fn filters(props: &FilterProps) -> Html {
         let cb = props.apply_filter.clone();
         let start_date_ref = start_date_ref.clone();
         let end_date_ref = end_date_ref.clone();
+        let filter = props.filter.clone();
 
         Callback::from(move |_| {
             let start_date = start_date_ref.cast::<HtmlInputElement>().unwrap().value();
@@ -293,17 +320,44 @@ fn filters(props: &FilterProps) -> Html {
                 Some(end_date)
             };
 
-            cb.emit(Filter {
-                start_date,
-                end_date,
-            });
+            let mut filter = filter.clone();
+            filter.start_date = start_date;
+            filter.end_date = end_date;
+
+            cb.emit(filter);
         })
     };
 
     let start_date = props.filter.start_date.clone().unwrap_or_default();
     let end_date = props.filter.end_date.clone().unwrap_or_default();
 
+    let remove_date_filter = {
+        let cb = props.apply_filter.clone();
+        let filter = props.filter.clone();
+
+        Callback::from(move |_| {
+            let mut filter = filter.clone();
+            filter.start_date = None;
+            filter.end_date = None;
+
+            cb.emit(filter);
+        })
+    };
+
+    let remove_cat_filter = {
+        let cb = props.apply_filter.clone();
+        let filter = props.filter.clone();
+
+        Callback::from(move |_| {
+            let mut filter = filter.clone();
+            filter.category = None;
+
+            cb.emit(filter);
+        })
+    };
+
     html! {
+        <>
         <div class="dropdown is-active">
             <div class="dropdown-trigger">
                 <button {onclick} class="button" aria-haspopup="true" aria-controls="dropdown-menu">
@@ -340,5 +394,27 @@ fn filters(props: &FilterProps) -> Html {
                 </div>
             }
         </div>
+        <br />
+        <div class="m-1 is-flex">
+            if let (Some(start), Some(end)) = (&props.filter.start_date, &props.filter.end_date) {
+                <span class="has-background-grey-light has-radius-1 px-2 icon-text">
+                    <span>{"Date: "} <span class="has-text-weight-bold">{format!("{start}-{end}")}</span></span>
+                    <span onclick={remove_date_filter} class="icon has-cursor-pointer">
+                        <i class="fas fa-solid fa-times-circle"></i>
+                    </span>
+                </span>
+            }
+
+            if let Some(cat) = &props.filter.category {
+                <span class="has-background-grey-light has-radius-1 px-2 icon-text">
+                    <span>{"Category: "} <span class="has-text-weight-bold">{cat}</span></span>
+                    <span onclick={remove_cat_filter} class="icon has-cursor-pointer">
+                        <i class="fas fa-solid fa-times-circle"></i>
+                    </span>
+                </span>
+            }
+
+        </div>
+        </>
     }
 }
