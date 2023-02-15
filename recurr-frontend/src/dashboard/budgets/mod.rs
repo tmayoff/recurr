@@ -4,13 +4,18 @@ use chrono::Local;
 use recurr_core::{SchemaAccessToken, SchemaBudget, Transaction, TransactionOption};
 use wasm_bindgen::JsCast;
 use web_sys::{HtmlElement, MouseEvent};
-use yew::{html, Component, Context, ContextHandle, Html, Properties, UseReducerHandle};
+use yew::{
+    html, Callback, Component, Context, ContextHandle, Html, Properties, TargetCast,
+    UseReducerHandle,
+};
 
 use crate::{
     commands,
     context::{Session, SessionContext},
     supabase::get_supbase_client,
 };
+
+use super::{transactions::Filter, DashboardTab};
 
 mod edit_modal;
 
@@ -38,6 +43,7 @@ pub enum Msg {
 #[derive(Properties, PartialEq)]
 pub struct Props {
     pub context: UseReducerHandle<Session>,
+    pub switch_tab: Callback<DashboardTab>,
 }
 
 pub struct BudgetsView {
@@ -251,6 +257,19 @@ impl Component for BudgetsView {
             }
         });
 
+        let goto_transactions = {
+            let switch_tabs = ctx.props().switch_tab.clone();
+            Callback::from(move |e: MouseEvent| {
+                let cat_element = e.target_dyn_into::<HtmlElement>().unwrap();
+                let cat = cat_element.get_attribute("data-category").unwrap();
+                switch_tabs.emit(DashboardTab::Transaction(Filter {
+                    start_date: None,
+                    end_date: None,
+                    category: Some(cat),
+                }));
+            })
+        };
+
         html! {
             <>
             <div class="column">
@@ -308,7 +327,7 @@ impl Component for BudgetsView {
                                             html!{
                                                 <div>
                                                     <div class="is-flex is-justify-content-space-between">
-                                                        <div>{c.category.clone()}</div>
+                                                        <td><a class="has-hover-underline" data-category={c.category.clone()} onclick={goto_transactions.clone()}> {c.category.clone()} </a></td>
                                                         <div>{format!("${:0.2} left", c.max - a)}</div>
                                                     </div>
                                                     <progress class="progress m-0 is-success" value={format!("{:0.2}", a/c.max)} max="1">{format!("{:0.2}", a/c.max)}</progress>
