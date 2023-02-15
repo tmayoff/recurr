@@ -261,7 +261,6 @@ impl Component for TransactionsView {
             }
             Msg::SetFilter(f) => {
                 self.filter = f;
-                log::info!("Set filter {:?}", self.filter);
                 ctx.link().send_message(Msg::GetTransactions)
             }
             Msg::UpdatedContext(context) => self.context = context,
@@ -273,9 +272,9 @@ impl Component for TransactionsView {
 
 #[derive(Debug, Default, Deserialize, PartialEq, Clone, Serialize)]
 pub struct Filter {
-    start_date: Option<String>,
-    end_date: Option<String>,
-    category: Option<String>,
+    pub start_date: Option<String>,
+    pub end_date: Option<String>,
+    pub category: Option<String>,
 }
 
 #[derive(Properties, PartialEq)]
