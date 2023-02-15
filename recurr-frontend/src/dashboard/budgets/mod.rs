@@ -1,6 +1,7 @@
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 use chrono::Local;
+use now::DateTimeNow;
 use recurr_core::{SchemaAccessToken, SchemaBudget, Transaction, TransactionOption};
 use wasm_bindgen::JsCast;
 use web_sys::{HtmlElement, MouseEvent};
@@ -22,7 +23,7 @@ mod edit_modal;
 #[derive(Default)]
 pub struct Transactions {
     other_income: HashMap<String, f64>,
-    budgeted_spending: HashMap<SchemaBudget, f64>,
+    budgeted_spending: Vec<(SchemaBudget, f64)>,
     other_spending: HashMap<String, f64>,
 }
 
@@ -94,8 +95,8 @@ impl BudgetsView {
             let mut transactions = Vec::new();
             for row in res {
                 if let Some(accounts) = row.plaid_accounts {
-                    let start_date = Local::now();
-                    let end_date = Local::now();
+                    let start_date = Local::now().beginning_of_month();
+                    let end_date = Local::now().end_of_month();
 
                     let a: Vec<String> = accounts.into_iter().map(|a| a.account_id).collect();
                     let options = TransactionOption {
@@ -177,6 +178,12 @@ impl BudgetsView {
                     }
                 });
             }
+            // TODO This can be done in one step
+            let mut budgeted_spending = budgeted_spending
+                .into_iter()
+                .collect::<Vec<(SchemaBudget, f64)>>();
+            budgeted_spending.sort_by(|a, b| a.0.category.cmp(&b.0.category));
+
             for t in spending {
                 let general_category = t.category.first();
                 if let Some(category) = general_category {
@@ -262,9 +269,12 @@ impl Component for BudgetsView {
             Callback::from(move |e: MouseEvent| {
                 let cat_element = e.target_dyn_into::<HtmlElement>().unwrap();
                 let cat = cat_element.get_attribute("data-category").unwrap();
+
+                let start_date = Local::now().beginning_of_month();
+                let end_date = Local::now().end_of_month();
                 switch_tabs.emit(DashboardTab::Transaction(Filter {
-                    start_date: None,
-                    end_date: None,
+                    start_date: Some(start_date.naive_local().format("%Y-%m-%d").to_string()),
+                    end_date: Some(end_date.naive_local().format("%Y-%m-%d").to_string()),
                     category: Some(cat),
                 }));
             })
