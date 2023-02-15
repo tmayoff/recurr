@@ -116,7 +116,7 @@ impl Component for Modal {
                                         <button class="button" onclick={close_modal.clone()}>{"Cancel"}</button>
                                         <button class="button is-success" type="submit">{"Save"}</button>
                                         if ctx.props().detail.is_some() {
-                                            <button class="button is-danger" onclick={delete}>{"Delete"}</button>
+                                            <button class="button is-danger" onclick={delete} type="button">{"Delete"}</button>
                                         }
                                     </footer>
                                 </form>
