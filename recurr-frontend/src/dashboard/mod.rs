@@ -130,7 +130,7 @@ impl Component for Dashboard {
                             DashboardTab::Summary => html!{<SummaryView context={context.clone()} />},
                             DashboardTab::Budgets => html!{<BudgetsView context={context.clone()} {switch_tab}/>},
                             DashboardTab::Transaction(filter) => html!{<TransactionsView context={context.clone()} filter={filter.clone()}/>},
-                            DashboardTab::Accounts => html!{<AccountsView />},
+                            DashboardTab::Accounts => html!{<AccountsView context={context.clone()}/>},
                         }
                     }
                 </div>
