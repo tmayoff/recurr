@@ -76,6 +76,7 @@ pub async fn accounts_get(
     access_token: &str,
     account_ids: Vec<String>,
 ) -> Result<(Institution, Vec<Account>), super::Error> {
+    // TODO this should be a simple wrapper around the /accounts/get endpoint
     let mut authorization = String::from("Bearer ");
     authorization.push_str(auth_key);
 

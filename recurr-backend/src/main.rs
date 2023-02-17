@@ -5,6 +5,7 @@
 
 use tauri::Manager;
 
+mod accounts;
 mod plaid;
 mod supabase;
 
@@ -23,6 +24,7 @@ fn main() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            accounts::delete_account,
             plaid::link::link_token_create,
             plaid::transactions::get_transactions,
             plaid::transactions::get_categories,
