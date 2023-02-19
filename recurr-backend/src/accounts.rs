@@ -13,14 +13,15 @@ pub async fn remove_account(
     let client = get_supbase_client().map_err(|e| e.to_string())?;
     let res = client
         .from("access_tokens")
+        .auth(&auth_key)
         .eq("user_id", user_id)
         .eq("access_token", access_token)
         .delete()
         .execute()
         .await
-        .map_err(|e| e.to_string());
-
-    log::info!("{:?}", res);
+        .map_err(|e| e.to_string())?
+        .error_for_status()
+        .map_err(|e| e.to_string())?;
 
     Ok(())
 }
