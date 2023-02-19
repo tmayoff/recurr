@@ -11,6 +11,13 @@ extern "C" {
     pub async fn invokeLinkTokenCreate(anon_key: &str, user_id: &str) -> Result<JsValue, JsValue>;
 
     #[wasm_bindgen(catch)]
+    pub async fn invokeRemoveAccount(
+        user_id: &str,
+        auth_key: &str,
+        access_token: &str,
+    ) -> Result<(), JsValue>;
+
+    #[wasm_bindgen(catch)]
     pub async fn invokeItemPublicTokenExchange(
         anon_key: &str,
         public_token: &str,

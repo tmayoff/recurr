@@ -31,6 +31,14 @@ export async function invokeLinkTokenCreate(anon_key, user_id) {
   });
 }
 
+export async function invokeRemoveAccount(user_id, auth_key, access_token) {
+  return await invoke("remove_account", {
+    userId: user_id,
+    authKey: auth_key,
+    accessToken: access_token,
+  });
+}
+
 export async function invokeItemPublicTokenExchange(anon_key, public_token) {
   return await invoke("item_public_token_exchange", {
     authKey: anon_key,

@@ -7,7 +7,10 @@ use yew::{
 use yew_hooks::use_bool_toggle;
 
 use crate::{
-    commands::get_all_accounts, context::Session, plaid::Link, supabase::get_supbase_client,
+    commands::{self, get_all_accounts},
+    context::Session,
+    plaid::Link,
+    supabase::get_supbase_client,
 };
 
 pub struct AccountsView {
@@ -50,6 +53,16 @@ impl Component for AccountsView {
             .unwrap()
             .auth_key;
 
+        let user_id = ctx
+            .props()
+            .context
+            .clone()
+            .supabase_session
+            .clone()
+            .unwrap()
+            .user
+            .id;
+
         html! {
             <div>
                 <div class="is-flex is-flex-direction-row is-justify-content-space-around is-align-items-center">
@@ -62,7 +75,7 @@ impl Component for AccountsView {
                 } else {
                     {
                         self.accounts.clone().into_iter().map(|a| {
-                            html!{<AccountItem account={a} auth_key={auth_key.clone()} />}
+                            html!{<AccountItem account={a} auth_key={auth_key.clone()} user_id={user_id.clone()} />}
                         }).collect::<Html>()
                     }
                 }
@@ -113,9 +126,10 @@ impl Component for AccountsView {
 struct AccountProp {
     account: (Institution, Vec<Account>),
     auth_key: String,
+    user_id: String,
 }
 
-async fn get_access_token(auth_key: String, account_ids: Vec<String>) -> Result<String, String> {
+async fn get_access_token(auth_key: &str, account_ids: Vec<String>) -> Result<String, String> {
     let client = get_supbase_client();
     let res = client
         .from("access_tokens")
@@ -152,9 +166,11 @@ fn account(props: &AccountProp) -> Html {
 
     let remove_account = {
         let account = props.account.clone();
+        let user_id = props.user_id.clone();
         let auth_key = props.auth_key.clone();
 
         Callback::from(move |_| {
+            let user_id = user_id.clone();
             let auth_key = auth_key.clone();
             let account_ids: Vec<String> = account
                 .1
@@ -163,13 +179,19 @@ fn account(props: &AccountProp) -> Html {
                 .map(|a| a.account_id.clone())
                 .collect();
 
-            log::info!("Delete account");
-
             spawn_local(async move {
-                let res = get_access_token(auth_key, account_ids).await;
-                log::debug!("{:?}", res);
+                let res = get_access_token(&auth_key, account_ids).await;
 
-                // TODO Remove from plaid
+                match res {
+                    Ok(access_token) => {
+                        let res =
+                            commands::invokeRemoveAccount(&user_id, &auth_key, &access_token).await;
+                        log::debug!("{:?}", res);
+                    }
+                    Err(e) => {
+                        log::error!("{:?}", e);
+                    }
+                }
             });
         })
     };

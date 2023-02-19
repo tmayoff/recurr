@@ -24,7 +24,7 @@ fn main() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            accounts::delete_account,
+            accounts::remove_account,
             plaid::link::link_token_create,
             plaid::transactions::get_transactions,
             plaid::transactions::get_categories,
