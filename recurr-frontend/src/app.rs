@@ -52,15 +52,7 @@ impl Component for Main {
             .context(ctx.link().callback(MainMessage::ContextUpdated))
             .expect("No Context Provided");
 
-        let async_context = context.clone();
-        spawn_local(async move {
-            let cred = commands::get_supabase_auth_credentials().await;
-
-            let cred = cred.expect("Failed to get credentials");
-            let client = supabase_js_rs::create_client(&cred.auth_url, &cred.anon_key);
-            setup_auth_handler(&async_context, &client);
-            async_context.dispatch(ContextUpdate::SupabaseClient(Some(client)));
-        });
+        setup_auth_handler(&context, &context.supabase_client);
 
         Self {
             context,
@@ -80,14 +72,13 @@ impl Component for Main {
     fn view(&self, _ctx: &Context<Self>) -> Html {
         let context = &self.context;
         let has_session = self.context.supabase_session.is_some();
+
         html! {
             <main class="hero is-fullheight">
                 if has_session {
-                    if has_session {
-                        <Dashboard context={context.clone()}/>
-                    } else {
-                        <Auth />
-                    }
+                    <Dashboard context={context.clone()}/>
+                } else {
+                    <Auth />
                 }
             </main>
         }
