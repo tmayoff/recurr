@@ -5,13 +5,12 @@ use yew::prelude::*;
 
 pub enum ContextUpdate {
     Session(Option<supabase::Session>),
-    SupabaseClient(Option<SupabaseClient>),
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Session {
     pub anon_key: String,
-    pub supabase_client: Option<SupabaseClient>,
+    pub supabase_client: SupabaseClient,
     pub supabase_session: Option<supabase::Session>,
 }
 
@@ -23,7 +22,6 @@ impl Reducible for Session {
 
         match action {
             ContextUpdate::Session(session) => s.supabase_session = session,
-            ContextUpdate::SupabaseClient(client) => s.supabase_client = client,
         }
 
         s.into()
@@ -40,8 +38,12 @@ pub struct SessionProviderProps {
 
 #[function_component]
 pub fn SessionProvider(props: &SessionProviderProps) -> Html {
+    let auth_url = env!("SUPABASE_URL").to_string();
+    let anon_key = env!("SUPABASE_KEY").to_string();
+    let supabase_client = use_state(|| supabase_js_rs::create_client(&auth_url, &anon_key));
+
     let context = use_reducer(|| Session {
-        supabase_client: None,
+        supabase_client: (*supabase_client).clone(),
         supabase_session: None,
         anon_key: String::default(),
     });

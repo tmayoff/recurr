@@ -33,7 +33,6 @@ fn main() {
             supabase::accounts::save_plaid_account,
             supabase::accounts::get_plaid_accounts,
             supabase::accounts::get_plaid_balances,
-            supabase::auth::get_supabase_auth_credentials,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

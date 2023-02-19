@@ -1,11 +1,5 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct SupabaseAuthCredentials {
-    pub auth_url: String,
-    pub anon_key: String,
-}
-
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct Balances {
     pub available: Option<f64>,
