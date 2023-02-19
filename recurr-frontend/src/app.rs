@@ -1,6 +1,5 @@
 use crate::{
     auth::Auth,
-    commands,
     context::{ContextUpdate, Session, SessionProvider},
     dashboard::Dashboard,
     supabase,
@@ -8,7 +7,6 @@ use crate::{
 use serde_wasm_bindgen::Error;
 use supabase_js_rs::SupabaseClient;
 use wasm_bindgen::{prelude::Closure, JsValue};
-use wasm_bindgen_futures::spawn_local;
 use yew::prelude::*;
 
 fn setup_auth_handler(context: &UseReducerHandle<Session>, client: &SupabaseClient) {

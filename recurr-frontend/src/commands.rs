@@ -1,12 +1,9 @@
 use chrono::{Local, Months, NaiveDate};
-use recurr_core::{Account, Category, SupabaseAuthCredentials, TransactionOption, Transactions};
+use recurr_core::{Account, Category, TransactionOption, Transactions};
 use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
 
 #[wasm_bindgen(module = "/public/glue.js")]
 extern "C" {
-    #[wasm_bindgen(catch)]
-    pub async fn invokeGetSupbaseAuthCredentials() -> Result<JsValue, JsValue>;
-
     #[wasm_bindgen(catch)]
     pub async fn invokeLinkTokenCreate(anon_key: &str, user_id: &str) -> Result<JsValue, JsValue>;
 
@@ -56,18 +53,6 @@ extern "C" {
     ) -> Result<JsValue, JsValue>;
 
     pub fn linkStart(link_token: String, callback: JsValue);
-}
-
-pub async fn get_supabase_auth_credentials() -> Result<SupabaseAuthCredentials, String> {
-    let res = invokeGetSupbaseAuthCredentials().await;
-    match res {
-        Ok(json) => {
-            let obj = serde_wasm_bindgen::from_value::<SupabaseAuthCredentials>(json)
-                .map_err(|e| e.to_string())?;
-            Ok(obj)
-        }
-        Err(e) => Err(e.as_string().expect("Failed to get string")),
-    }
 }
 
 pub async fn get_categories() -> Result<Vec<Category>, String> {
