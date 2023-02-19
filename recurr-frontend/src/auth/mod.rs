@@ -25,11 +25,7 @@ pub fn auth() -> Html {
     let context = use_context::<SessionContext>().expect("Needs context");
 
     let signin_signup = use_toggle(SignupSignin::Signin, SignupSignin::Signup);
-
-    let client = context
-        .supabase_client
-        .clone()
-        .expect("Requires supabase client");
+    let client = context.supabase_client.clone();
 
     html! {
         <div class="hero is-fullheight is-flex is-justify-content-center is-align-content-center is-align-items-center">
