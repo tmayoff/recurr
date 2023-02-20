@@ -126,7 +126,8 @@ pub async fn accounts_get(
 
         Ok((institution, account_response.accounts))
     } else {
-        Err(super::Error::Plaid(res.json::<super::PlaidError>().await?))
+        let res = res.json().await?;
+        Err(super::Error::Plaid(res))
     }
 }
 
