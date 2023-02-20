@@ -112,10 +112,8 @@ pub async fn get_accounts(
         item: Item,
     }
 
-    let account_response = res
-        .error_for_status()?
-        .json::<AccountsGetResponse>()
-        .await?;
+    if res.status().is_success() {
+        let account_response = res.json::<AccountsGetResponse>().await?;
 
     Ok((account_response.item, account_response.accounts))
 }

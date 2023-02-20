@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use reqwest::header::{HeaderMap, HeaderValue};
 use serde::{Deserialize, Serialize};
 
@@ -5,6 +7,49 @@ pub mod accounts;
 pub mod institutions;
 pub mod link;
 pub mod transactions;
+
+#[allow(non_camel_case_types)]
+#[derive(Debug, Deserialize)]
+enum PlaidErrorType {
+    INVALID_REQUEST,
+    INVALID_RESULT,
+    INVALID_INPUT,
+    INSTITUTION_ERROR,
+    RATE_LIMIT_EXCEEDED,
+    API_ERROR,
+    ITEM_ERROR,
+    ASSET_REPORT_ERROR,
+    RECAPTCHA_ERROR,
+    OAUTH_ERROR,
+    PAYMENT_ERROR,
+    BANK_TRANSFER_ERROR,
+    INCOME_VERIFICATION_ERROR,
+    MICRODEPOSITS_ERROR,
+}
+
+impl Display for PlaidErrorType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+#[derive(Debug, Deserialize, thiserror::Error)]
+pub struct PlaidError {
+    error_type: PlaidErrorType,
+    error_code: String,
+    error_message: String,
+    display_message: Option<String>,
+}
+
+impl Display for PlaidError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "Plaid returned an error (type: {}), (code: {}), (error message: {}), (display message: {:?})",
+            self.error_type, self.error_code, self.error_message, self.display_message
+        )
+    }
+}
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -14,6 +59,12 @@ pub enum Error {
     Request(#[from] reqwest::Error),
     #[error(transparent)]
     Serialization(#[from] serde_json::Error),
+
+    #[error(transparent)]
+    Plaid(#[from] PlaidError),
+
+    #[error("{0}")]
+    Other(String),
 }
 
 impl serde::Serialize for Error {
