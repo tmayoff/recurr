@@ -5,6 +5,7 @@
 
 use tauri::Manager;
 
+mod accounts;
 mod plaid;
 mod supabase;
 
@@ -23,6 +24,7 @@ fn main() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            accounts::remove_account,
             plaid::link::link_token_create,
             plaid::transactions::get_transactions,
             plaid::transactions::get_categories,
@@ -33,7 +35,6 @@ fn main() {
             supabase::accounts::save_plaid_account,
             supabase::accounts::get_plaid_accounts,
             supabase::accounts::get_plaid_balances,
-            supabase::auth::get_supabase_auth_credentials,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

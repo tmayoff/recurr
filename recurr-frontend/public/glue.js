@@ -1,9 +1,5 @@
 const invoke = window.__TAURI__.invoke;
 
-export async function invokeGetSupbaseAuthCredentials() {
-  return await invoke("get_supabase_auth_credentials");
-}
-
 export async function invokeGetTransactions(
   auth_key,
   access_token,
@@ -28,6 +24,14 @@ export async function invokeLinkTokenCreate(anon_key, user_id) {
   return await invoke("link_token_create", {
     authKey: anon_key,
     userId: user_id,
+  });
+}
+
+export async function invokeRemoveAccount(user_id, auth_key, access_token) {
+  return await invoke("remove_account", {
+    userId: user_id,
+    authKey: auth_key,
+    accessToken: access_token,
   });
 }
 

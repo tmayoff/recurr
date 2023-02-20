@@ -6,7 +6,6 @@ use crate::plaid;
 
 pub mod access_token;
 pub mod accounts;
-pub mod auth;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {

@@ -47,13 +47,7 @@ fn sidebar(props: &SidebarProps) -> Html {
     let signout = move |_: MouseEvent| {
         let use_context = use_context.clone();
         spawn_local(async move {
-            let res = use_context
-                .supabase_client
-                .clone()
-                .expect("Must have supabase client")
-                .auth()
-                .sign_out()
-                .await;
+            let res = use_context.supabase_client.clone().auth().sign_out().await;
 
             if let Err(e) = res {
                 log::error!("{:?}", e);
@@ -130,7 +124,7 @@ impl Component for Dashboard {
                             DashboardTab::Summary => html!{<SummaryView context={context.clone()} />},
                             DashboardTab::Budgets => html!{<BudgetsView context={context.clone()} {switch_tab}/>},
                             DashboardTab::Transaction(filter) => html!{<TransactionsView context={context.clone()} filter={filter.clone()}/>},
-                            DashboardTab::Accounts => html!{<AccountsView />},
+                            DashboardTab::Accounts => html!{<AccountsView context={context.clone()}/>},
                         }
                     }
                 </div>
