@@ -16,6 +16,24 @@ export async function invokeGetTransactions(
   });
 }
 
+export async function invokeGetAccounts(auth_key, access_token, account_ids) {
+  return await invoke("get_accounts", {
+    authKey: auth_key,
+    accessToken: access_token,
+    accountIds: account_ids,
+  });
+}
+
+export async function invokeGetInstitution(
+  auth_key,
+  id,
+) {
+  return await invoke("get_institution", {
+    authKey: auth_key,
+    institutionId: id,
+  });
+}
+
 export async function invokeGetCategories() {
   return await invoke("get_categories");
 }
@@ -61,13 +79,6 @@ export async function invokeSavePlaidAccount(
     userId: user_id,
     accessToken: access_token,
     plaidAccountId: account_id,
-  });
-}
-
-export async function invokeGetPlaidAccounts(auth_token, user_id) {
-  return await invoke("get_plaid_accounts", {
-    authToken: auth_token,
-    userId: user_id,
   });
 }
 

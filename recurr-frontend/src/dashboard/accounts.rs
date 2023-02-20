@@ -1,4 +1,6 @@
-use recurr_core::{Account, Institution};
+use std::collections::HashMap;
+
+use recurr_core::{Account, Institution, SchemaAccessToken};
 use serde::Deserialize;
 use yew::{
     function_component, html, platform::spawn_local, Callback, Component, Html, Properties,
@@ -6,21 +8,16 @@ use yew::{
 };
 use yew_hooks::use_bool_toggle;
 
-use crate::{
-    commands::{self, get_all_accounts},
-    context::Session,
-    plaid::Link,
-    supabase::get_supbase_client,
-};
+use crate::{commands, context::Session, plaid::Link, supabase::get_supbase_client};
 
 pub struct AccountsView {
-    accounts: Vec<(Institution, Vec<Account>)>,
+    accounts: HashMap<Institution, Vec<Account>>,
     error: String,
 }
 
 pub enum Msg {
     GetAccounts,
-    GotAccounts(Vec<(Institution, Vec<Account>)>),
+    GotAccounts(HashMap<Institution, Vec<Account>>),
 
     Error(String),
 }
@@ -38,7 +35,7 @@ impl Component for AccountsView {
         ctx.link().send_message(Msg::GetAccounts);
 
         Self {
-            accounts: Vec::new(),
+            accounts: HashMap::new(),
             error: String::new(),
         }
     }
@@ -87,31 +84,62 @@ impl Component for AccountsView {
     fn update(&mut self, ctx: &yew::Context<Self>, msg: Self::Message) -> bool {
         match msg {
             Msg::GetAccounts => {
-                let auth_key = ctx
-                    .props()
-                    .context
-                    .clone()
-                    .supabase_session
-                    .clone()
-                    .unwrap()
-                    .auth_key;
-                let user_id = ctx
-                    .props()
-                    .context
-                    .clone()
-                    .supabase_session
-                    .clone()
-                    .unwrap()
-                    .user
-                    .id;
+                let supabase_session = ctx.props().context.supabase_session.clone().unwrap();
+
+                let auth_key = supabase_session.auth_key;
+                let user_id = supabase_session.user.id;
 
                 ctx.link().send_future(async move {
-                    let res = get_all_accounts(&auth_key, &user_id).await;
+                    let client = get_supbase_client();
+                    let res = client
+                        .from("access_tokens")
+                        .auth(&auth_key)
+                        .select("*,plaid_accounts(*)")
+                        .eq("user_id", &user_id)
+                        .execute()
+                        .await;
 
-                    match res {
-                        Ok(accounts) => Msg::GotAccounts(accounts),
-                        Err(e) => Msg::Error(e),
+                    if let Err(e) = res {
+                        return Msg::Error(e.to_string());
                     }
+
+                    let rows: Vec<SchemaAccessToken> =
+                        res.unwrap().json().await.expect("Failed to deserialize");
+
+                    let mut grouped_accounts: HashMap<String, Vec<String>> = HashMap::new();
+
+                    rows.into_iter().for_each(|a| {
+                        grouped_accounts.insert(
+                            a.access_token,
+                            a.plaid_accounts
+                                .unwrap_or_default()
+                                .into_iter()
+                                .map(|a| a.account_id)
+                                .collect(),
+                        );
+                    });
+
+                    let mut all_accounts = HashMap::new();
+                    for (token, ids) in grouped_accounts {
+                        let accounts =
+                            commands::get_accounts(&auth_key, &token, ids.to_owned()).await;
+
+                        if let Err(e) = accounts {
+                            return Msg::Error(e);
+                        }
+                        let res = accounts.unwrap();
+
+                        let accounts = res.1;
+
+                        let institution_id = res.0.institution_id.unwrap();
+                        let insitution = commands::get_institution(&auth_key, Some(institution_id))
+                            .await
+                            .unwrap();
+
+                        all_accounts.insert(insitution, accounts);
+                    }
+
+                    Msg::GotAccounts(all_accounts)
                 })
             }
             Msg::GotAccounts(a) => self.accounts = a,

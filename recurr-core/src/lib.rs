@@ -60,7 +60,7 @@ pub struct Transaction {
     pub date: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Item {
     pub item_id: String,
     pub institution_id: Option<String>,
