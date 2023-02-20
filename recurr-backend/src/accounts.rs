@@ -11,9 +11,9 @@ pub async fn remove_account(
         .map_err(|e| e.to_string())?;
 
     let client = get_supbase_client().map_err(|e| e.to_string())?;
-    let res = client
+    let _ = client
         .from("access_tokens")
-        .auth(&auth_key)
+        .auth(auth_key)
         .eq("user_id", user_id)
         .eq("access_token", access_token)
         .delete()
