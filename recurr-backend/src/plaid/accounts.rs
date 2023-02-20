@@ -114,8 +114,11 @@ pub async fn get_accounts(
 
     if res.status().is_success() {
         let account_response = res.json::<AccountsGetResponse>().await?;
-
-    Ok((account_response.item, account_response.accounts))
+        Ok((account_response.item, account_response.accounts))
+    } else {
+        let res = res.json().await?;
+        Err(super::Error::Plaid(res))
+    }
 }
 
 #[derive(Serialize, Deserialize)]
