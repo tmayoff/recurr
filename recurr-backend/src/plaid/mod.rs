@@ -1,3 +1,5 @@
+use std::{error, fmt::Display};
+
 use reqwest::header::{HeaderMap, HeaderValue};
 use serde::{Deserialize, Serialize};
 
@@ -5,6 +7,24 @@ pub mod accounts;
 pub mod institutions;
 pub mod link;
 pub mod transactions;
+
+#[derive(Debug, Deserialize)]
+pub struct PlaidError {
+    error_type: String,
+    error_code: String,
+    error_message: String,
+    display_message: String,
+}
+
+impl Display for PlaidError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}, {}, {}, {}",
+            self.error_type, self.error_code, self.error_message, self.display_message
+        )
+    }
+}
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -14,6 +34,12 @@ pub enum Error {
     Request(#[from] reqwest::Error),
     #[error(transparent)]
     Serialization(#[from] serde_json::Error),
+
+    #[error(transparent)]
+    Plaid(#[from] PlaidError),
+
+    #[error("Unknown Error: `{0}`")]
+    Other(String),
 }
 
 impl serde::Serialize for Error {

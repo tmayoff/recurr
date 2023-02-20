@@ -114,18 +114,19 @@ pub async fn accounts_get(
         item: Item,
     }
 
-    let account_response = res
-        .error_for_status()?
-        .json::<AccountsGetResponse>()
-        .await?;
+    if res.status().is_success() {
+        let account_response = res.json::<AccountsGetResponse>().await?;
 
-    let id = account_response
-        .item
-        .institution_id
-        .expect("No institution associated with this");
-    let institution = institution_get(auth_key, &id).await?;
+        let id = account_response
+            .item
+            .institution_id
+            .expect("No institution associated with this");
+        let institution = institution_get(auth_key, &id).await?;
 
-    Ok((institution, account_response.accounts))
+        Ok((institution, account_response.accounts))
+    } else {
+        Err(super::Error::Plaid(res.json::<super::PlaidError>().await?))
+    }
 }
 
 #[derive(Serialize, Deserialize)]
