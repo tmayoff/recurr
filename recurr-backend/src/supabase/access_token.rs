@@ -1,12 +1,10 @@
-use recurr_core::SchemaAccessToken;
-
-use crate::supabase::Error;
+use recurr_core::{Error, SchemaAccessToken};
 
 #[tauri::command]
 pub async fn get_access_tokens(
     auth_token: &str,
     user_id: &str,
-) -> Result<SchemaAccessToken, super::Error> {
+) -> Result<SchemaAccessToken, Error> {
     let client = super::get_supbase_client()?;
 
     let res = client

@@ -4,9 +4,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::plaid::PlaidRequest;
 
-pub async fn institution_get(
+#[tauri::command]
+pub async fn get_institution(
     auth_key: &str,
-    insitution_id: &str,
+    institution_id: &str,
 ) -> Result<Institution, super::Error> {
     let mut authorization = String::from("Bearer ");
     authorization.push_str(auth_key);
@@ -22,7 +23,7 @@ pub async fn institution_get(
     }
 
     let data = serde_json::to_value(InstitutionGetRequest {
-        institution_id: insitution_id.to_string(),
+        institution_id: institution_id.to_string(),
         country_codes: vec!["CA".to_string()],
     })
     .expect("Failed to serialize");
