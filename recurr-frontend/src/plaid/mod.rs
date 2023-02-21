@@ -41,7 +41,7 @@ pub async fn link_token_create(
     anon_key: &str,
     user_id: &str,
 ) -> Result<LinkTokenCreateReponse, String> {
-    let response = invokeLinkTokenCreate(anon_key, user_id).await;
+    let response = invokeLinkTokenCreate(anon_key, user_id, None).await;
 
     match response {
         Ok(response) => {

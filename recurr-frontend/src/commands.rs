@@ -5,7 +5,11 @@ use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
 #[wasm_bindgen(module = "/public/glue.js")]
 extern "C" {
     #[wasm_bindgen(catch)]
-    pub async fn invokeLinkTokenCreate(anon_key: &str, user_id: &str) -> Result<JsValue, JsValue>;
+    pub async fn invokeLinkTokenCreate(
+        anon_key: &str,
+        user_id: &str,
+        access_token: Option<String>,
+    ) -> Result<JsValue, JsValue>;
 
     #[wasm_bindgen(catch)]
     pub async fn invokeRemoveAccount(

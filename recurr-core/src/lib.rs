@@ -1,6 +1,5 @@
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
-use wasm_bindgen::prelude::*;
 
 #[allow(non_camel_case_types)]
 #[derive(Debug, Serialize, Deserialize)]

@@ -3,33 +3,6 @@ use serde::{Deserialize, Serialize};
 
 use super::{PlaidRequest, User};
 
-#[derive(Serialize, Debug)]
-pub struct LinkTokenCreateRequest {
-    pub client_name: String,
-    pub language: String,
-    pub country_codes: Vec<String>,
-    pub products: Vec<String>,
-    pub user: User,
-}
-
-impl LinkTokenCreateRequest {
-    pub fn new(
-        client_name: &str,
-        language: &str,
-        country_codes: Vec<String>,
-        products: Vec<String>,
-        user: User,
-    ) -> Self {
-        Self {
-            client_name: client_name.to_string(),
-            language: language.to_string(),
-            country_codes: country_codes.to_vec(),
-            products,
-            user,
-        }
-    }
-}
-
 #[derive(Serialize, Deserialize, Debug)]
 pub struct LinkTokenCreateReponse {
     expiration: String,
@@ -41,7 +14,8 @@ pub struct LinkTokenCreateReponse {
 pub async fn link_token_create(
     auth_key: &str,
     user_id: &str,
-) -> Result<LinkTokenCreateReponse, super::Error> {
+    access_token: Option<String>,
+) -> Result<String, super::Error> {
     let mut authorization = String::from("Bearer ");
     authorization.push_str(auth_key);
 
@@ -49,19 +23,30 @@ pub async fn link_token_create(
     headers.insert("Authorization", authorization.parse().unwrap());
     headers.insert("Content-Type", HeaderValue::from_static("application/json"));
 
-    let data = serde_json::to_value(LinkTokenCreateRequest::new(
-        "Recurr",
-        "en",
-        vec!["CA".to_string()],
-        vec![
+    #[derive(Serialize, Debug)]
+    struct Request {
+        pub client_name: String,
+        pub language: String,
+        pub country_codes: Vec<String>,
+        pub products: Vec<String>,
+        pub access_token: Option<String>,
+        pub user: User,
+    }
+
+    let data = serde_json::to_value(Request {
+        access_token,
+        client_name: "Recurr".to_string(),
+        language: "en".to_string(),
+        country_codes: vec!["CA".to_string()],
+        products: vec![
             "auth".to_string(),
             "transactions".to_string(),
             "liabilities".to_string(),
         ],
-        User {
+        user: User {
             client_user_id: user_id.to_string(),
         },
-    ))?;
+    })?;
 
     let req = PlaidRequest {
         endpoint: "/link/token/create".to_string(),
@@ -77,5 +62,5 @@ pub async fn link_token_create(
         .await?;
 
     let json: LinkTokenCreateReponse = res.error_for_status()?.json().await?;
-    Ok(json)
+    Ok(json.link_token)
 }

@@ -38,10 +38,11 @@ export async function invokeGetCategories() {
   return await invoke("get_categories");
 }
 
-export async function invokeLinkTokenCreate(anon_key, user_id) {
+export async function invokeLinkTokenCreate(anon_key, user_id, access_token) {
   return await invoke("link_token_create", {
     authKey: anon_key,
     userId: user_id,
+    accessToken: access_token,
   });
 }
 

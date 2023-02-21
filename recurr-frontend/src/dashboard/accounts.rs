@@ -1,10 +1,12 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Mutex};
 
 use recurr_core::{Account, Institution, SchemaAccessToken};
 use serde::Deserialize;
+use wasm_bindgen::{prelude::Closure, JsValue};
 use yew::{
-    function_component, html, platform::spawn_local, Callback, Component, Html, Properties,
-    UseReducerHandle,
+    function_component, html,
+    platform::{pinned::oneshot, spawn_local},
+    Callback, Component, Html, Properties, UseReducerHandle,
 };
 use yew_hooks::use_bool_toggle;
 
@@ -20,6 +22,8 @@ pub enum Msg {
     GotAccounts(HashMap<Institution, Vec<Account>>),
 
     Error(String),
+
+    Refresh,
 }
 
 #[derive(Properties, PartialEq)]
@@ -129,7 +133,32 @@ impl Component for AccountsView {
                                 if &e.error_code == "ITEM_LOGIN_REQUIRED" {
                                     log::info!("Needs login");
 
-                                    return Msg::Error("Needs an login".to_string());
+                                    let link_token = commands::invokeLinkTokenCreate(
+                                        &auth_key,
+                                        &user_id,
+                                        Some(token),
+                                    )
+                                    .await
+                                    .expect("failed to get link token");
+
+                                    log::debug!("{:?}", link_token);
+
+                                    let link_token = link_token.as_string().unwrap();
+                                    let (tx, rx) = oneshot::channel::<()>();
+                                    let sender_mtx = Mutex::new(Some(tx));
+
+                                    commands::linkStart(
+                                        link_token,
+                                        Closure::once_into_js(move |_: JsValue| {
+                                            if let Some(tx) = sender_mtx.lock().unwrap().take() {
+                                                let _ = tx.send(());
+                                            }
+                                        }),
+                                    );
+
+                                    rx.await.expect("Failed to update token");
+
+                                    return Msg::Refresh;
                                 }
                             } else {
                                 return Msg::Error(e.to_string());
@@ -152,6 +181,7 @@ impl Component for AccountsView {
             }
             Msg::GotAccounts(a) => self.accounts = a,
             Msg::Error(e) => self.error = e,
+            Msg::Refresh => (),
         }
 
         true
