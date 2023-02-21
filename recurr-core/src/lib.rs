@@ -118,10 +118,14 @@ pub struct TransactionOption {
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct Transaction {
     pub name: String,
+    pub merchant_name: String,
     pub amount: f64,
     pub category_id: Option<String>,
     pub category: Vec<String>,
     pub date: String,
+    pub pending: bool,
+    pub pending_transaction_id: Option<String>,
+    pub transaction_id: String,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
