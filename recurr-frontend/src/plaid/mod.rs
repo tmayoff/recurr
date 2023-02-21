@@ -10,8 +10,8 @@ use yew::{
 
 use crate::{
     commands::{
-        invokeItemPublicTokenExchange, invokeLinkTokenCreate, invokeSaveAccessToken,
-        invokeSavePlaidAccount, linkStart,
+        self, invokeItemPublicTokenExchange, invokeSaveAccessToken, invokeSavePlaidAccount,
+        link::{link_token_create, LinkFailure, LinkSuccess},
     },
     context::SessionContext,
 };
@@ -28,29 +28,6 @@ pub struct LinkTokenCreateRequest {
     pub country_codes: Vec<String>,
     pub products: Vec<String>,
     pub user: User,
-}
-
-#[derive(Deserialize, Debug)]
-pub struct LinkTokenCreateReponse {
-    pub expiration: String,
-    pub link_token: String,
-    pub request_id: String,
-}
-
-pub async fn link_token_create(
-    anon_key: &str,
-    user_id: &str,
-) -> Result<LinkTokenCreateReponse, String> {
-    let response = invokeLinkTokenCreate(anon_key, user_id, None).await;
-
-    match response {
-        Ok(response) => {
-            let res = serde_wasm_bindgen::from_value::<LinkTokenCreateReponse>(response)
-                .expect("Response not valid");
-            Ok(res)
-        }
-        Err(e) => Err(e.as_string().unwrap()),
-    }
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -76,45 +53,6 @@ struct Account {
     class_type: Option<String>,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
-struct Metadata {
-    institution: Option<Institution>,
-    accounts: Vec<Account>,
-    link_session_id: String,
-    transfer_status: Option<String>,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-struct LinkSuccess {
-    public_token: String,
-    metadata: Metadata,
-}
-#[derive(Debug, Deserialize, Serialize)]
-struct LinkFailure {
-    err: String,
-}
-
-fn link_start(
-    link_token: String,
-    mut callback: impl FnMut(Result<LinkSuccess, LinkFailure>) + 'static,
-) {
-    linkStart(
-        link_token,
-        Closure::once_into_js(move |response: JsValue| {
-            let s = serde_wasm_bindgen::from_value::<LinkSuccess>(response.clone());
-            if let Ok(success) = s {
-                callback(Ok(success));
-                return;
-            };
-
-            let e = serde_wasm_bindgen::from_value::<LinkFailure>(response);
-            if let Ok(failure) = e {
-                callback(Err(failure));
-            };
-        }),
-    );
-}
-
 async fn item_public_token_exchange(
     anon_key: &str,
     public_token: &str,
@@ -138,7 +76,7 @@ pub fn link() -> Html {
                 .clone()
                 .expect("Needs session already");
 
-            let response = link_token_create(&session.auth_key, &session.user.id).await;
+            let response = link_token_create(&session.auth_key, &session.user.id, None).await;
             let link_token = match response {
                 Ok(res) => res.link_token,
                 Err(e) => {
@@ -151,7 +89,7 @@ pub fn link() -> Html {
 
             let sender_mtx = Mutex::new(Some(tx));
 
-            link_start(link_token, move |response| {
+            commands::link::start(link_token, move |response| {
                 if let Some(tx) = sender_mtx.lock().unwrap().take() {
                     let _ = tx.send(response);
                 }
@@ -188,7 +126,7 @@ pub fn link() -> Html {
                     auth_token,
                     user_id,
                     &exchange_status.access_token,
-                    &account.id,
+                    &account.account_id,
                 )
                 .await;
 

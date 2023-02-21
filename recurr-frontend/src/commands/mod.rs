@@ -2,14 +2,10 @@ use chrono::{Local, Months, NaiveDate};
 use recurr_core::{Account, Category, Institution, Item, TransactionOption, Transactions};
 use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
 
+pub mod link;
+
 #[wasm_bindgen(module = "/public/glue.js")]
 extern "C" {
-    #[wasm_bindgen(catch)]
-    pub async fn invokeLinkTokenCreate(
-        anon_key: &str,
-        user_id: &str,
-        access_token: Option<String>,
-    ) -> Result<JsValue, JsValue>;
 
     #[wasm_bindgen(catch)]
     pub async fn invokeRemoveAccount(
@@ -70,7 +66,6 @@ extern "C" {
         user_id: &str,
     ) -> Result<JsValue, JsValue>;
 
-    pub fn linkStart(link_token: String, callback: JsValue);
 }
 
 pub async fn get_accounts(

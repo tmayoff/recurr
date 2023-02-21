@@ -1,21 +1,15 @@
+use recurr_core::plaid::link::LinkToken;
 use reqwest::header::{HeaderMap, HeaderValue};
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 
 use super::{PlaidRequest, User};
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct LinkTokenCreateReponse {
-    expiration: String,
-    link_token: String,
-    request_id: String,
-}
 
 #[tauri::command]
 pub async fn link_token_create(
     auth_key: &str,
     user_id: &str,
     access_token: Option<String>,
-) -> Result<String, super::Error> {
+) -> Result<LinkToken, super::Error> {
     let mut authorization = String::from("Bearer ");
     authorization.push_str(auth_key);
 
@@ -61,6 +55,5 @@ pub async fn link_token_create(
         .send()
         .await?;
 
-    let json: LinkTokenCreateReponse = res.error_for_status()?.json().await?;
-    Ok(json.link_token)
+    Ok(res.error_for_status()?.json().await?)
 }

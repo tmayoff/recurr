@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
+pub mod plaid;
+
 #[allow(non_camel_case_types)]
 #[derive(Debug, Serialize, Deserialize)]
 pub enum PlaidErrorType {

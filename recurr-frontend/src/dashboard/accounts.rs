@@ -2,7 +2,6 @@ use std::{collections::HashMap, sync::Mutex};
 
 use recurr_core::{Account, Institution, SchemaAccessToken};
 use serde::Deserialize;
-use wasm_bindgen::{prelude::Closure, JsValue};
 use yew::{
     function_component, html,
     platform::{pinned::oneshot, spawn_local},
@@ -133,7 +132,7 @@ impl Component for AccountsView {
                                 if &e.error_code == "ITEM_LOGIN_REQUIRED" {
                                     log::info!("Needs login");
 
-                                    let link_token = commands::invokeLinkTokenCreate(
+                                    let link_token = commands::link::link_token_create(
                                         &auth_key,
                                         &user_id,
                                         Some(token),
@@ -141,20 +140,15 @@ impl Component for AccountsView {
                                     .await
                                     .expect("failed to get link token");
 
-                                    log::debug!("{:?}", link_token);
-
-                                    let link_token = link_token.as_string().unwrap();
+                                    let link_token = link_token.link_token;
                                     let (tx, rx) = oneshot::channel::<()>();
                                     let sender_mtx = Mutex::new(Some(tx));
 
-                                    commands::linkStart(
-                                        link_token,
-                                        Closure::once_into_js(move |_: JsValue| {
-                                            if let Some(tx) = sender_mtx.lock().unwrap().take() {
-                                                let _ = tx.send(());
-                                            }
-                                        }),
-                                    );
+                                    commands::link::start(link_token, move |_| {
+                                        if let Some(tx) = sender_mtx.lock().unwrap().take() {
+                                            let _ = tx.send(());
+                                        }
+                                    });
 
                                     rx.await.expect("Failed to update token");
 
