@@ -1,4 +1,67 @@
 use serde::{Deserialize, Serialize};
+use std::fmt::Display;
+use wasm_bindgen::prelude::*;
+
+#[allow(non_camel_case_types)]
+#[derive(Debug, Serialize, Deserialize)]
+pub enum PlaidErrorType {
+    INVALID_REQUEST,
+    INVALID_RESULT,
+    INVALID_INPUT,
+    INSTITUTION_ERROR,
+    RATE_LIMIT_EXCEEDED,
+    API_ERROR,
+    ITEM_ERROR,
+    ASSET_REPORT_ERROR,
+    RECAPTCHA_ERROR,
+    OAUTH_ERROR,
+    PAYMENT_ERROR,
+    BANK_TRANSFER_ERROR,
+    INCOME_VERIFICATION_ERROR,
+    MICRODEPOSITS_ERROR,
+}
+
+impl Display for PlaidErrorType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{self:?}")
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, thiserror::Error)]
+// #[serde(rename = "Plaid")]
+pub struct PlaidError {
+    pub error_type: PlaidErrorType,
+    pub error_code: String,
+    pub error_message: String,
+    pub display_message: Option<String>,
+}
+
+impl Display for PlaidError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{self:?}")
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize, thiserror::Error)]
+pub enum Error {
+    #[error(transparent)]
+    #[serde(skip)]
+    EnVar(#[from] std::env::VarError),
+    #[error(transparent)]
+    #[serde(skip)]
+    Request(#[from] reqwest::Error),
+    #[error(transparent)]
+    #[serde(skip)]
+    Serialization(#[from] serde_json::Error),
+
+    #[error(transparent)]
+    #[serde(rename = "PlaidError")]
+    Plaid(#[from] PlaidError),
+    // #[error("{0}")]
+    // Other(String),
+    #[error("{0}")]
+    Query(String),
+}
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct Balances {

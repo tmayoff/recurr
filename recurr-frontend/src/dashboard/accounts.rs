@@ -124,8 +124,16 @@ impl Component for AccountsView {
                         let accounts =
                             commands::get_accounts(&auth_key, &token, ids.to_owned()).await;
 
-                        if let Err(e) = accounts {
-                            return Msg::Error(e);
+                        if let Err(e) = &accounts {
+                            if let recurr_core::Error::Plaid(e) = e {
+                                if &e.error_code == "ITEM_LOGIN_REQUIRED" {
+                                    log::info!("Needs login");
+
+                                    return Msg::Error("Needs an login".to_string());
+                                }
+                            } else {
+                                return Msg::Error(e.to_string());
+                            }
                         }
                         let res = accounts.unwrap();
 

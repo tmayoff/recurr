@@ -6,7 +6,7 @@ use crate::{plaid, supabase::access_token::get_access_token};
 pub async fn get_plaid_balances(
     auth_key: &str,
     user_id: &str,
-) -> Result<Vec<Account>, super::Error> {
+) -> Result<Vec<Account>, recurr_core::Error> {
     // Get Account IDs and access tokens from supabase
     let client = super::get_supbase_client()?;
     let res = client

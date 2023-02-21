@@ -73,7 +73,7 @@ pub async fn get_accounts(
     auth_key: &str,
     access_token: &str,
     account_ids: Vec<String>,
-) -> Result<(Item, Vec<Account>), String> {
+) -> Result<(Item, Vec<Account>), recurr_core::Error> {
     let account_ids = serde_wasm_bindgen::to_value(&account_ids).expect("failed to serialize");
 
     let res = invokeGetAccounts(auth_key, access_token, account_ids).await;
@@ -84,8 +84,8 @@ pub async fn get_accounts(
             Ok(accounts)
         }
         Err(e) => {
-            log::error!("{:?}", e);
-            Err(e.as_string().expect("Failed to get string"))
+            Err(serde_wasm_bindgen::from_value::<recurr_core::Error>(e)
+                .expect("Failed to deserialize"))
         }
     }
 }
