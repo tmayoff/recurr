@@ -66,6 +66,11 @@ extern "C" {
         user_id: &str,
     ) -> Result<JsValue, JsValue>;
 
+    #[wasm_bindgen(catch)]
+    pub async fn invokeTransactionsSync(
+        auth_token: &str,
+        access_token: &str,
+    ) -> Result<(), JsValue>;
 }
 
 pub async fn get_accounts(
@@ -106,6 +111,12 @@ pub async fn get_institution(auth_key: &str, id: Option<String>) -> Result<Insti
     }
 }
 
+pub async fn transactions_sync(auth_key: &str, access_token: &str) -> Result<(), String> {
+    invokeTransactionsSync(auth_key, access_token)
+        .await
+        .map_err(|e| e.as_string().unwrap())
+}
+
 pub async fn get_transactions(
     auth_key: &str,
     access_token: &str,
@@ -134,11 +145,12 @@ pub async fn get_transactions(
         end_date,
         serde_wasm_bindgen::to_value(&options).expect("Failed to serialize"),
     )
-    .await
-    .map_err(|e| e.as_string().unwrap())?;
+    .await;
 
-    let res = serde_wasm_bindgen::from_value(res).map_err(|e| e.to_string())?;
-    Ok(res)
+    match res {
+        Ok(transactions) => Ok(serde_wasm_bindgen::from_value(transactions).unwrap()),
+        Err(e) => Err(e.as_string().unwrap()),
+    }
 }
 
 pub async fn get_balances(auth_token: &str, user_id: &str) -> Result<Vec<Account>, String> {

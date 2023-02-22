@@ -146,17 +146,17 @@ impl BudgetsView {
 
             let mut grouped_income: HashMap<String, f64> = HashMap::new();
             income.into_iter().for_each(|t| {
-                let category = t.category.first();
-                if let Some(category) = category {
-                    if grouped_income.contains_key(category) {
-                        let v = grouped_income.get_mut(category);
-                        if let Some(v) = v {
-                            *v += t.amount;
-                        }
-                    } else {
-                        grouped_income.insert(category.to_string(), t.amount);
-                    }
-                }
+                // let category = t.category.first();
+                // if let Some(category) = category {
+                //     if grouped_income.contains_key(category) {
+                //         let v = grouped_income.get_mut(category);
+                //         if let Some(v) = v {
+                //             *v += t.amount;
+                //         }
+                //     } else {
+                //         grouped_income.insert(category.to_string(), t.amount);
+                //     }
+                // }
             });
 
             let mut spending: Vec<Transaction> = transactions
@@ -168,15 +168,15 @@ impl BudgetsView {
             let mut budgeted_spending: HashMap<SchemaBudget, f64> = HashMap::new();
             for b in budgets {
                 budgeted_spending.insert(b.clone(), 0.0);
-                let budgeted: Vec<Transaction> = spending
-                    .drain_filter(|t| t.category.contains(&b.category))
-                    .collect();
-                budgeted.into_iter().for_each(|t| {
-                    let v = budgeted_spending.get_mut(&b);
-                    if let Some(v) = v {
-                        *v += t.amount;
-                    }
-                });
+                // let budgeted: Vec<Transaction> = spending
+                //     .drain_filter(|t| t.category.contains(&b.category))
+                //     .collect();
+                // budgeted.into_iter().for_each(|t| {
+                //     let v = budgeted_spending.get_mut(&b);
+                //     if let Some(v) = v {
+                //         *v += t.amount;
+                //     }
+                // });
             }
             // TODO This can be done in one step
             let mut budgeted_spending = budgeted_spending
@@ -185,17 +185,17 @@ impl BudgetsView {
             budgeted_spending.sort_by(|a, b| a.0.category.cmp(&b.0.category));
 
             for t in spending {
-                let general_category = t.category.first();
-                if let Some(category) = general_category {
-                    if other_spending.contains_key(category) {
-                        let v = other_spending.get_mut(category);
-                        if let Some(v) = v {
-                            *v += t.amount;
-                        }
-                    } else {
-                        other_spending.insert(category.to_string(), t.amount);
-                    }
-                }
+                // let general_category = t.category.first();
+                // if let Some(category) = general_category {
+                //     if other_spending.contains_key(category) {
+                //         let v = other_spending.get_mut(category);
+                //         if let Some(v) = v {
+                //             *v += t.amount;
+                //         }
+                //     } else {
+                //         other_spending.insert(category.to_string(), t.amount);
+                //     }
+                // }
             }
 
             Msg::GotTransactions(Transactions {

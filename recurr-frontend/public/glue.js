@@ -90,6 +90,13 @@ export async function invokeGetPlaidBalances(auth_key, user_id) {
   });
 }
 
+export async function invokeTransactionsSync(auth_key, access_token) {
+  return await invoke("sync", {
+    authKey: auth_key,
+    accessToken: access_token,
+  });
+}
+
 export function linkStart(link_token, callback) {
   Plaid.create({
     token: link_token,

@@ -28,6 +28,7 @@ fn main() {
             plaid::link::link_token_create,
             plaid::accounts::get_accounts,
             plaid::institutions::get_institution,
+            plaid::transactions::sync,
             plaid::transactions::get_transactions,
             plaid::transactions::get_categories,
             plaid::item_public_token_exchange,
