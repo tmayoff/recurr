@@ -197,12 +197,12 @@ impl Component for TransactionsView {
                         <tbody>
                         {
                             self.transactions.transactions.clone().into_iter().map(|t| {
-                                let cat = t.category.last().unwrap();
+                                // let cat = t.category.unwrap().last().unwrap();
                                 html!{
                                     <tr>
                                         <td> {t.date}</td>
                                         <td> {t.name}</td>
-                                        <td><a class="has-hover-underline" data-category={cat.clone()} onclick={cat_onclick.clone()}> {cat} </a></td>
+                                        // <td><a class="has-hover-underline" data-category={cat.clone()} onclick={cat_onclick.clone()}> {cat} </a></td>
                                         {
                                             if t.amount < 0.0 {
                                                 html!{<td class="has-text-success">{format!("${:.2}", t.amount)}</td>}
@@ -236,9 +236,9 @@ impl Component for TransactionsView {
                 let mut transactions = t.transactions.clone();
 
                 if let Some(cat) = &self.filter.category {
-                    transactions = transactions
-                        .drain_filter(|t| t.category.last().unwrap() == cat)
-                        .collect();
+                    // transactions = transactions
+                    //     .drain_filter(|t| t.category.last().unwrap() == cat)
+                    //     .collect();
                 }
 
                 self.total_transactions = transactions.len() as u64;
