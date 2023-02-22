@@ -43,7 +43,7 @@ impl Display for PlaidError {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize, thiserror::Error)]
+#[derive(Debug, Deserialize, thiserror::Error)]
 pub enum Error {
     #[error(transparent)]
     #[serde(skip)]
@@ -56,12 +56,31 @@ pub enum Error {
     Serialization(#[from] serde_json::Error),
 
     #[error(transparent)]
-    #[serde(rename = "PlaidError")]
     Plaid(#[from] PlaidError),
-    // #[error("{0}")]
-    // Other(String),
+
+    #[error("{0}")]
+    Other(String),
+
     #[error("{0}")]
     Query(String),
+}
+
+impl serde::Serialize for Error {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::ser::Serializer,
+    {
+        match self {
+            Error::EnVar(_) => serializer.serialize_unit_variant("Error", 0, "EnvVar"),
+            Error::Request(r) => serializer.serialize_str(&format!("Request: {r:?}")),
+            Error::Serialization(_) => {
+                serializer.serialize_unit_variant("Error", 0, "Serialization")
+            }
+            Error::Plaid(p) => p.serialize(serializer),
+            Error::Other(o) => o.serialize(serializer),
+            Error::Query(q) => q.serialize(serializer),
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
@@ -117,12 +136,13 @@ pub struct TransactionOption {
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct Transaction {
-    pub name: String,
-    pub merchant_name: String,
+    pub account_id: String,
     pub amount: f64,
+    pub name: String,
+    pub category: Option<Vec<String>>,
     pub category_id: Option<String>,
-    pub category: Vec<String>,
     pub date: String,
+    pub merchant_name: Option<String>,
     pub pending: bool,
     pub pending_transaction_id: Option<String>,
     pub transaction_id: String,

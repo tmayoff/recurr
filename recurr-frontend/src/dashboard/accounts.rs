@@ -184,6 +184,7 @@ impl Component for AccountsView {
 
 #[derive(Properties, PartialEq)]
 struct AccountProp {
+    // TODO add access_token
     account: (Institution, Vec<Account>),
     auth_key: String,
     user_id: String,
@@ -221,6 +222,23 @@ fn account(props: &AccountProp) -> Html {
 
         Callback::from(move |_| {
             toggle.toggle();
+        })
+    };
+
+    let sync_account = {
+        let account = props.account.clone();
+        let auth_key = props.auth_key.clone();
+
+        Callback::from(move |_| {
+            let account = account.clone();
+            let auth_key = auth_key.clone();
+
+            let account_ids: Vec<String> = account.1.iter().map(|a| a.account_id.clone()).collect();
+            spawn_local(async move {
+                let access_token = get_access_token(&auth_key, account_ids).await.unwrap();
+                let res = commands::transactions_sync(&auth_key, &access_token).await;
+                log::info!("{:?}", res);
+            });
         })
     };
 
@@ -273,6 +291,10 @@ fn account(props: &AccountProp) -> Html {
                         <div class="dropdown-menu">
                             <div class="dropdown-content">
                                 <a onclick={remove_account} class="dropdown-item">{"Remove Account"}</a>
+                            </div>
+
+                            <div class="dropdown-content">
+                                <a onclick={sync_account} class="dropdown-item">{"Sync Account"}</a>
                             </div>
                         </div>
                     }
