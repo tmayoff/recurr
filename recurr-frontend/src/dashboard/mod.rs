@@ -1,5 +1,5 @@
-use std::str::FromStr;
 use std::string::ToString;
+use std::{mem, str::FromStr};
 
 use crate::{
     context::{Session, SessionContext},
@@ -47,13 +47,7 @@ fn sidebar(props: &SidebarProps) -> Html {
     let signout = move |_: MouseEvent| {
         let use_context = use_context.clone();
         spawn_local(async move {
-            let res = use_context
-                .supabase_client
-                .clone()
-                .expect("Must have supabase client")
-                .auth()
-                .sign_out()
-                .await;
+            let res = use_context.supabase_client.clone().auth().sign_out().await;
 
             if let Err(e) = res {
                 log::error!("{:?}", e);
@@ -77,7 +71,7 @@ fn sidebar(props: &SidebarProps) -> Html {
                 {
                     DashboardTab::iter().map(|tab| {
                         let tab_name = tab.to_string();
-                        if tab == props.active_tab {
+                        if mem::discriminant(&props.active_tab) == mem::discriminant(&tab) {
                             html!{<button class="button is-primary is-active" data={tab_name.clone()}>{tab_name}</button>}
                         } else {
                             html!{<button class="button is-primary" data={tab_name.clone()} onclick={switch_tabs.clone()}>{tab_name}</button>}
@@ -123,14 +117,14 @@ impl Component for Dashboard {
 
         html! {
             <div class="full-height columns m-0">
-                <Sidebar active_tab={active_tab.clone()} {switch_tab} />
+                <Sidebar active_tab={active_tab.clone()} switch_tab={switch_tab.clone()} />
                 <div class="column has-background-light">
                     {
                         match &self.active_tab {
                             DashboardTab::Summary => html!{<SummaryView context={context.clone()} />},
-                            DashboardTab::Budgets => html!{<BudgetsView context={context.clone()} />},
+                            DashboardTab::Budgets => html!{<BudgetsView context={context.clone()} {switch_tab}/>},
                             DashboardTab::Transaction(filter) => html!{<TransactionsView context={context.clone()} filter={filter.clone()}/>},
-                            DashboardTab::Accounts => html!{<AccountsView />},
+                            DashboardTab::Accounts => html!{<AccountsView context={context.clone()}/>},
                         }
                     }
                 </div>

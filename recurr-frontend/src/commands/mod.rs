@@ -1,19 +1,36 @@
 use chrono::{Local, Months, NaiveDate};
-use recurr_core::{Account, Category, SupabaseAuthCredentials, TransactionOption, Transactions};
+use recurr_core::{Account, Category, Institution, Item, TransactionOption, Transactions};
 use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
+
+pub mod link;
 
 #[wasm_bindgen(module = "/public/glue.js")]
 extern "C" {
-    #[wasm_bindgen(catch)]
-    pub async fn invokeGetSupbaseAuthCredentials() -> Result<JsValue, JsValue>;
 
     #[wasm_bindgen(catch)]
-    pub async fn invokeLinkTokenCreate(anon_key: &str, user_id: &str) -> Result<JsValue, JsValue>;
+    pub async fn invokeRemoveAccount(
+        user_id: &str,
+        auth_key: &str,
+        access_token: &str,
+    ) -> Result<(), JsValue>;
 
     #[wasm_bindgen(catch)]
     pub async fn invokeItemPublicTokenExchange(
         anon_key: &str,
         public_token: &str,
+    ) -> Result<JsValue, JsValue>;
+
+    #[wasm_bindgen(catch)]
+    pub async fn invokeGetInstitution(
+        auth_key: &str,
+        id: Option<String>,
+    ) -> Result<JsValue, JsValue>;
+
+    #[wasm_bindgen(catch)]
+    pub async fn invokeGetAccounts(
+        auth_key: &str,
+        access_token: &str,
+        account_ids: JsValue,
     ) -> Result<JsValue, JsValue>;
 
     #[wasm_bindgen(catch)]
@@ -44,29 +61,31 @@ extern "C" {
     ) -> Result<(), JsValue>;
 
     #[wasm_bindgen(catch)]
-    pub async fn invokeGetPlaidAccounts(
-        auth_token: &str,
-        user_id: &str,
-    ) -> Result<JsValue, JsValue>;
-
-    #[wasm_bindgen(catch)]
     pub async fn invokeGetPlaidBalances(
         auth_token: &str,
         user_id: &str,
     ) -> Result<JsValue, JsValue>;
 
-    pub fn linkStart(link_token: String, callback: JsValue);
 }
 
-pub async fn get_supabase_auth_credentials() -> Result<SupabaseAuthCredentials, String> {
-    let res = invokeGetSupbaseAuthCredentials().await;
+pub async fn get_accounts(
+    auth_key: &str,
+    access_token: &str,
+    account_ids: Vec<String>,
+) -> Result<(Item, Vec<Account>), recurr_core::Error> {
+    let account_ids = serde_wasm_bindgen::to_value(&account_ids).expect("failed to serialize");
+
+    let res = invokeGetAccounts(auth_key, access_token, account_ids).await;
     match res {
-        Ok(json) => {
-            let obj = serde_wasm_bindgen::from_value::<SupabaseAuthCredentials>(json)
-                .map_err(|e| e.to_string())?;
-            Ok(obj)
+        Ok(accounts) => {
+            let accounts: (Item, Vec<Account>) =
+                serde_wasm_bindgen::from_value(accounts).expect("Failed to deserialize data");
+            Ok(accounts)
         }
-        Err(e) => Err(e.as_string().expect("Failed to get string")),
+        Err(e) => {
+            Err(serde_wasm_bindgen::from_value::<recurr_core::Error>(e)
+                .expect("Failed to deserialize"))
+        }
     }
 }
 
@@ -77,6 +96,14 @@ pub async fn get_categories() -> Result<Vec<Category>, String> {
 
     let res = serde_wasm_bindgen::from_value(res).map_err(|e| e.to_string())?;
     Ok(res)
+}
+
+pub async fn get_institution(auth_key: &str, id: Option<String>) -> Result<Institution, String> {
+    let res = invokeGetInstitution(auth_key, id).await;
+    match res {
+        Ok(j) => Ok(serde_wasm_bindgen::from_value(j).unwrap()),
+        Err(e) => Err(e.as_string().unwrap()),
+    }
 }
 
 pub async fn get_transactions(
@@ -119,23 +146,5 @@ pub async fn get_balances(auth_token: &str, user_id: &str) -> Result<Vec<Account
     match res {
         Ok(json) => Ok(serde_wasm_bindgen::from_value(json).map_err(|e| e.to_string())?),
         Err(e) => Err(e.as_string().expect("Failed to get string")),
-    }
-}
-
-pub async fn get_all_accounts(
-    auth_token: &str,
-    user_id: &str,
-) -> Result<Vec<(recurr_core::Institution, Vec<recurr_core::Account>)>, String> {
-    let res = invokeGetPlaidAccounts(auth_token, user_id).await;
-    match res {
-        Ok(accounts) => {
-            let accounts =
-                serde_wasm_bindgen::from_value(accounts).expect("Failed to deserialize data");
-            Ok(accounts)
-        }
-        Err(e) => {
-            log::error!("{:?}", e);
-            Err(e.as_string().expect("Failed to get string"))
-        }
     }
 }

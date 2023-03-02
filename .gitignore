@@ -2,7 +2,7 @@
 /target/
 /Cargo.lock
 .fleet
-*.env
+*.env*
 
 .vscode/settings.json
 .cargo

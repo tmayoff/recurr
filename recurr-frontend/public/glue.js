@@ -1,9 +1,5 @@
 const invoke = window.__TAURI__.invoke;
 
-export async function invokeGetSupbaseAuthCredentials() {
-  return await invoke("get_supabase_auth_credentials");
-}
-
 export async function invokeGetTransactions(
   auth_key,
   access_token,
@@ -20,14 +16,41 @@ export async function invokeGetTransactions(
   });
 }
 
+export async function invokeGetAccounts(auth_key, access_token, account_ids) {
+  return await invoke("get_accounts", {
+    authKey: auth_key,
+    accessToken: access_token,
+    accountIds: account_ids,
+  });
+}
+
+export async function invokeGetInstitution(
+  auth_key,
+  id,
+) {
+  return await invoke("get_institution", {
+    authKey: auth_key,
+    institutionId: id,
+  });
+}
+
 export async function invokeGetCategories() {
   return await invoke("get_categories");
 }
 
-export async function invokeLinkTokenCreate(anon_key, user_id) {
+export async function invokeLinkTokenCreate(anon_key, user_id, access_token) {
   return await invoke("link_token_create", {
     authKey: anon_key,
     userId: user_id,
+    accessToken: access_token,
+  });
+}
+
+export async function invokeRemoveAccount(user_id, auth_key, access_token) {
+  return await invoke("remove_account", {
+    userId: user_id,
+    authKey: auth_key,
+    accessToken: access_token,
   });
 }
 
@@ -57,13 +80,6 @@ export async function invokeSavePlaidAccount(
     userId: user_id,
     accessToken: access_token,
     plaidAccountId: account_id,
-  });
-}
-
-export async function invokeGetPlaidAccounts(auth_token, user_id) {
-  return await invoke("get_plaid_accounts", {
-    authToken: auth_token,
-    userId: user_id,
   });
 }
 

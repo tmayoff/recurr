@@ -1,8 +1,6 @@
-use recurr_core::{Account, Institution, Item};
+use recurr_core::{Account, Item};
 use reqwest::header::{HeaderMap, HeaderValue};
 use serde::{Deserialize, Serialize};
-
-use crate::plaid::institutions::institution_get;
 
 use super::{Error, PlaidRequest};
 
@@ -71,11 +69,11 @@ pub async fn get_balances(
 }
 
 #[tauri::command]
-pub async fn accounts_get(
+pub async fn get_accounts(
     auth_key: &str,
     access_token: &str,
     account_ids: Vec<String>,
-) -> Result<(Institution, Vec<Account>), super::Error> {
+) -> Result<(Item, Vec<Account>), super::Error> {
     let mut authorization = String::from("Bearer ");
     authorization.push_str(auth_key);
 
@@ -114,18 +112,13 @@ pub async fn accounts_get(
         item: Item,
     }
 
-    let account_response = res
-        .error_for_status()?
-        .json::<AccountsGetResponse>()
-        .await?;
-
-    let id = account_response
-        .item
-        .institution_id
-        .expect("No institution associated with this");
-    let institution = institution_get(auth_key, &id).await?;
-
-    Ok((institution, account_response.accounts))
+    if res.status().is_success() {
+        let account_response = res.json::<AccountsGetResponse>().await?;
+        Ok((account_response.item, account_response.accounts))
+    } else {
+        let res = res.json().await?;
+        Err(super::Error::Plaid(res))
+    }
 }
 
 #[derive(Serialize, Deserialize)]

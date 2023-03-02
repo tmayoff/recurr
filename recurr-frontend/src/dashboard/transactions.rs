@@ -88,6 +88,7 @@ impl TransactionsView {
             let end_date = end_date.map(|d| NaiveDate::parse_from_str(&d, "%Y-%m-%d").unwrap());
 
             // Get Transactions
+            let mut transactions = Transactions::default();
             for row in res {
                 if let Some(accounts) = row.plaid_accounts {
                     let a: Vec<String> = accounts.into_iter().map(|a| a.account_id).collect();
@@ -107,7 +108,11 @@ impl TransactionsView {
                     .await;
 
                     match res {
-                        Ok(t) => return Msg::GotTransactions(t),
+                        Ok(t) => {
+                            transactions.accounts.extend(t.accounts.clone());
+                            transactions.transactions.extend(t.transactions.clone());
+                            transactions.total_transactions += t.total_transactions;
+                        }
                         Err(e) => {
                             log::error!("{}", &e);
                             return Msg::Error(e);
@@ -116,7 +121,7 @@ impl TransactionsView {
                 }
             }
 
-            Msg::Error("Failed to get transactions".to_string())
+            Msg::GotTransactions(transactions)
         });
     }
 }
@@ -261,7 +266,6 @@ impl Component for TransactionsView {
             }
             Msg::SetFilter(f) => {
                 self.filter = f;
-                log::info!("Set filter {:?}", self.filter);
                 ctx.link().send_message(Msg::GetTransactions)
             }
             Msg::UpdatedContext(context) => self.context = context,
@@ -273,9 +277,9 @@ impl Component for TransactionsView {
 
 #[derive(Debug, Default, Deserialize, PartialEq, Clone, Serialize)]
 pub struct Filter {
-    start_date: Option<String>,
-    end_date: Option<String>,
-    category: Option<String>,
+    pub start_date: Option<String>,
+    pub end_date: Option<String>,
+    pub category: Option<String>,
 }
 
 #[derive(Properties, PartialEq)]
