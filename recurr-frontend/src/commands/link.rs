@@ -27,7 +27,7 @@ pub async fn link_token_create(
                 serde_wasm_bindgen::from_value::<LinkToken>(response).expect("Response not valid");
             Ok(res)
         }
-        Err(e) => Err(e.as_string().unwrap()),
+        Err(e) => Err(format!("{:?}", e)),
     }
 }
 

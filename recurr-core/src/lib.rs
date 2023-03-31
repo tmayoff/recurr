@@ -58,8 +58,8 @@ pub enum Error {
     #[error(transparent)]
     #[serde(rename = "PlaidError")]
     Plaid(#[from] PlaidError),
-    // #[error("{0}")]
-    // Other(String),
+    #[error("{0}")]
+    Other(String),
     #[error("{0}")]
     Query(String),
 }
