@@ -1,5 +1,4 @@
-use serde::Deserialize;
-use supabase_js_rs::Credentials;
+use serde::{Deserialize, Serialize};
 use web_sys::{HtmlInputElement, MouseEvent, SubmitEvent};
 use yew::{html, Callback, Component, Context, Html, NodeRef};
 
@@ -91,9 +90,29 @@ impl Component for LoginComponent {
                     let email = email_ref.cast::<HtmlInputElement>().unwrap().value();
                     let password = pass_ref.cast::<HtmlInputElement>().unwrap().value();
 
+                    #[derive(Serialize)]
+                    struct Options {
+                        emailRedirectTo: String,
+                    }
+                    #[derive(Serialize)]
+                    struct Credentials {
+                        email: String,
+                        options: Options,
+                    }
+
+                    let creds = Credentials {
+                        email,
+                        options: Options {
+                            emailRedirectTo: "recurr://recurr/magic_link".to_string(),
+                        },
+                    };
+
                     let res = client
                         .auth()
-                        .sign_in_with_password(Credentials { email, password })
+                        .sign_in_with_otp(
+                            serde_wasm_bindgen::to_value(&creds)
+                                .expect("Failed to serialize credentials"),
+                        )
                         .await;
 
                     match res {
