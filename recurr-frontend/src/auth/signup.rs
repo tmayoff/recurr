@@ -35,60 +35,61 @@ impl Component for SignupComponent {
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
-        let toggle = ctx.props().toggle.clone();
-        let toggle_form = { Callback::from(move |_| toggle.toggle()) };
-
-        let signup = ctx.link().callback(|e: SubmitEvent| {
-            e.prevent_default();
-            SignupMsg::Signup
-        });
-
-        html! {
-        <>
-            <h1 class="is-size-3">{"Sign Up"}</h1>
-            <form onsubmit={signup}>
-                <div class="field">
-                    <label class="label">{"Email"}</label>
-                    <div class="control">
-                        <input ref={self.email.clone()} class="input" type="email" placeholder="username" required=true/>
-                    </div>
-                </div>
-                <div class="field">
-                    <label class="label">{"Password"}</label>
-                    <div class="control">
-                        <input ref={self.password.clone()} class="input" type="password" placeholder="password" required=true/>
-                    </div>
-                </div>
-                <div class="field">
-                    <label class="label">{"Confirm Password"}</label>
-                    <div class="control">
-                        <input ref={self.confirm_password.clone()} class="input" type="password" placeholder="password" required=true/>
-                    </div>
-                </div>
-                {
-                    if let Some(e) = &self.error {
-                        html!{
-                            <div class="field">
-                                <p class="help is-danger">{e}</p>
-                            </div>
-                        }
-                    } else {
-                        html!{}
-                    }
-                }
-                <div class="field">
-                    <div class="control">
-                        <button class="button is-link">{"Sign Up"}</button>
-                    </div>
-                </div>
-                <div class="field">
-                    <div class="control">
-                        <a onclick={toggle_form}>{"Don't have an account?"}</a>
-                    </div>
-                </div>
-            </form>
-        </>
-        }
+        //        let toggle = ctx.props().toggle.clone();
+        //        let toggle_form = { Callback::from(move |_| toggle.toggle()) };
+        //
+        //        let signup = ctx.link().callback(|e: SubmitEvent| {
+        //            e.prevent_default();
+        //            SignupMsg::Signup
+        //        });
+        //
+        //        html! {
+        //        <>
+        //            <h1 class="is-size-3">{"Sign Up"}</h1>
+        //            <form onsubmit={signup}>
+        //                <div class="field">
+        //                    <label class="label">{"Email"}</label>
+        //                    <div class="control">
+        //                        <input ref={self.email.clone()} class="input" type="email" placeholder="username" required=true/>
+        //                    </div>
+        //                </div>
+        //                <div class="field">
+        //                    <label class="label">{"Password"}</label>
+        //                    <div class="control">
+        //                        <input ref={self.password.clone()} class="input" type="password" placeholder="password" required=true/>
+        //                    </div>
+        //                </div>
+        //                <div class="field">
+        //                    <label class="label">{"Confirm Password"}</label>
+        //                    <div class="control">
+        //                        <input ref={self.confirm_password.clone()} class="input" type="password" placeholder="password" required=true/>
+        //                    </div>
+        //                </div>
+        //                {
+        //                    if let Some(e) = &self.error {
+        //                        html!{
+        //                            <div class="field">
+        //                                <p class="help is-danger">{e}</p>
+        //                            </div>
+        //                        }
+        //                    } else {
+        //                        html!{}
+        //                    }
+        //                }
+        //                <div class="field">
+        //                    <div class="control">
+        //                        <button class="button is-link">{"Sign Up"}</button>
+        //                    </div>
+        //                </div>
+        //                <div class="field">
+        //                    <div class="control">
+        //                        <a onclick={toggle_form}>{"Don't have an account?"}</a>
+        //                    </div>
+        //                </div>
+        //            </form>
+        //        </>
+        //        }
+        html! {}
     }
 
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {

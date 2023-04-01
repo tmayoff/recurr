@@ -1,17 +1,15 @@
 mod login;
-mod signup;
 
 use login::LoginComponent;
 use supabase_js_rs::SupabaseClient;
-use yew::{function_component, html, use_context, Html, Properties};
-use yew_hooks::{use_toggle, UseToggleHandle};
+use yew::{html, Callback, Component, Html, Properties};
 
-use crate::{auth::signup::SignupComponent, context::SessionContext};
+use crate::context::SessionContext;
 
 #[derive(Properties, PartialEq)]
 pub struct FormProps {
-    pub toggle: UseToggleHandle<SignupSignin>,
     pub client: SupabaseClient,
+    pub auth_cb: yew::Callback<AuthMessage>,
 }
 
 #[derive(PartialEq)]
@@ -20,24 +18,61 @@ pub enum SignupSignin {
     Signin,
 }
 
-#[function_component(Auth)]
-pub fn auth() -> Html {
-    let context = use_context::<SessionContext>().expect("Needs context");
+#[derive(Properties, PartialEq)]
+pub struct AuthProps {
+    pub context: SessionContext,
+}
 
-    let signin_signup = use_toggle(SignupSignin::Signin, SignupSignin::Signup);
-    let client = context.supabase_client.clone();
+pub enum AuthMessage {
+    MagicLinkSent,
+}
 
-    html! {
-        <div class="hero is-fullheight is-flex is-justify-content-center is-align-content-center is-align-items-center">
-            <div class="has-shadow has-radius p-3">
-                {
-                    if (*signin_signup) == SignupSignin::Signin {
-                       html!{ <LoginComponent {client} toggle={signin_signup} /> }
-                    } else {
-                        html!{ <SignupComponent {client} toggle={signin_signup}/> }
+enum FormType {
+    MagicLink,
+    Login,
+}
+
+pub struct AuthComponent {
+    form_type: FormType,
+    auth_cb: yew::Callback<AuthMessage>,
+}
+
+impl Component for AuthComponent {
+    type Message = AuthMessage;
+    type Properties = AuthProps;
+
+    fn create(ctx: &yew::Context<Self>) -> Self {
+        let auth_cb = ctx.link().callback(|msg: AuthMessage| msg);
+
+        Self {
+            form_type: FormType::Login,
+            auth_cb,
+        }
+    }
+
+    fn view(&self, ctx: &yew::Context<Self>) -> Html {
+        let auth_cb = self.auth_cb.clone();
+        let client = ctx.props().context.supabase_client.clone();
+
+        html! {
+            <div class="hero is-fullheight is-flex is-justify-content-center is-align-content-center is-align-items-center">
+                <div class="has-shadow has-radius p-3">
+                    {
+                        match self.form_type {
+                            FormType::Login => html!{<LoginComponent {client} {auth_cb} />},
+                            FormType::MagicLink => html!{"Magic Link Sent"}
+                        }
                     }
-                }
+                </div>
             </div>
-        </div>
+        }
+    }
+
+    fn update(&mut self, ctx: &yew::Context<Self>, msg: Self::Message) -> bool {
+        match msg {
+            AuthMessage::MagicLinkSent => self.form_type = FormType::MagicLink,
+        }
+
+        true
     }
 }

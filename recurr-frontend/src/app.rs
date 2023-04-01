@@ -1,5 +1,5 @@
 use crate::{
-    auth::Auth,
+    auth::AuthComponent,
     context::{ContextUpdate, Session, SessionProvider},
     dashboard::Dashboard,
     supabase,
@@ -76,7 +76,7 @@ impl Component for Main {
                 if has_session {
                     <Dashboard context={context.clone()}/>
                 } else {
-                    <Auth />
+                    <AuthComponent context={context.clone()}/>
                 }
             </main>
         }

@@ -6,6 +6,7 @@ use super::FormProps;
 
 pub enum LoginMsg {
     LoggedIn,
+    MagicLinkSent,
     Login,
     Error(Option<String>),
 }
@@ -30,9 +31,6 @@ impl Component for LoginComponent {
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
-        let toggle = ctx.props().toggle.clone();
-        let toggle_form = { Callback::from(move |_: MouseEvent| toggle.toggle()) };
-
         let login = ctx.link().callback(|e: SubmitEvent| {
             e.prevent_default();
             LoginMsg::Login
@@ -48,12 +46,6 @@ impl Component for LoginComponent {
                         <input ref={self.email.clone()} class="input" type="email" placeholder="username"/>
                     </div>
                 </div>
-                <div class="field">
-                    <label class="label">{"Password"}</label>
-                    <div class="control">
-                        <input ref={self.password.clone()} class="input" type="password" placeholder="password"/>
-                    </div>
-                </div>
                 {
                     if let Some(e) = &self.error {
                         html!{
@@ -67,12 +59,7 @@ impl Component for LoginComponent {
                 }
                 <div class="field">
                     <div class="control">
-                        <button class="button is-link">{"Login"}</button>
-                    </div>
-                </div>
-                <div class="field">
-                    <div class="control">
-                        <a onclick={toggle_form}>{"Don't have an account?"}</a>
+                        <button class="button is-link">{"Send Magic Link"}</button>
                     </div>
                 </div>
             </form>
@@ -88,7 +75,6 @@ impl Component for LoginComponent {
                 let pass_ref = self.password.clone();
                 ctx.link().send_future(async move {
                     let email = email_ref.cast::<HtmlInputElement>().unwrap().value();
-                    let password = pass_ref.cast::<HtmlInputElement>().unwrap().value();
 
                     #[derive(Serialize)]
                     struct Options {
@@ -134,7 +120,7 @@ impl Component for LoginComponent {
                                 return LoginMsg::Error(Some(e.message));
                             }
 
-                            LoginMsg::LoggedIn
+                            LoginMsg::MagicLinkSent
                         }
                         Err(e) => {
                             LoginMsg::Error(Some(e.as_string().expect("Failed to get string")))
@@ -144,6 +130,9 @@ impl Component for LoginComponent {
             }
             LoginMsg::Error(e) => self.error = e,
             LoginMsg::LoggedIn => log::info!("Logged in"),
+            LoginMsg::MagicLinkSent => {
+                ctx.props().auth_cb.emit(super::AuthMessage::MagicLinkSent);
+            }
         };
         true
     }
