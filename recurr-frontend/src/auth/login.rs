@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
-use web_sys::{HtmlInputElement, MouseEvent, SubmitEvent};
-use yew::{html, Callback, Component, Context, Html, NodeRef};
+use web_sys::{HtmlInputElement, SubmitEvent};
+use yew::{html, Component, Context, Html, NodeRef};
 
 use super::FormProps;
 
@@ -78,7 +78,8 @@ impl Component for LoginComponent {
 
                     #[derive(Serialize)]
                     struct Options {
-                        emailRedirectTo: String,
+                        #[serde(rename = "emailRedirectTo")]
+                        email_redirect_to: String,
                     }
                     #[derive(Serialize)]
                     struct Credentials {
@@ -89,7 +90,7 @@ impl Component for LoginComponent {
                     let creds = Credentials {
                         email,
                         options: Options {
-                            emailRedirectTo: "recurr://recurr/magic_link".to_string(),
+                            email_redirect_to: "recurr://magic_link".to_string(),
                         },
                     };
 

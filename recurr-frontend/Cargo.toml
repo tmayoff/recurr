@@ -10,7 +10,7 @@ log = "0.4.17"
 reqwest = { version = "0.11.14", features = ["json"] }
 serde = { version = "1.0.140", features = ["derive"] }
 serde-wasm-bindgen = "0.4.3"
-supabase-js-rs = "0.1.2"
+supabase-js-rs = { git = "https://github.com/tmayoff/supabase-js-rs.git", branch = "verify-opt" }
 wasm-bindgen = { version = "0.2.82", features = ["serde-serialize"] }
 wasm-bindgen-futures = "0.4.32"
 wasm-logger = "0.2.0"
@@ -25,3 +25,4 @@ chrono = "0.4.23"
 yew-router = "0.17.0"
 gloo-storage = "0.2.2"
 now = "0.1.3"
+url = "2.3.1"

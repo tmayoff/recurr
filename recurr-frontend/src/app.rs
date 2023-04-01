@@ -4,15 +4,28 @@ use crate::{
     dashboard::Dashboard,
     supabase,
 };
+use serde::{Deserialize, Serialize};
 use serde_wasm_bindgen::Error;
 use supabase_js_rs::SupabaseClient;
-use wasm_bindgen::{prelude::Closure, JsValue};
-use yew::prelude::*;
+
+use wasm_bindgen::{
+    prelude::{wasm_bindgen, Closure},
+    JsValue,
+};
+use yew::{platform::spawn_local, prelude::*};
+
+#[wasm_bindgen(module = "/public/glue.js")]
+extern "C" {
+
+    #[wasm_bindgen]
+    pub fn setEventListener(callback: &JsValue);
+}
 
 fn setup_auth_handler(context: &UseReducerHandle<Session>, client: &SupabaseClient) {
     let callback_context = context.clone();
     let auth_callback: Closure<dyn FnMut(JsValue, JsValue)> =
         Closure::new(move |_: JsValue, session: JsValue| {
+            log::debug!("Updated Session {:?}", session);
             let session: Result<Option<supabase::Session>, Error> =
                 serde_wasm_bindgen::from_value(session);
             match session {
@@ -51,6 +64,54 @@ impl Component for Main {
             .expect("No Context Provided");
 
         setup_auth_handler(&context, &context.supabase_client);
+
+        #[derive(Deserialize, Debug)]
+        struct Event {
+            event: String,
+            payload: recurr_core::Event,
+        }
+
+        let client = context.supabase_client.clone();
+        setEventListener(&Closure::once_into_js(move |e: JsValue| {
+            #[derive(Serialize)]
+            struct Params {
+                email: String,
+                token: String,
+                #[serde(rename = "type")]
+                verify_type: String,
+            }
+
+            let event: Event = serde_wasm_bindgen::from_value(e).expect("Failed to deserialize");
+            log::debug!("{:?}", event);
+            match event.payload {
+                recurr_core::Event::DeepLink(link) => {
+                    let link = link.replace("#", "?");
+                    let url = url::Url::parse(&link).expect("Failed to parse url");
+                    log::debug!("{:?}", url.query());
+                    let mut query_pairs = url.query_pairs();
+                    let access_token = query_pairs.next().unwrap().1.to_string();
+                    let expires_in = query_pairs.next().unwrap().1.to_string();
+                    let refresh_token = query_pairs.next().unwrap().1.to_string();
+
+                    spawn_local(async move {
+                        client
+                            .auth()
+                            .set_session(supabase_js_rs::CurrentSession {
+                                access_token,
+                                refresh_token,
+                            })
+                            .await;
+
+                        //                        let res = client.auth().verify_otp(params).await;
+                        //
+                        //                        match res {
+                        //                            Ok(_) => log::info!("Verify Sent"),
+                        //                            Err(e) => log::error!("Verify Failed {:?}", e),
+                        //                        }
+                    });
+                }
+            }
+        }));
 
         Self {
             context,
