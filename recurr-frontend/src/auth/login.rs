@@ -5,7 +5,6 @@ use yew::{html, Component, Context, Html, NodeRef};
 use super::FormProps;
 
 pub enum LoginMsg {
-    LoggedIn,
     MagicLinkSent,
     Login,
     Error(Option<String>),
@@ -13,8 +12,6 @@ pub enum LoginMsg {
 
 pub struct LoginComponent {
     email: NodeRef,
-    password: NodeRef,
-
     error: Option<String>,
 }
 
@@ -25,7 +22,6 @@ impl Component for LoginComponent {
     fn create(_ctx: &Context<Self>) -> Self {
         Self {
             email: NodeRef::default(),
-            password: NodeRef::default(),
             error: None,
         }
     }
@@ -72,7 +68,6 @@ impl Component for LoginComponent {
             LoginMsg::Login => {
                 let client = ctx.props().client.clone();
                 let email_ref = self.email.clone();
-                let pass_ref = self.password.clone();
                 ctx.link().send_future(async move {
                     let email = email_ref.cast::<HtmlInputElement>().unwrap().value();
 
@@ -130,7 +125,6 @@ impl Component for LoginComponent {
                 });
             }
             LoginMsg::Error(e) => self.error = e,
-            LoginMsg::LoggedIn => log::info!("Logged in"),
             LoginMsg::MagicLinkSent => {
                 ctx.props().auth_cb.emit(super::AuthMessage::MagicLinkSent);
             }

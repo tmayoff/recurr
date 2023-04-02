@@ -27,7 +27,7 @@ fn tauri_event_handler(context: &UseReducerHandle<Session>) {
     let event_handler = Closure::once_into_js(move |e: JsValue| {
         #[derive(Deserialize)]
         struct Event {
-            event: String,
+            _event: String,
             payload: recurr_core::Event,
         }
 
@@ -47,17 +47,21 @@ fn tauri_event_handler(context: &UseReducerHandle<Session>) {
                 let url = url::Url::parse(&link).expect("Failed to parse url");
                 let mut query_pairs = url.query_pairs();
                 let access_token = query_pairs.next().unwrap().1.to_string();
-                let expires_in = query_pairs.next().unwrap().1.to_string();
+                let _expires_in = query_pairs.next().unwrap().1.to_string();
                 let refresh_token = query_pairs.next().unwrap().1.to_string();
 
                 spawn_local(async move {
-                    client
+                    let res = client
                         .auth()
                         .set_session(supabase_js_rs::CurrentSession {
                             access_token,
                             refresh_token,
                         })
                         .await;
+
+                    if let Err(e) = res {
+                        log::error!("{:?}", e);
+                    }
                 });
             }
         }
@@ -109,8 +113,6 @@ impl Component for Main {
 
         setup_auth_handler(&context, &context.supabase_client);
         tauri_event_handler(&context);
-
-        let client = context.supabase_client.clone();
 
         Self {
             context,

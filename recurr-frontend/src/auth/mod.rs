@@ -2,7 +2,7 @@ mod login;
 
 use login::LoginComponent;
 use supabase_js_rs::SupabaseClient;
-use yew::{html, Callback, Component, Html, Properties};
+use yew::{html, Component, Html, Properties};
 
 use crate::context::SessionContext;
 
@@ -10,12 +10,6 @@ use crate::context::SessionContext;
 pub struct FormProps {
     pub client: SupabaseClient,
     pub auth_cb: yew::Callback<AuthMessage>,
-}
-
-#[derive(PartialEq)]
-pub enum SignupSignin {
-    Signup,
-    Signin,
 }
 
 #[derive(Properties, PartialEq)]
@@ -68,7 +62,7 @@ impl Component for AuthComponent {
         }
     }
 
-    fn update(&mut self, ctx: &yew::Context<Self>, msg: Self::Message) -> bool {
+    fn update(&mut self, _ctx: &yew::Context<Self>, msg: Self::Message) -> bool {
         match msg {
             AuthMessage::MagicLinkSent => self.form_type = FormType::MagicLink,
         }
