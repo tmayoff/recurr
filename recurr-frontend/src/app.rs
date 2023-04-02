@@ -21,6 +21,49 @@ extern "C" {
     pub fn setEventListener(callback: &JsValue);
 }
 
+fn tauri_event_handler(context: &UseReducerHandle<Session>) {
+    let client = context.supabase_client.clone();
+
+    setEventListener(&Closure::once_into_js(move |e: JsValue| {
+        #[derive(Deserialize)]
+        struct Event {
+            event: String,
+            payload: recurr_core::Event,
+        }
+
+        let event: Event = serde_wasm_bindgen::from_value(e).expect("Failed to deserialize");
+
+        match event.payload {
+            recurr_core::Event::DeepLink(link) => {
+                #[derive(Serialize)]
+                struct Params {
+                    email: String,
+                    token: String,
+                    #[serde(rename = "type")]
+                    verify_type: String,
+                }
+
+                let link = link.replacen("#", "?", 1);
+                let url = url::Url::parse(&link).expect("Failed to parse url");
+                let mut query_pairs = url.query_pairs();
+                let access_token = query_pairs.next().unwrap().1.to_string();
+                let expires_in = query_pairs.next().unwrap().1.to_string();
+                let refresh_token = query_pairs.next().unwrap().1.to_string();
+
+                spawn_local(async move {
+                    client
+                        .auth()
+                        .set_session(supabase_js_rs::CurrentSession {
+                            access_token,
+                            refresh_token,
+                        })
+                        .await;
+                });
+            }
+        }
+    }));
+}
+
 fn setup_auth_handler(context: &UseReducerHandle<Session>, client: &SupabaseClient) {
     let callback_context = context.clone();
     let auth_callback: Closure<dyn FnMut(JsValue, JsValue)> =
@@ -64,54 +107,9 @@ impl Component for Main {
             .expect("No Context Provided");
 
         setup_auth_handler(&context, &context.supabase_client);
-
-        #[derive(Deserialize, Debug)]
-        struct Event {
-            event: String,
-            payload: recurr_core::Event,
-        }
+        tauri_event_handler(&context);
 
         let client = context.supabase_client.clone();
-        setEventListener(&Closure::once_into_js(move |e: JsValue| {
-            #[derive(Serialize)]
-            struct Params {
-                email: String,
-                token: String,
-                #[serde(rename = "type")]
-                verify_type: String,
-            }
-
-            let event: Event = serde_wasm_bindgen::from_value(e).expect("Failed to deserialize");
-            log::debug!("{:?}", event);
-            match event.payload {
-                recurr_core::Event::DeepLink(link) => {
-                    let link = link.replace("#", "?");
-                    let url = url::Url::parse(&link).expect("Failed to parse url");
-                    log::debug!("{:?}", url.query());
-                    let mut query_pairs = url.query_pairs();
-                    let access_token = query_pairs.next().unwrap().1.to_string();
-                    let expires_in = query_pairs.next().unwrap().1.to_string();
-                    let refresh_token = query_pairs.next().unwrap().1.to_string();
-
-                    spawn_local(async move {
-                        client
-                            .auth()
-                            .set_session(supabase_js_rs::CurrentSession {
-                                access_token,
-                                refresh_token,
-                            })
-                            .await;
-
-                        //                        let res = client.auth().verify_otp(params).await;
-                        //
-                        //                        match res {
-                        //                            Ok(_) => log::info!("Verify Sent"),
-                        //                            Err(e) => log::error!("Verify Failed {:?}", e),
-                        //                        }
-                    });
-                }
-            }
-        }));
 
         Self {
             context,
