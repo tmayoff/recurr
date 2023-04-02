@@ -27,7 +27,7 @@ fn tauri_event_handler(context: &UseReducerHandle<Session>) {
     let event_handler = Closure::once_into_js(move |e: JsValue| {
         #[derive(Deserialize)]
         struct Event {
-            _event: String,
+            event: String,
             payload: recurr_core::Event,
         }
 
