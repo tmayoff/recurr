@@ -18,13 +18,13 @@ use yew::{platform::spawn_local, prelude::*};
 extern "C" {
 
     #[wasm_bindgen]
-    pub fn setEventListener(callback: &JsValue);
+    pub fn setEventListener(callback: &JsValue, event_name: &str);
 }
 
 fn tauri_event_handler(context: &UseReducerHandle<Session>) {
     let client = context.supabase_client.clone();
 
-    setEventListener(&Closure::once_into_js(move |e: JsValue| {
+    let event_handler = Closure::once_into_js(move |e: JsValue| {
         #[derive(Deserialize)]
         struct Event {
             event: String,
@@ -61,14 +61,15 @@ fn tauri_event_handler(context: &UseReducerHandle<Session>) {
                 });
             }
         }
-    }));
+    });
+
+    setEventListener(&event_handler, "deep-link");
 }
 
 fn setup_auth_handler(context: &UseReducerHandle<Session>, client: &SupabaseClient) {
     let callback_context = context.clone();
     let auth_callback: Closure<dyn FnMut(JsValue, JsValue)> =
         Closure::new(move |_: JsValue, session: JsValue| {
-            log::debug!("Updated Session {:?}", session);
             let session: Result<Option<supabase::Session>, Error> =
                 serde_wasm_bindgen::from_value(session);
             match session {

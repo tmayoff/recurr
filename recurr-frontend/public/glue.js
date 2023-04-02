@@ -2,9 +2,9 @@ const invoke = window.__TAURI__.invoke;
 const events = window.__TAURI__.event;
 
 export async function setEventListener(
-    callback
+    callback, event_name
 ) {
-    return await events.listen('deep-link', (event) => {
+    return await events.listen(event_name, (event) => {
         callback(event);
     });
 }
