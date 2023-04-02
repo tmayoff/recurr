@@ -3,6 +3,11 @@ use std::fmt::Display;
 
 pub mod plaid;
 
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub enum Event {
+    DeepLink(String),
+}
+
 #[allow(non_camel_case_types)]
 #[derive(Debug, Serialize, Deserialize)]
 pub enum PlaidErrorType {
