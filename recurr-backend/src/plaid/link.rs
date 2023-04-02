@@ -68,7 +68,6 @@ pub async fn link_token_create(
     match res.error_for_status() {
         Ok(res) => {
             let json = res.json().await?;
-            log::info!("{:?}", json);
             Ok(json)
         }
         Err(e) => {
