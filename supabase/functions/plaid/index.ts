@@ -7,19 +7,12 @@ import {serve} from "https://deno.land/std@0.168.0/http/server.ts";
 const BASE_URL = "https://sandbox.plaid.com";
 
 serve(async (req: Request) => {
-    console.log("Got Request; forwarding to plaid");
     const plaid_client_id = Deno.env.get("PLAID_CLIENT_ID")!;
     const plaid_secret = Deno.env.get("PLAID_SECRET")!;
-
-    console.log(plaid_client_id);
-    console.log(plaid_secret);
 
     const body = await req.json();
     const endpoint = body["endpoint"];
     const request = body["data"];
-
-    console.log("Request: ");
-    console.log(request);
 
     const res = await fetch(BASE_URL + endpoint, {
         method: "POST",
