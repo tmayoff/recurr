@@ -12,6 +12,8 @@ mod supabase;
 fn main() {
     env_logger::init();
 
+    tauri_plugin_deep_link::prepare("com.tylermayoff.recurr");
+
     tauri::Builder::default()
         .setup(|app| {
             #[cfg(debug_assertions)] // only include this code on debug builds
@@ -21,6 +23,17 @@ fn main() {
                     window.open_devtools();
                 }
             }
+
+            let handle = app.handle();
+            // Setup Deep Link event handler
+            tauri_plugin_deep_link::register("recurr", move |request| {
+                let s = request.to_string();
+
+                handle
+                    .emit_all("deep-link", recurr_core::Event::DeepLink(s))
+                    .expect("Failed to send event");
+            })
+            .unwrap();
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

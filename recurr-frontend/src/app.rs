@@ -1,13 +1,74 @@
 use crate::{
-    auth::Auth,
+    auth::AuthComponent,
     context::{ContextUpdate, Session, SessionProvider},
     dashboard::Dashboard,
     supabase,
 };
+use serde::{Deserialize, Serialize};
 use serde_wasm_bindgen::Error;
 use supabase_js_rs::SupabaseClient;
-use wasm_bindgen::{prelude::Closure, JsValue};
-use yew::prelude::*;
+
+use wasm_bindgen::{
+    prelude::{wasm_bindgen, Closure},
+    JsValue,
+};
+use yew::{platform::spawn_local, prelude::*};
+
+#[wasm_bindgen(module = "/public/glue.js")]
+extern "C" {
+
+    #[wasm_bindgen]
+    pub fn setEventListener(callback: &JsValue, event_name: &str);
+}
+
+fn tauri_event_handler(context: &UseReducerHandle<Session>) {
+    let client = context.supabase_client.clone();
+
+    let event_handler = Closure::once_into_js(move |e: JsValue| {
+        #[derive(Deserialize)]
+        struct Event {
+            event: String,
+            payload: recurr_core::Event,
+        }
+
+        let event: Event = serde_wasm_bindgen::from_value(e).expect("Failed to deserialize");
+
+        match event.payload {
+            recurr_core::Event::DeepLink(link) => {
+                #[derive(Serialize)]
+                struct Params {
+                    email: String,
+                    token: String,
+                    #[serde(rename = "type")]
+                    verify_type: String,
+                }
+
+                let link = link.replacen("#", "?", 1);
+                let url = url::Url::parse(&link).expect("Failed to parse url");
+                let mut query_pairs = url.query_pairs();
+                let access_token = query_pairs.next().unwrap().1.to_string();
+                let _expires_in = query_pairs.next().unwrap().1.to_string();
+                let refresh_token = query_pairs.next().unwrap().1.to_string();
+
+                spawn_local(async move {
+                    let res = client
+                        .auth()
+                        .set_session(supabase_js_rs::CurrentSession {
+                            access_token,
+                            refresh_token,
+                        })
+                        .await;
+
+                    if let Err(e) = res {
+                        log::error!("{:?}", e);
+                    }
+                });
+            }
+        }
+    });
+
+    setEventListener(&event_handler, "deep-link");
+}
 
 fn setup_auth_handler(context: &UseReducerHandle<Session>, client: &SupabaseClient) {
     let callback_context = context.clone();
@@ -51,6 +112,7 @@ impl Component for Main {
             .expect("No Context Provided");
 
         setup_auth_handler(&context, &context.supabase_client);
+        tauri_event_handler(&context);
 
         Self {
             context,
@@ -76,7 +138,7 @@ impl Component for Main {
                 if has_session {
                     <Dashboard context={context.clone()}/>
                 } else {
-                    <Auth />
+                    <AuthComponent context={context.clone()}/>
                 }
             </main>
         }
