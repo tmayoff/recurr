@@ -13,10 +13,15 @@ pub async fn get_access_tokens(
         .select("*")
         .eq("user_id", user_id)
         .execute()
-        .await?
-        .error_for_status()?;
+        .await
+        .map(|e| e.error_for_status())
+        .map_err(|e| recurr_core::Error::Other(e.to_string()))?
+        .map_err(|e| recurr_core::Error::Other(e.to_string()))?;
 
-    let json = res.json().await?;
+    let json = res
+        .json()
+        .await
+        .map_err(|e| recurr_core::Error::Request(e.to_string()))?;
     let schemas: Vec<SchemaAccessToken> = json;
 
     let schema = schemas.first();
@@ -41,10 +46,15 @@ pub async fn get_access_token(
         .eq("access_token", access_token)
         .eq("user_id", user_id)
         .execute()
-        .await?
-        .error_for_status()?;
+        .await
+        .map(|e| e.error_for_status())
+        .map_err(|e| recurr_core::Error::Other(e.to_string()))?
+        .map_err(|e| recurr_core::Error::Other(e.to_string()))?;
 
-    let json = res.json().await?;
+    let json = res
+        .json()
+        .await
+        .map_err(|e| recurr_core::Error::Request(e.to_string()))?;
 
     let schemas: Vec<SchemaAccessToken> = json;
     let schema = schemas.first();
@@ -75,8 +85,10 @@ pub async fn save_access_token(
         .auth(auth_token)
         .insert(&body)
         .execute()
-        .await?
-        .error_for_status()?;
+        .await
+        .map(|e| e.error_for_status())
+        .map_err(|e| recurr_core::Error::Other(e.to_string()))?
+        .map_err(|e| recurr_core::Error::Other(e.to_string()))?;
 
     Ok(())
 }

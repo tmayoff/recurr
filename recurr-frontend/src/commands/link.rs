@@ -1,4 +1,4 @@
-use recurr_core::{plaid::link::LinkToken, Account, Institution};
+use recurr_core::{plaid::link::LinkToken, Institution};
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
 
@@ -27,11 +27,26 @@ pub async fn link_token_create(
                 serde_wasm_bindgen::from_value::<LinkToken>(response).expect("Response not valid");
             Ok(res)
         }
-        Err(e) => Err(e.as_string().unwrap()),
+        Err(e) => Err(format!("{:?}", e)),
     }
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize)]
+pub struct Account {
+    pub id: String,
+    pub name: String,
+    pub mask: Option<String>,
+
+    #[serde(rename = "type")]
+    pub account_type: String,
+
+    pub subtype: String,
+
+    pub verification_status: Option<String>,
+    pub class_type: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct Metadata {
     pub institution: Option<Institution>,
     pub accounts: Vec<Account>,
@@ -39,12 +54,12 @@ pub struct Metadata {
     pub transfer_status: Option<String>,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize)]
 pub struct LinkSuccess {
     pub public_token: String,
     pub metadata: Metadata,
 }
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize)]
 pub struct LinkFailure {
     err: String,
 }
@@ -64,8 +79,12 @@ pub fn start(
 
             let e = serde_wasm_bindgen::from_value::<LinkFailure>(response);
             if let Ok(failure) = e {
-                callback(Err(failure));
+                log::error!("Failure: {:?}", failure);
+                return;
             };
+
+            log::error!("Success deserialized failure: {:?}", s);
+            log::error!("Failure deserialized failure: {:?}", e);
         }),
     );
 }

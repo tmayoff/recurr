@@ -52,7 +52,10 @@ pub async fn get_balances(
         .json(&req)
         .headers(headers)
         .send()
-        .await?;
+        .await
+        .map(|e| e.error_for_status())
+        .map_err(|e| recurr_core::Error::Other(e.to_string()))?
+        .map_err(|e| recurr_core::Error::Other(e.to_string()))?;
 
     #[derive(Deserialize)]
     struct AccountsGetResponse {
@@ -61,9 +64,9 @@ pub async fn get_balances(
     }
 
     let account_response = res
-        .error_for_status()?
         .json::<AccountsGetResponse>()
-        .await?;
+        .await
+        .map_err(|e| recurr_core::Error::Request(e.to_string()))?;
 
     Ok(account_response.accounts)
 }
@@ -104,7 +107,10 @@ pub async fn get_accounts(
         .json(&req)
         .headers(headers)
         .send()
-        .await?;
+        .await
+        .map(|e| e.error_for_status())
+        .map_err(|e| recurr_core::Error::Other(e.to_string()))?
+        .map_err(|e| recurr_core::Error::Other(e.to_string()))?;
 
     #[derive(Deserialize)]
     struct AccountsGetResponse {
@@ -113,10 +119,16 @@ pub async fn get_accounts(
     }
 
     if res.status().is_success() {
-        let account_response = res.json::<AccountsGetResponse>().await?;
+        let account_response = res
+            .json::<AccountsGetResponse>()
+            .await
+            .map_err(|e| recurr_core::Error::Request(e.to_string()))?;
         Ok((account_response.item, account_response.accounts))
     } else {
-        let res = res.json().await?;
+        let res = res
+            .json()
+            .await
+            .map_err(|e| recurr_core::Error::Request(e.to_string()))?;
         Err(super::Error::Plaid(res))
     }
 }
