@@ -26,15 +26,20 @@ pub async fn get_categories() -> Result<Vec<Category>, Error> {
         .json(&req)
         .headers(headers)
         .send()
-        .await?
-        .error_for_status()?;
+        .await
+        .map(|e| e.error_for_status())
+        .map_err(|e| recurr_core::Error::Other(e.to_string()))?
+        .map_err(|e| recurr_core::Error::Other(e.to_string()))?;
 
     #[derive(Deserialize)]
     struct Response {
         categories: Vec<Category>,
     }
 
-    let json: Response = res.json().await?;
+    let json: Response = res
+        .json()
+        .await
+        .map_err(|e| recurr_core::Error::Request(e.to_string()))?;
     Ok(json.categories)
 }
 
@@ -80,8 +85,13 @@ pub async fn get_transactions(
         .json(&req)
         .headers(headers)
         .send()
-        .await?
-        .error_for_status()?;
+        .await
+        .map(|e| e.error_for_status())
+        .map_err(|e| recurr_core::Error::Other(e.to_string()))?
+        .map_err(|e| recurr_core::Error::Other(e.to_string()))?;
 
-    Ok(res.json().await?)
+    Ok(res
+        .json()
+        .await
+        .map_err(|e| recurr_core::Error::Request(e.to_string()))?)
 }

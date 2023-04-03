@@ -39,14 +39,20 @@ pub async fn get_institution(
         .json(&req)
         .headers(headers)
         .send()
-        .await?;
+        .await
+        .map(|e| e.error_for_status())
+        .map_err(|e| recurr_core::Error::Other(e.to_string()))?
+        .map_err(|e| recurr_core::Error::Other(e.to_string()))?;
 
     #[derive(Deserialize)]
     struct Response {
         institution: Institution,
     }
 
-    let response: Response = res.error_for_status()?.json().await?;
+    let response: Response = res
+        .json()
+        .await
+        .map_err(|e| recurr_core::Error::Request(e.to_string()))?;
 
     Ok(response.institution)
 }

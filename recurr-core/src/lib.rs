@@ -56,11 +56,10 @@ pub enum Error {
     EnVar(#[from] std::env::VarError),
     #[error(transparent)]
     #[serde(skip)]
-    Request(#[from] reqwest::Error),
-    #[error(transparent)]
-    #[serde(skip)]
     Serialization(#[from] serde_json::Error),
 
+    #[error("{0}")]
+    Request(String),
     #[error(transparent)]
     #[serde(rename = "PlaidError")]
     Plaid(#[from] PlaidError),

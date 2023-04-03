@@ -58,7 +58,10 @@ pub async fn item_remove(auth_key: &str, access_token: &str) -> Result<(), Error
         .json(&req)
         .headers(headers)
         .send()
-        .await?;
+        .await
+        .map(|e| e.error_for_status())
+        .map_err(|e| recurr_core::Error::Other(e.to_string()))?
+        .map_err(|e| recurr_core::Error::Other(e.to_string()))?;
 
     Ok(())
 }
@@ -90,8 +93,14 @@ pub async fn item_public_token_exchange(
         .json(&req)
         .headers(headers)
         .send()
-        .await?;
+        .await
+        .map(|e| e.error_for_status())
+        .map_err(|e| recurr_core::Error::Other(e.to_string()))?
+        .map_err(|e| recurr_core::Error::Other(e.to_string()))?;
 
-    let json = res.error_for_status()?.json().await?;
+    let json = res
+        .json()
+        .await
+        .map_err(|e| recurr_core::Error::Request(e.to_string()))?;
     Ok(json)
 }

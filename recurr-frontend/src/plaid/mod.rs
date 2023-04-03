@@ -10,7 +10,7 @@ use yew::{
 
 use crate::{
     commands::{
-        self, invokeItemPublicTokenExchange, invokeSaveAccessToken, invokeSavePlaidAccount,
+        self, invokeItemPublicTokenExchange,
         link::{link_token_create, LinkFailure, LinkSuccess},
     },
     context::SessionContext,
