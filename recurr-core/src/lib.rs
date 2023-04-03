@@ -94,7 +94,6 @@ pub struct Institution {
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct Account {
-    #[serde(rename = "id")]
     pub account_id: String,
     pub balances: Balances,
     pub mask: Option<String>,
