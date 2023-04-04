@@ -10,7 +10,7 @@ pub async fn remove_account(
         .await
         .map_err(|e| e.to_string())?;
 
-    let client = get_supbase_client().map_err(|e| e.to_string())?;
+    let client = get_supbase_client();
     let _ = client
         .from("access_tokens")
         .auth(auth_key)
