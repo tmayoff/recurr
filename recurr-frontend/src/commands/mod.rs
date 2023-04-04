@@ -37,15 +37,6 @@ extern "C" {
     pub async fn invokeGetCategories() -> Result<JsValue, JsValue>;
 
     #[wasm_bindgen(catch)]
-    pub async fn invokeGetTransactions(
-        auth_key: &str,
-        access_token: &str,
-        start_date: String,
-        end_date: String,
-        options: JsValue,
-    ) -> Result<JsValue, JsValue>;
-
-    #[wasm_bindgen(catch)]
     pub async fn invokeSaveAccessToken(
         auth_token: &str,
         user_id: &str,
@@ -115,42 +106,6 @@ pub async fn transactions_sync(auth_key: &str, access_token: &str) -> Result<(),
     invokeTransactionsSync(auth_key, access_token)
         .await
         .map_err(|e| e.as_string().unwrap())
-}
-
-pub async fn get_transactions(
-    auth_key: &str,
-    access_token: &str,
-    start_date: Option<NaiveDate>,
-    end_date: Option<NaiveDate>,
-    options: TransactionOption,
-) -> Result<Transactions, String> {
-    let start_date = start_date
-        .unwrap_or(NaiveDate::from_ymd_opt(1900, 1, 1).unwrap())
-        .format("%Y-%m-%d")
-        .to_string();
-    let end_date = end_date
-        .unwrap_or(
-            Local::now()
-                .date_naive()
-                .checked_add_months(Months::new(1))
-                .expect("Date must be valid"),
-        )
-        .format("%Y-%m-%d")
-        .to_string();
-
-    let res = invokeGetTransactions(
-        auth_key,
-        access_token,
-        start_date,
-        end_date,
-        serde_wasm_bindgen::to_value(&options).expect("Failed to serialize"),
-    )
-    .await;
-
-    match res {
-        Ok(transactions) => Ok(serde_wasm_bindgen::from_value(transactions).unwrap()),
-        Err(e) => Err(e.as_string().unwrap()),
-    }
 }
 
 pub async fn get_balances(auth_token: &str, user_id: &str) -> Result<Vec<Account>, String> {
