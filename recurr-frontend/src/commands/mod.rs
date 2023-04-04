@@ -156,7 +156,13 @@ pub async fn get_transactions(
 pub async fn get_balances(auth_token: &str, user_id: &str) -> Result<Vec<Account>, String> {
     let res = invokeGetPlaidBalances(auth_token, user_id).await;
     match res {
-        Ok(json) => Ok(serde_wasm_bindgen::from_value(json).map_err(|e| e.to_string())?),
-        Err(e) => Err(e.as_string().expect("Failed to get string")),
+        Ok(json) => {
+            log::info!("{:?}", json);
+            Ok(serde_wasm_bindgen::from_value(json).map_err(|e| e.to_string())?)
+        }
+        Err(e) => {
+            log::error!("{:?}", e);
+            Err(e.as_string().expect("Failed to get string"))
+        }
     }
 }

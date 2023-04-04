@@ -1,3 +1,4 @@
+use postgrest::Postgrest;
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
@@ -55,11 +56,10 @@ pub enum Error {
     EnVar(#[from] std::env::VarError),
     #[error(transparent)]
     #[serde(skip)]
-    Request(#[from] reqwest::Error),
-    #[error(transparent)]
-    #[serde(skip)]
     Serialization(#[from] serde_json::Error),
 
+    #[error("{0}")]
+    Request(String),
     #[error(transparent)]
     Plaid(#[from] PlaidError),
 
@@ -200,4 +200,9 @@ pub struct SchemaPlaidAccount {
     pub user_id: String,
     pub account_id: String,
     pub access_token_id: i32,
+}
+
+pub fn get_supbase_client() -> Postgrest {
+    Postgrest::new(env!("SUPABASE_URL").to_owned() + "/rest/v1")
+        .insert_header("apikey", env!("SUPABASE_KEY"))
 }

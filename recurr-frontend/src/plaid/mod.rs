@@ -10,7 +10,7 @@ use yew::{
 
 use crate::{
     commands::{
-        self, invokeItemPublicTokenExchange, invokeSaveAccessToken, invokeSavePlaidAccount,
+        self, invokeItemPublicTokenExchange,
         link::{link_token_create, LinkFailure, LinkSuccess},
     },
     context::SessionContext,
@@ -63,6 +63,89 @@ async fn item_public_token_exchange(
     Ok(s)
 }
 
+fn link_callback(session: super::supabase::Session, result: Result<LinkSuccess, LinkFailure>) {
+    let link_status = result.expect("Failed to get link");
+    log::info!("Trying to save access token");
+
+    spawn_local(async move {
+        let exchange_status =
+            item_public_token_exchange(&session.auth_key, &link_status.public_token).await;
+        if let Err(e) = exchange_status {
+            log::error!("{:?}", e);
+            return;
+        }
+        let exchange_status = exchange_status.ok().unwrap();
+
+        let user_id = &session.user.id;
+        let auth_token = &session.auth_key;
+
+        let client = recurr_core::get_supbase_client();
+
+        let body = serde_json::to_string(&recurr_core::SchemaAccessToken {
+            id: 0,
+            access_token: exchange_status.access_token.clone(),
+            user_id: user_id.to_owned(),
+            plaid_accounts: None,
+        })
+        .expect("Failed to serialize schema");
+
+        let res = client
+            .from("access_tokens")
+            .auth(auth_token)
+            .insert(&body)
+            .execute()
+            .await
+            .map(|e| e.error_for_status());
+        log::info!("Trying to save access token");
+        if let Err(e) = res {
+            log::error!("{:?}", e);
+            return;
+        }
+
+        let access_token = exchange_status.access_token;
+        let client = recurr_core::get_supbase_client();
+
+        let res = client
+            .from("access_tokens")
+            .auth(auth_token)
+            .select("*")
+            .eq("access_token", access_token)
+            .eq("user_id", user_id)
+            .execute()
+            .await
+            .map(|e| e.error_for_status())
+            .expect("Failed to get access token")
+            .expect("Failed to get access token");
+
+        let schemas: Vec<recurr_core::SchemaAccessToken> =
+            res.json().await.expect("Failed to get response");
+        let access_token_row = schemas
+            .first()
+            .expect("No access token associated for these accounts");
+
+        for account in link_status.metadata.accounts {
+            let body = serde_json::to_string(&recurr_core::SchemaPlaidAccount {
+                user_id: user_id.to_owned(),
+                account_id: account.id,
+                access_token_id: access_token_row.id,
+            })
+            .expect("Failed to serialize");
+
+            let res = client
+                .from("plaid_accounts")
+                .auth(auth_token)
+                .insert(&body)
+                .execute()
+                .await
+                .map(|e| e.error_for_status());
+
+            if let Err(e) = res {
+                log::error!("Failed to save account {:?}", e);
+            }
+        }
+    });
+}
+
 #[function_component(Link)]
 pub fn link() -> Html {
     let context = use_context::<SessionContext>().expect("No context");
@@ -85,56 +168,10 @@ pub fn link() -> Html {
                 }
             };
 
-            let (tx, rx) = oneshot::channel::<Result<LinkSuccess, LinkFailure>>();
-
-            let sender_mtx = Mutex::new(Some(tx));
-
-            commands::link::start(link_token, move |response| {
-                if let Some(tx) = sender_mtx.lock().unwrap().take() {
-                    let _ = tx.send(response);
-                }
+            commands::link::start(link_token, move |res| {
+                log::info!("Trying to save access token");
+                link_callback(session.clone(), res);
             });
-
-            let link_status = rx.await.expect("Failed to get link response");
-            if let Err(e) = &link_status {
-                log::error!("{:?}", e);
-                return;
-            }
-
-            let link_status = link_status.expect("Checked for error");
-
-            let exchange_status =
-                item_public_token_exchange(&session.auth_key, &link_status.public_token).await;
-            if let Err(e) = exchange_status {
-                log::error!("{:?}", e);
-                return;
-            }
-            let exchange_status = exchange_status.ok().unwrap();
-
-            let user_id = &session.user.id;
-            let auth_token = &session.auth_key;
-
-            let res =
-                invokeSaveAccessToken(auth_token, user_id, &exchange_status.access_token).await;
-            if let Err(e) = res {
-                log::error!("{:?}", e);
-                return;
-            }
-
-            for account in link_status.metadata.accounts {
-                let res = invokeSavePlaidAccount(
-                    auth_token,
-                    user_id,
-                    &exchange_status.access_token,
-                    &account.account_id,
-                )
-                .await;
-
-                if let Err(e) = res {
-                    log::error!("{:?}", e);
-                    return;
-                }
-            }
         })
     };
 

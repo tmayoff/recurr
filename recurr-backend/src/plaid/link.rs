@@ -23,6 +23,7 @@ pub async fn link_token_create(
         pub language: String,
         pub country_codes: Vec<String>,
         pub products: Vec<String>,
+        #[serde(skip_serializing_if = "Option::is_none")]
         pub access_token: Option<String>,
         pub user: User,
     }
@@ -31,10 +32,11 @@ pub async fn link_token_create(
         access_token,
         client_name: "Recurr".to_string(),
         language: "en".to_string(),
-        country_codes: vec!["CA".to_string()],
+        country_codes: vec!["CA".to_string(), "US".to_string()],
         products: vec![
             "auth".to_string(),
             "transactions".to_string(),
+            "investments".to_string(),
             "liabilities".to_string(),
         ],
         user: User {
@@ -53,7 +55,27 @@ pub async fn link_token_create(
         .json(&req)
         .headers(headers)
         .send()
-        .await?;
+        .await;
 
-    Ok(res.error_for_status()?.json().await?)
+    let res = match res {
+        Ok(res) => res,
+        Err(e) => {
+            log::error!("{:?}", e);
+            return Err(recurr_core::Error::Request(e.to_string()));
+        }
+    };
+
+    match res.error_for_status() {
+        Ok(res) => {
+            let json = res
+                .json()
+                .await
+                .map_err(|e| recurr_core::Error::Request(e.to_string()))?;
+            Ok(json)
+        }
+        Err(e) => {
+            log::error!("{:?}", e);
+            Err(recurr_core::Error::Request(e.to_string()))
+        }
+    }
 }

@@ -15,10 +15,15 @@ pub async fn get_plaid_balances(
         .select("*,plaid_accounts(*)")
         .eq("user_id", user_id)
         .execute()
-        .await?
-        .error_for_status()?;
+        .await
+        .map(|e| e.error_for_status())
+        .map_err(|e| recurr_core::Error::Other(e.to_string()))?
+        .map_err(|e| recurr_core::Error::Other(e.to_string()))?;
 
-    let access_tokens: Vec<SchemaAccessToken> = res.json().await?;
+    let access_tokens: Vec<SchemaAccessToken> = res
+        .json()
+        .await
+        .map_err(|e| recurr_core::Error::Request(e.to_string()))?;
 
     let mut all_accounts = Vec::new();
     for access_token in access_tokens {
@@ -30,7 +35,8 @@ pub async fn get_plaid_balances(
 
             let accounts =
                 plaid::accounts::get_balances(auth_key, &access_token.access_token, account_ids)
-                    .await?;
+                    .await
+                    .map_err(|e| recurr_core::Error::Other(e.to_string()))?;
             all_accounts.extend(accounts);
         }
     }
@@ -60,8 +66,10 @@ pub async fn save_plaid_account(
         .auth(auth_token)
         .insert(&body)
         .execute()
-        .await?
-        .error_for_status()?;
+        .await
+        .map(|res| res.error_for_status())
+        .map_err(|e| recurr_core::Error::Request(e.to_string()))?
+        .map_err(|e| recurr_core::Error::Request(e.to_string()));
 
     Ok(())
 }
