@@ -90,10 +90,36 @@ pub async fn sync(auth_key: &str, access_token: &str) -> Result<(), Error> {
         request_id: String,
     }
 
-    let res = res.json::<Response>().await;
-    log::info!("{:?}", res);
+    let plaid_response = res
+        .json::<Response>()
+        .await
+        .map_err(|e| recurr_core::Error::Other(e.to_string()))?;
 
-    // TODO save response in Database
+    let client = recurr_core::get_supbase_client();
+
+    let res = client
+        .from("transactions")
+        .auth(auth_key)
+        .insert(serde_json::to_string(&plaid_response.added)?)
+        .execute()
+        .await
+        .map(|e| e.error_for_status())
+        .map_err(|e| recurr_core::Error::Other(e.to_string()))?
+        .map_err(|e| recurr_core::Error::Other(e.to_string()))?;
+
+    log::info!("Added transactions");
+
+    let res = client
+        .from("transactions")
+        .auth(auth_key)
+        .upsert(serde_json::to_string(&plaid_response.modified)?)
+        .execute()
+        .await
+        .map(|e| e.error_for_status())
+        .map_err(|e| recurr_core::Error::Other(e.to_string()))?
+        .map_err(|e| recurr_core::Error::Other(e.to_string()))?;
+
+    log::info!("Modified transactions");
 
     Ok(())
 }
