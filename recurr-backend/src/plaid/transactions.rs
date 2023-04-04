@@ -97,10 +97,10 @@ pub async fn sync(auth_key: &str, access_token: &str) -> Result<(), Error> {
 
     let client = recurr_core::get_supbase_client();
 
-    let res = client
+    let _ = client
         .from("transactions")
         .auth(auth_key)
-        .insert(serde_json::to_string(&plaid_response.added)?)
+        .upsert(serde_json::to_string(&plaid_response.added).expect("Failed to serialize"))
         .execute()
         .await
         .map(|e| e.error_for_status())

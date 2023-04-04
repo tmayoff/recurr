@@ -146,15 +146,11 @@ pub struct Transaction {
     pub amount: f64,
     pub name: String,
     pub date: String,
-    //    #[serde(skip_serializing_if = "Option::is_none")]
-    //    pub category: Option<Vec<String>>,
-    //    #[serde(skip_serializing_if = "Option::is_none")]
-    //    pub category_id: Option<String>,
-    //    #[serde(skip_serializing_if = "Option::is_none")]
-    //    pub merchant_name: Option<String>,
-    //    pub pending: bool,
-    //    #[serde(skip_serializing_if = "Option::is_none")]
-    //    pub pending_transaction_id: Option<String>,
+    pub category: Option<Vec<String>>,
+    pub category_id: Option<String>,
+    pub merchant_name: Option<String>,
+    pub pending: bool,
+    pub pending_transaction_id: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
