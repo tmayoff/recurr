@@ -82,53 +82,25 @@ impl BudgetsView {
             }
             let budgets = budgets.unwrap();
 
-            let income: Vec<Transaction> = transactions
-                .clone()
-                .into_iter()
-                .filter(|t| t.amount < 0.0)
-                .collect();
+            let income: Vec<Transaction> = Vec::new();
+            let mut spending: Vec<Transaction> = transactions;
 
-            let mut grouped_income: HashMap<String, f64> = HashMap::new();
-            income.into_iter().for_each(|t| {
-                //                let category = t.category.first();
-                //                if let Some(category) = category {
-                //                    if grouped_income.contains_key(category) {
-                //                        let v = grouped_income.get_mut(category);
-                //                        if let Some(v) = v {
-                //                            *v += t.amount;
-                //                        }
-                //                    } else {
-                //                        grouped_income.insert(category.to_string(), t.amount);
-                //                    }
-                //                }
-            });
-
-            let mut spending: Vec<Transaction> = transactions
-                .into_iter()
-                .filter(|t| t.amount > 0.0)
-                .collect();
-
-            let mut other_spending: HashMap<String, f64> = HashMap::new();
-            let mut budgeted_spending: HashMap<SchemaBudget, f64> = HashMap::new();
-            log::info!("{:?}", budgets);
+            let mut budgeted_spending = Vec::new();
             for b in budgets {
-                budgeted_spending.insert(b.clone(), 0.0);
+                let mut amount = 0.0;
+
                 let budgeted: Vec<Transaction> = spending
                     .drain_filter(|t| t.category.as_ref().unwrap().contains(&b.category_id))
                     .collect();
                 budgeted.into_iter().for_each(|t| {
-                    let v = budgeted_spending.get_mut(&b);
-                    if let Some(v) = v {
-                        *v += t.amount;
-                    }
+                    amount += t.amount;
                 });
+
+                budgeted_spending.push((b.clone(), amount));
             }
-            // TODO This can be done in one step
-            let mut budgeted_spending = budgeted_spending
-                .into_iter()
-                .collect::<Vec<(SchemaBudget, f64)>>();
             budgeted_spending.sort_by(|a, b| a.0.category_id.cmp(&b.0.category_id));
 
+            let mut other_spending: HashMap<String, f64> = HashMap::new();
             for t in spending {
                 let general_category = t.category.as_ref().unwrap().first();
                 if let Some(category) = general_category {
