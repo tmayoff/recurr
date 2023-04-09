@@ -107,9 +107,7 @@ pub async fn sync(auth_key: &str, access_token: &str) -> Result<(), Error> {
         .map_err(|e| recurr_core::Error::Other(e.to_string()))?
         .map_err(|e| recurr_core::Error::Other(e.to_string()))?;
 
-    log::info!("Added transactions");
-
-    let res = client
+    let _ = client
         .from("transactions")
         .auth(auth_key)
         .upsert(serde_json::to_string(&plaid_response.modified)?)
@@ -118,8 +116,6 @@ pub async fn sync(auth_key: &str, access_token: &str) -> Result<(), Error> {
         .map(|e| e.error_for_status())
         .map_err(|e| recurr_core::Error::Other(e.to_string()))?
         .map_err(|e| recurr_core::Error::Other(e.to_string()))?;
-
-    log::info!("Modified transactions");
 
     Ok(())
 }

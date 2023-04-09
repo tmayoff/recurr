@@ -35,7 +35,6 @@ impl Display for PlaidErrorType {
 }
 
 #[derive(Debug, Serialize, Deserialize, thiserror::Error)]
-// #[serde(rename = "Plaid")]
 pub struct PlaidError {
     pub error_type: PlaidErrorType,
     pub error_code: String,
@@ -49,7 +48,7 @@ impl Display for PlaidError {
     }
 }
 
-#[derive(Debug, Deserialize, thiserror::Error)]
+#[derive(Debug, Serialize, Deserialize, thiserror::Error)]
 pub enum Error {
     #[error(transparent)]
     #[serde(skip)]
@@ -57,6 +56,10 @@ pub enum Error {
     #[error(transparent)]
     #[serde(skip)]
     Serialization(#[from] serde_json::Error),
+
+    #[error(transparent)]
+    #[serde(skip)]
+    Reqwest(#[from] reqwest::Error),
 
     #[error("{0}")]
     Request(String),
@@ -68,24 +71,6 @@ pub enum Error {
 
     #[error("{0}")]
     Query(String),
-}
-
-impl serde::Serialize for Error {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::ser::Serializer,
-    {
-        match self {
-            Error::EnVar(_) => serializer.serialize_unit_variant("Error", 0, "EnvVar"),
-            Error::Request(r) => serializer.serialize_str(&format!("Request: {r:?}")),
-            Error::Serialization(_) => {
-                serializer.serialize_unit_variant("Error", 0, "Serialization")
-            }
-            Error::Plaid(p) => p.serialize(serializer),
-            Error::Other(o) => o.serialize(serializer),
-            Error::Query(q) => q.serialize(serializer),
-        }
-    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]

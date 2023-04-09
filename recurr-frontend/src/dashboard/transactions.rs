@@ -1,5 +1,4 @@
-use chrono::NaiveDate;
-use recurr_core::{SchemaAccessToken, Transaction, TransactionOption, Transactions};
+use recurr_core::Transaction;
 use serde::{Deserialize, Serialize};
 use web_sys::{HtmlElement, HtmlInputElement, MouseEvent};
 use yew::{
@@ -9,10 +8,9 @@ use yew::{
 use yew_hooks::use_bool_toggle;
 
 use crate::{
-    commands,
     components::pagination::Paginate,
     context::{Session, SessionContext},
-    supabase::get_supbase_client,
+    supabase::transactions::get_transactions_paged,
 };
 
 #[derive(Properties, PartialEq)]
@@ -24,7 +22,7 @@ pub struct Props {
 pub enum Msg {
     UpdatedContext(SessionContext),
 
-    GotTransactions(Vec<Transaction>),
+    GotTransactions((u64, Vec<Transaction>)),
     GetTransactions,
     SetFilter(Filter),
 
@@ -40,7 +38,7 @@ pub struct TransactionsView {
     _context_listener: ContextHandle<SessionContext>,
 
     filter: Filter,
-    transactions: Vec<Transaction>,
+    transactions_in_page: Vec<Transaction>,
     error: Option<String>,
 
     transactions_per_page: u64,
@@ -61,36 +59,17 @@ impl TransactionsView {
         let auth_key = session.auth_key;
         let user_id = session.user.id;
 
-        let db_client = get_supbase_client();
-
-        let page = self.page as u32;
-        let per_page = self.transactions_per_page as i32;
+        let page = self.page as u64 - 1;
+        let per_page = self.transactions_per_page as u64 - 1;
         let start_date = self.filter.start_date.clone();
         let end_date = self.filter.end_date.clone();
 
         ctx.link().send_future(async move {
-            let res = db_client
-                .from("transactions")
-                .auth(&auth_key)
-                .select("*")
-                .execute()
-                .await
-                .map(|e| e.error_for_status())
-                .map_err(|e| recurr_core::Error::Other(e.to_string()))
-                .map_err(|e| recurr_core::Error::Other(e.to_string()));
-
-            if let Err(e) = res {
-                return Msg::Error(e.to_string());
+            let res = get_transactions_paged(&auth_key, page, per_page).await;
+            match res {
+                Ok(t) => Msg::GotTransactions(t),
+                Err(e) => Msg::Error(e.to_string()),
             }
-            let res = res.unwrap();
-            if let Err(e) = res {
-                return Msg::Error(e.to_string());
-            }
-            let res = res.unwrap();
-
-            let transactions: Vec<Transaction> = res.json().await.expect("Failed to deserialize");
-
-            Msg::GotTransactions(transactions)
         });
     }
 }
@@ -114,7 +93,7 @@ impl Component for TransactionsView {
             _context_listener: context_listener,
 
             error: None,
-            transactions: Vec::new(),
+            transactions_in_page: Vec::new(),
             transactions_per_page: 25,
             page: 1,
             total_pages: 1,
@@ -165,13 +144,13 @@ impl Component for TransactionsView {
                         </thead>
                         <tbody>
                         {
-                            self.transactions.clone().into_iter().map(|t| {
-                                // let cat = t.category.unwrap().last().unwrap();
+                            self.transactions_in_page.clone().into_iter().map(|t| {
+                                 let cat = t.category.unwrap().last().unwrap().clone();
                                 html!{
                                     <tr>
                                         <td> {t.date}</td>
                                         <td> {t.name}</td>
-                                        // <td><a class="has-hover-underline" data-category={cat.clone()} onclick={cat_onclick.clone()}> {cat} </a></td>
+                                         <td><a class="has-hover-underline" data-category={cat.clone()} onclick={cat_onclick.clone()}> {cat} </a></td>
                                         {
                                             if t.amount < 0.0 {
                                                 html!{<td class="has-text-success">{format!("${:.2}", t.amount)}</td>}
@@ -203,15 +182,15 @@ impl Component for TransactionsView {
             Msg::GetTransactions => self.get_transaction(ctx),
             Msg::GotTransactions(t) => {
                 if let Some(cat) = &self.filter.category {
-                    // transactions = transactions
-                    //     .drain_filter(|t| t.category.last().unwrap() == cat)
-                    //     .collect();
+                    //                    transactions = transactions
+                    //                        .drain_filter(|t| t.category.last().unwrap() == cat)
+                    //                        .collect();
                 }
 
-                self.total_transactions = t.len() as u64;
+                self.total_transactions = t.0;
                 self.total_pages = self.total_transactions / self.transactions_per_page;
 
-                self.transactions = t;
+                self.transactions_in_page = t.1;
             }
             Msg::NextPage => {
                 self.page = (self.page + 1).clamp(0, self.total_pages);
