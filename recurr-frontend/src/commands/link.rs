@@ -79,7 +79,7 @@ pub fn start(
 
             let e = serde_wasm_bindgen::from_value::<LinkFailure>(response);
             if let Ok(failure) = e {
-                log::error!("Failure: {:?}", failure);
+                log::error!("Failure: {:?}", failure.err);
                 return;
             };
 

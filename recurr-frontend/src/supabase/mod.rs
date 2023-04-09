@@ -1,7 +1,5 @@
 use serde::Deserialize;
 
-pub mod transactions;
-
 #[derive(Debug, Deserialize, PartialEq, Clone)]
 pub struct User {
     pub id: String,

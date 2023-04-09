@@ -10,7 +10,6 @@ use yew_hooks::use_bool_toggle;
 use crate::{
     components::pagination::Paginate,
     context::{Session, SessionContext},
-    supabase::transactions::get_transactions_paged,
 };
 
 #[derive(Properties, PartialEq)]
@@ -65,7 +64,7 @@ impl TransactionsView {
         let end_date = self.filter.end_date.clone();
 
         ctx.link().send_future(async move {
-            let res = get_transactions_paged(&auth_key, page, per_page).await;
+            let res = get_transactions(&auth_key, page, per_page, start_date, end_date).await;
             match res {
                 Ok(t) => Msg::GotTransactions(t),
                 Err(e) => Msg::Error(e.to_string()),
@@ -365,4 +364,46 @@ fn filters(props: &FilterProps) -> Html {
         </div>
         </>
     }
+}
+
+async fn get_transactions(
+    auth_key: &str,
+    page: u64,
+    per_page: u64,
+    start_date: Option<String>,
+    end_date: Option<String>,
+) -> Result<(u64, Vec<Transaction>), recurr_core::Error> {
+    let db_client = recurr_core::get_supbase_client();
+
+    let mut query = db_client
+        .from("transactions")
+        .auth(&auth_key)
+        .select("*")
+        .order("date.desc")
+        .exact_count()
+        .range(
+            (page * per_page) as usize,
+            (page * per_page + per_page) as usize,
+        );
+
+    if let Some(start_date) = start_date {
+        query = query.gt("date", start_date);
+    }
+
+    let res = query.execute().await?.error_for_status()?;
+
+    let total_transactions = res
+        .headers()
+        .get("content-range")
+        .expect("Failed to get total count")
+        .to_str()
+        .unwrap()
+        .split('/')
+        .last()
+        .unwrap()
+        .parse()
+        .unwrap();
+
+    let transactions: Vec<Transaction> = res.json().await?;
+    Ok((total_transactions, transactions))
 }
