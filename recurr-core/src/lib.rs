@@ -150,14 +150,14 @@ pub struct Item {
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct SchemaBudget {
     pub user_id: String,
-    pub category: String,
+    pub category_id: String,
     pub max: f64,
 }
 
 impl std::hash::Hash for SchemaBudget {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.user_id.hash(state);
-        self.category.hash(state);
+        self.category_id.hash(state);
     }
 }
 

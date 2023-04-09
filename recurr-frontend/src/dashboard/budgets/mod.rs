@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use chrono::Local;
 use now::DateTimeNow;
-use recurr_core::{SchemaAccessToken, SchemaBudget, Transaction, TransactionOption};
+use recurr_core::{get_supbase_client, SchemaBudget, Transaction};
 use wasm_bindgen::JsCast;
 use web_sys::{HtmlElement, MouseEvent};
 use yew::{
@@ -10,11 +10,7 @@ use yew::{
     UseReducerHandle,
 };
 
-use crate::{
-    commands,
-    context::{Session, SessionContext},
-    supabase::get_supbase_client,
-};
+use crate::context::{Session, SessionContext};
 
 use super::{transactions::Filter, DashboardTab};
 
@@ -73,70 +69,18 @@ impl BudgetsView {
         let auth_key = session.auth_key;
         let user_id = session.user.id;
 
-        let db_client = get_supbase_client();
-
         ctx.link().send_future(async move {
-            let res = db_client
-                .from("access_tokens")
-                .auth(&auth_key)
-                .select("*,plaid_accounts(*)")
-                .eq("user_id", &user_id)
-                .execute()
-                .await;
-
-            if let Err(e) = res {
+            let transactions = get_transactions(&auth_key).await;
+            if let Err(e) = transactions {
                 return Msg::Error(e.to_string());
             }
+            let transactions = transactions.unwrap();
 
-            let res: Vec<SchemaAccessToken> =
-                res.unwrap().json().await.expect("Failed to get json");
-
-            // Get Transactions
-            let mut transactions = Vec::new();
-            for row in res {
-                if let Some(accounts) = row.plaid_accounts {
-                    let start_date = Local::now().beginning_of_month();
-                    let end_date = Local::now().end_of_month();
-
-                    let a: Vec<String> = accounts.into_iter().map(|a| a.account_id).collect();
-                    let options = TransactionOption {
-                        account_ids: a,
-                        count: None,
-                        offset: None,
-                    };
-
-                    let res = commands::get_transactions(
-                        &auth_key,
-                        &row.access_token,
-                        Some(start_date.naive_local().date()),
-                        Some(end_date.naive_local().date()),
-                        options,
-                    )
-                    .await;
-
-                    if let Err(e) = res {
-                        log::error!("{}", &e);
-                        return Msg::Error(e);
-                    }
-
-                    let res = res.unwrap();
-                    transactions.extend(res.transactions.clone());
-                }
-            }
-
-            let res = db_client
-                .from("budgets")
-                .auth(&auth_key)
-                .select("*")
-                .eq("user_id", &user_id)
-                .execute()
-                .await;
-
-            if let Err(e) = res {
+            let budgets = get_budgets(&auth_key, &user_id).await;
+            if let Err(e) = budgets {
                 return Msg::Error(e.to_string());
             }
-
-            let budgets: Vec<SchemaBudget> = res.unwrap().json().await.expect("Failed to get json");
+            let budgets = budgets.unwrap();
 
             let income: Vec<Transaction> = transactions
                 .clone()
@@ -146,17 +90,17 @@ impl BudgetsView {
 
             let mut grouped_income: HashMap<String, f64> = HashMap::new();
             income.into_iter().for_each(|t| {
-                // let category = t.category.first();
-                // if let Some(category) = category {
-                //     if grouped_income.contains_key(category) {
-                //         let v = grouped_income.get_mut(category);
-                //         if let Some(v) = v {
-                //             *v += t.amount;
-                //         }
-                //     } else {
-                //         grouped_income.insert(category.to_string(), t.amount);
-                //     }
-                // }
+                //                let category = t.category.first();
+                //                if let Some(category) = category {
+                //                    if grouped_income.contains_key(category) {
+                //                        let v = grouped_income.get_mut(category);
+                //                        if let Some(v) = v {
+                //                            *v += t.amount;
+                //                        }
+                //                    } else {
+                //                        grouped_income.insert(category.to_string(), t.amount);
+                //                    }
+                //                }
             });
 
             let mut spending: Vec<Transaction> = transactions
@@ -166,42 +110,43 @@ impl BudgetsView {
 
             let mut other_spending: HashMap<String, f64> = HashMap::new();
             let mut budgeted_spending: HashMap<SchemaBudget, f64> = HashMap::new();
+            log::info!("{:?}", budgets);
             for b in budgets {
                 budgeted_spending.insert(b.clone(), 0.0);
-                // let budgeted: Vec<Transaction> = spending
-                //     .drain_filter(|t| t.category.contains(&b.category))
-                //     .collect();
-                // budgeted.into_iter().for_each(|t| {
-                //     let v = budgeted_spending.get_mut(&b);
-                //     if let Some(v) = v {
-                //         *v += t.amount;
-                //     }
-                // });
+                let budgeted: Vec<Transaction> = spending
+                    .drain_filter(|t| t.category.as_ref().unwrap().contains(&b.category_id))
+                    .collect();
+                budgeted.into_iter().for_each(|t| {
+                    let v = budgeted_spending.get_mut(&b);
+                    if let Some(v) = v {
+                        *v += t.amount;
+                    }
+                });
             }
             // TODO This can be done in one step
             let mut budgeted_spending = budgeted_spending
                 .into_iter()
                 .collect::<Vec<(SchemaBudget, f64)>>();
-            budgeted_spending.sort_by(|a, b| a.0.category.cmp(&b.0.category));
+            budgeted_spending.sort_by(|a, b| a.0.category_id.cmp(&b.0.category_id));
 
             for t in spending {
-                // let general_category = t.category.first();
-                // if let Some(category) = general_category {
-                //     if other_spending.contains_key(category) {
-                //         let v = other_spending.get_mut(category);
-                //         if let Some(v) = v {
-                //             *v += t.amount;
-                //         }
-                //     } else {
-                //         other_spending.insert(category.to_string(), t.amount);
-                //     }
-                // }
+                let general_category = t.category.as_ref().unwrap().first();
+                if let Some(category) = general_category {
+                    if other_spending.contains_key(category) {
+                        let v = other_spending.get_mut(category);
+                        if let Some(v) = v {
+                            *v += t.amount;
+                        }
+                    } else {
+                        other_spending.insert(category.to_string(), t.amount);
+                    }
+                }
             }
 
             Msg::GotTransactions(Transactions {
-                other_income: grouped_income,
+                other_income: HashMap::new(),
                 budgeted_spending,
-                other_spending,
+                other_spending: HashMap::new(),
             })
         });
     }
@@ -246,12 +191,12 @@ impl Component for BudgetsView {
                 let category = t.get_attribute("data-category");
                 let max = t.get_attribute("data-amount");
 
-                if let (Some(category), Some(max)) = (category, max) {
+                if let (Some(category_id), Some(max)) = (category, max) {
                     let max: f64 = max.parse().expect("Failed to parse budget max");
 
                     let b = SchemaBudget {
                         user_id: "".to_string(),
-                        category,
+                        category_id,
                         max,
                     };
 
@@ -337,12 +282,12 @@ impl Component for BudgetsView {
                                             html!{
                                                 <div>
                                                     <div class="is-flex is-justify-content-space-between">
-                                                        <td><a class="has-hover-underline" data-category={c.category.clone()} onclick={goto_transactions.clone()}> {c.category.clone()} </a></td>
+                                                        <td><a class="has-hover-underline" data-category={c.category_id.clone()} onclick={goto_transactions.clone()}> {c.category_id.clone()} </a></td>
                                                         <div>{format!("${:0.2} left", c.max - a)}</div>
                                                     </div>
                                                     <progress class="progress m-0 is-success" value={format!("{:0.2}", a/c.max)} max="1">{format!("{:0.2}", a/c.max)}</progress>
                                                     <div class="is-flex is-justify-content-flex-end">
-                                                        <a onclick={edit_budget.clone()} data-category={c.category} data-amount={format!("{:0.2}", c.max)}>{"Edit"}</a>
+                                                        <a onclick={edit_budget.clone()} data-category={c.category_id} data-amount={format!("{:0.2}", c.max)}>{"Edit"}</a>
                                                     </div>
                                                 </div>
                                             }
@@ -406,4 +351,37 @@ impl Component for BudgetsView {
 
         true
     }
+}
+
+async fn get_transactions(auth_key: &str) -> Result<Vec<Transaction>, recurr_core::Error> {
+    let db_client = get_supbase_client();
+
+    let res = db_client
+        .from("transactions")
+        .auth(&auth_key)
+        .select("*")
+        .order("date.desc")
+        .execute()
+        .await?
+        .error_for_status()?;
+
+    Ok(res.json().await?)
+}
+
+async fn get_budgets(
+    auth_key: &str,
+    user_id: &str,
+) -> Result<Vec<SchemaBudget>, recurr_core::Error> {
+    let db_client = get_supbase_client();
+
+    let res = db_client
+        .from("budgets")
+        .auth(&auth_key)
+        .select("*")
+        .eq("user_id", &user_id)
+        .execute()
+        .await?
+        .error_for_status()?;
+
+    Ok(res.json().await?)
 }
