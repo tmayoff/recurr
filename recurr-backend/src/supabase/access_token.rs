@@ -15,7 +15,7 @@ pub async fn get_access_tokens(
         .execute()
         .await
         .map(|e| e.error_for_status())
-        .map_err(|e| recurr_core::Error::Other(e.to_string()))?
+        .flatten()
         .map_err(|e| recurr_core::Error::Other(e.to_string()))?;
 
     let json = res
@@ -48,7 +48,7 @@ pub async fn get_access_token(
         .execute()
         .await
         .map(|e| e.error_for_status())
-        .map_err(|e| recurr_core::Error::Other(e.to_string()))?
+        .flatten()
         .map_err(|e| recurr_core::Error::Other(e.to_string()))?;
 
     let json = res
@@ -87,7 +87,7 @@ pub async fn save_access_token(
         .execute()
         .await
         .map(|e| e.error_for_status())
-        .map_err(|e| recurr_core::Error::Other(e.to_string()))?
+        .flatten()
         .map_err(|e| recurr_core::Error::Other(e.to_string()))?;
 
     Ok(())

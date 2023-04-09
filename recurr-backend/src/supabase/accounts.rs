@@ -17,8 +17,8 @@ pub async fn get_plaid_balances(
         .execute()
         .await
         .map(|e| e.error_for_status())
-        .map_err(|e| recurr_core::Error::Other(e.to_string()))?
-        .map_err(|e| recurr_core::Error::Other(e.to_string()))?;
+        .flatten()
+        .map_err(|e| recurr_core::Error::Request(e.to_string()))?;
 
     let access_tokens: Vec<SchemaAccessToken> = res
         .json()
@@ -68,8 +68,8 @@ pub async fn save_plaid_account(
         .execute()
         .await
         .map(|res| res.error_for_status())
-        .map_err(|e| recurr_core::Error::Request(e.to_string()))?
-        .map_err(|e| recurr_core::Error::Request(e.to_string()));
+        .flatten()
+        .map_err(|e| recurr_core::Error::Request(e.to_string()))?;
 
     Ok(())
 }

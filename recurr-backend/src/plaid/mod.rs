@@ -60,7 +60,7 @@ pub async fn item_remove(auth_key: &str, access_token: &str) -> Result<(), Error
         .send()
         .await
         .map(|e| e.error_for_status())
-        .map_err(|e| recurr_core::Error::Other(e.to_string()))?
+        .flatten()
         .map_err(|e| recurr_core::Error::Other(e.to_string()))?;
 
     Ok(())
@@ -95,7 +95,7 @@ pub async fn item_public_token_exchange(
         .send()
         .await
         .map(|e| e.error_for_status())
-        .map_err(|e| recurr_core::Error::Other(e.to_string()))?
+        .flatten()
         .map_err(|e| recurr_core::Error::Other(e.to_string()))?;
 
     let json = res

@@ -55,27 +55,14 @@ pub async fn link_token_create(
         .json(&req)
         .headers(headers)
         .send()
-        .await;
+        .await
+        .map(|r| r.error_for_status())
+        .flatten()
+        .map_err(|e| recurr_core::Error::Request(e.to_string()))?;
 
-    let res = match res {
-        Ok(res) => res,
-        Err(e) => {
-            log::error!("{:?}", e);
-            return Err(recurr_core::Error::Request(e.to_string()));
-        }
-    };
-
-    match res.error_for_status() {
-        Ok(res) => {
-            let json = res
-                .json()
-                .await
-                .map_err(|e| recurr_core::Error::Request(e.to_string()))?;
-            Ok(json)
-        }
-        Err(e) => {
-            log::error!("{:?}", e);
-            Err(recurr_core::Error::Request(e.to_string()))
-        }
-    }
+    let json = res
+        .json()
+        .await
+        .map_err(|e| recurr_core::Error::Request(e.to_string()))?;
+    Ok(json)
 }
