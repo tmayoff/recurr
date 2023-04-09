@@ -180,16 +180,17 @@ impl Component for TransactionsView {
         match msg {
             Msg::GetTransactions => self.get_transaction(ctx),
             Msg::GotTransactions(t) => {
+                let mut transactions = t.1;
                 if let Some(cat) = &self.filter.category {
-                    //                    transactions = transactions
-                    //                        .drain_filter(|t| t.category.last().unwrap() == cat)
-                    //                        .collect();
+                    transactions = transactions
+                        .drain_filter(|t| t.category.as_ref().unwrap().last().unwrap() == cat)
+                        .collect();
                 }
 
                 self.total_transactions = t.0;
                 self.total_pages = self.total_transactions / self.transactions_per_page;
 
-                self.transactions_in_page = t.1;
+                self.transactions_in_page = transactions;
             }
             Msg::NextPage => {
                 self.page = (self.page + 1).clamp(0, self.total_pages);
