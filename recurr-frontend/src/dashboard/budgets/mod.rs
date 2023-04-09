@@ -57,8 +57,6 @@ pub struct BudgetsView {
 
 impl BudgetsView {
     fn get_transaction(&self, ctx: &Context<Self>) {
-        // TODO Clean this up
-
         let session = ctx
             .props()
             .context
