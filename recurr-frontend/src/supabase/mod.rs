@@ -1,5 +1,6 @@
-use postgrest::Postgrest;
 use serde::Deserialize;
+
+pub mod transactions;
 
 #[derive(Debug, Deserialize, PartialEq, Clone)]
 pub struct User {
@@ -13,9 +14,4 @@ pub struct Session {
     pub token_type: String,
     pub expires_in: f64,
     pub user: User,
-}
-
-pub fn get_supbase_client() -> Postgrest {
-    Postgrest::new(env!("SUPABASE_URL").to_owned() + "/rest/v1")
-        .insert_header("apikey", env!("SUPABASE_KEY"))
 }

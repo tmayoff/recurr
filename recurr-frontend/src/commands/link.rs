@@ -1,5 +1,5 @@
 use recurr_core::{plaid::link::LinkToken, Institution};
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen(module = "/public/glue.js")]
