@@ -1,3 +1,4 @@
+use async_recursion::async_recursion;
 use recurr_core::{Category, Transaction};
 use reqwest::header::{HeaderMap, HeaderValue};
 use serde::{Deserialize, Serialize};
@@ -44,7 +45,8 @@ pub async fn get_categories() -> Result<Vec<Category>, Error> {
 }
 
 #[tauri::command]
-pub async fn sync(auth_key: &str, access_token: &str) -> Result<(), Error> {
+#[async_recursion]
+pub async fn sync(auth_key: &str, access_token: &str, cursor: Option<String>) -> Result<(), Error> {
     let mut authorization = String::from("Bearer ");
     authorization.push_str(auth_key);
 
@@ -52,7 +54,6 @@ pub async fn sync(auth_key: &str, access_token: &str) -> Result<(), Error> {
     headers.insert("Authorization", authorization.parse().unwrap());
     headers.insert("Content-Type", HeaderValue::from_static("application/json"));
 
-    // TODO call plaid /sync endpoint repeatedly
     #[derive(Serialize)]
     struct Request {
         access_token: String,
@@ -61,7 +62,7 @@ pub async fn sync(auth_key: &str, access_token: &str) -> Result<(), Error> {
 
     let data = serde_json::to_value(Request {
         access_token: access_token.to_string(),
-        cursor: None,
+        cursor,
     })?;
 
     let req = PlaidRequest {
@@ -87,7 +88,7 @@ pub async fn sync(auth_key: &str, access_token: &str) -> Result<(), Error> {
         removed: Vec<String>,
         next_cursor: String,
         has_more: bool,
-        request_id: String,
+        //        request_id: String,
     }
 
     let plaid_response = res
@@ -104,7 +105,7 @@ pub async fn sync(auth_key: &str, access_token: &str) -> Result<(), Error> {
         .execute()
         .await
         .map(|e| e.error_for_status())
-        .map_err(|e| recurr_core::Error::Other(e.to_string()))?
+        .flatten()
         .map_err(|e| recurr_core::Error::Other(e.to_string()))?;
 
     let _ = client
@@ -114,8 +115,23 @@ pub async fn sync(auth_key: &str, access_token: &str) -> Result<(), Error> {
         .execute()
         .await
         .map(|e| e.error_for_status())
-        .map_err(|e| recurr_core::Error::Other(e.to_string()))?
+        .flatten()
         .map_err(|e| recurr_core::Error::Other(e.to_string()))?;
+
+    let _ = client
+        .from("transactions")
+        .auth(auth_key)
+        .delete()
+        .in_("transaction_id", plaid_response.removed)
+        .execute()
+        .await
+        .map(|e| e.error_for_status())
+        .flatten()
+        .map_err(|e| recurr_core::Error::Other(e.to_string()))?;
+
+    if plaid_response.has_more {
+        sync(auth_key, access_token, Some(plaid_response.next_cursor)).await?;
+    }
 
     Ok(())
 }
