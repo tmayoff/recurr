@@ -2,7 +2,9 @@ use std::collections::HashMap;
 
 use chrono::Local;
 use now::DateTimeNow;
-use recurr_core::{SchemaAccessToken, SchemaBudget, Transaction, TransactionOption};
+use recurr_core::{
+    get_supbase_client, SchemaAccessToken, SchemaBudget, Transaction, TransactionOption,
+};
 use wasm_bindgen::JsCast;
 use web_sys::{HtmlElement, MouseEvent};
 use yew::{
@@ -13,7 +15,6 @@ use yew::{
 use crate::{
     commands,
     context::{Session, SessionContext},
-    supabase::get_supbase_client,
 };
 
 use super::{transactions::Filter, DashboardTab};

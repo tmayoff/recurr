@@ -1,12 +1,6 @@
-use std::sync::Mutex;
-
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
-use yew::{
-    function_component, html,
-    platform::{pinned::oneshot, spawn_local},
-    use_context, Html,
-};
+use yew::{function_component, html, platform::spawn_local, use_context, Html};
 
 use crate::{
     commands::{
