@@ -1,8 +1,8 @@
-use recurr_core::{Category, SchemaBudget};
+use recurr_core::{get_supbase_client, Category, SchemaBudget};
 use web_sys::{HtmlInputElement, SubmitEvent};
 use yew::{html, Callback, Component, Context, Html, NodeRef, Properties, UseReducerHandle};
 
-use crate::{commands, context::Session, supabase::get_supbase_client};
+use crate::{commands, context::Session};
 
 #[derive(Debug, PartialEq)]
 pub enum ModalMsg {

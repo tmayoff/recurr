@@ -1,4 +1,4 @@
-use recurr_core::{Account, SchemaAccessToken, SchemaPlaidAccount};
+use recurr_core::{get_supbase_client, Account, SchemaAccessToken, SchemaPlaidAccount};
 
 use crate::{plaid, supabase::access_token::get_access_token};
 
@@ -8,7 +8,7 @@ pub async fn get_plaid_balances(
     user_id: &str,
 ) -> Result<Vec<Account>, recurr_core::Error> {
     // Get Account IDs and access tokens from supabase
-    let client = super::get_supbase_client()?;
+    let client = get_supbase_client();
     let res = client
         .from("access_tokens")
         .auth(auth_key)
@@ -51,7 +51,7 @@ pub async fn save_plaid_account(
     access_token: &str,
     plaid_account_id: &str,
 ) -> Result<(), super::Error> {
-    let client = super::get_supbase_client()?;
+    let client = get_supbase_client();
 
     let access_token_row = get_access_token(auth_token, user_id, access_token).await?;
 

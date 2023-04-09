@@ -1,5 +1,5 @@
 use chrono::NaiveDate;
-use recurr_core::{SchemaAccessToken, TransactionOption, Transactions};
+use recurr_core::{get_supbase_client, SchemaAccessToken, TransactionOption, Transactions};
 use serde::{Deserialize, Serialize};
 use web_sys::{HtmlElement, HtmlInputElement, MouseEvent};
 use yew::{
@@ -12,7 +12,6 @@ use crate::{
     commands,
     components::pagination::Paginate,
     context::{Session, SessionContext},
-    supabase::get_supbase_client,
 };
 
 #[derive(Properties, PartialEq)]

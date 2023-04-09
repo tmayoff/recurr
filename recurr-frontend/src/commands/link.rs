@@ -1,5 +1,5 @@
 use recurr_core::{plaid::link::LinkToken, Institution};
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen(module = "/public/glue.js")]
@@ -79,7 +79,7 @@ pub fn start(
 
             let e = serde_wasm_bindgen::from_value::<LinkFailure>(response);
             if let Ok(failure) = e {
-                log::error!("Failure: {:?}", failure);
+                log::error!("Failure: {:?}", failure.err);
                 return;
             };
 

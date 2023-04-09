@@ -1,4 +1,6 @@
-use crate::{plaid::item_remove, supabase::get_supbase_client};
+use recurr_core::get_supbase_client;
+
+use crate::plaid::item_remove;
 
 #[tauri::command]
 pub async fn remove_account(
@@ -10,7 +12,7 @@ pub async fn remove_account(
         .await
         .map_err(|e| e.to_string())?;
 
-    let client = get_supbase_client().map_err(|e| e.to_string())?;
+    let client = get_supbase_client();
     let _ = client
         .from("access_tokens")
         .auth(auth_key)

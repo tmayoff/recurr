@@ -1,6 +1,6 @@
 use std::{collections::HashMap, sync::Mutex};
 
-use recurr_core::{Account, Institution, SchemaAccessToken};
+use recurr_core::{get_supbase_client, Account, Institution, SchemaAccessToken};
 use serde::Deserialize;
 use yew::{
     function_component, html,
@@ -9,7 +9,7 @@ use yew::{
 };
 use yew_hooks::use_bool_toggle;
 
-use crate::{commands, context::Session, plaid::Link, supabase::get_supbase_client};
+use crate::{commands, context::Session, plaid::Link};
 
 pub struct AccountsView {
     accounts: HashMap<Institution, Vec<Account>>,
