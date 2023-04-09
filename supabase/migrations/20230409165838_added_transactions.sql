@@ -1,15 +1,18 @@
 create table "public"."transactions" (
     "transaction_id" text not null,
     "amount" double precision,
-    "category" text,
+    "category" text[],
     "category_id" text,
-    "date" date,
+    "date" text,
     "merchant_name" text,
     "pending" boolean,
-    "pending_trasaction_id" text,
-    "account_id" text not null
+    "pending_transaction_id" text,
+    "account_id" text not null,
+    "name" text
 );
 
+
+alter table "public"."transactions" enable row level security;
 
 CREATE UNIQUE INDEX plaid_accounts_account_id_key ON public.plaid_accounts USING btree (account_id);
 
@@ -30,10 +33,10 @@ for all
 to authenticated
 using ((auth.uid() IN ( SELECT plaid_accounts.user_id
    FROM plaid_accounts
-  WHERE (plaid_accounts.account_id = plaid_accounts.account_id))))
+  WHERE (transactions.account_id = plaid_accounts.account_id))))
 with check ((auth.uid() IN ( SELECT plaid_accounts.user_id
    FROM plaid_accounts
-  WHERE (plaid_accounts.account_id = plaid_accounts.account_id))));
+  WHERE (transactions.account_id = plaid_accounts.account_id))));
 
 
 
