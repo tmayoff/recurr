@@ -4,7 +4,9 @@
 		{
 			"type": "cargo",
 			"command": "tauri",
-			"args": ["dev"],
+			"args": [
+				"dev"
+			],
 			"problemMatcher": [
 				"$rustc"
 			],
@@ -14,12 +16,14 @@
 		{
 			"type": "cargo",
 			"command": "tauri",
-			"args": ["build"],
+			"args": [
+				"build"
+			],
 			"problemMatcher": [
 				"$rustc"
 			],
 			"group": "build",
 			"label": "rust: tauri build"
-		}
+		},
 	]
 }
