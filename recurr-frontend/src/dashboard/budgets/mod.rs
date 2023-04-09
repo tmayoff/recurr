@@ -2,9 +2,7 @@ use std::collections::HashMap;
 
 use chrono::Local;
 use now::DateTimeNow;
-use recurr_core::{
-    get_supbase_client, SchemaAccessToken, SchemaBudget, Transaction, TransactionOption,
-};
+use recurr_core::{get_supbase_client, SchemaBudget, Transaction};
 use wasm_bindgen::JsCast;
 use web_sys::{HtmlElement, MouseEvent};
 use yew::{
@@ -12,10 +10,7 @@ use yew::{
     UseReducerHandle,
 };
 
-use crate::{
-    commands,
-    context::{Session, SessionContext},
-};
+use crate::context::{Session, SessionContext};
 
 use super::{transactions::Filter, DashboardTab};
 
@@ -87,7 +82,7 @@ impl BudgetsView {
             }
             let budgets = budgets.unwrap();
 
-            let income: Vec<Transaction> = Vec::new();
+            let _income: Vec<Transaction> = Vec::new();
             let mut spending: Vec<Transaction> = transactions;
 
             let mut budgeted_spending = Vec::new();
@@ -333,10 +328,15 @@ impl Component for BudgetsView {
 async fn get_transactions(auth_key: &str) -> Result<Vec<Transaction>, recurr_core::Error> {
     let db_client = get_supbase_client();
 
+    let start_date = Local::now().beginning_of_month();
+    let end_date = Local::now().end_of_month();
+
     let res = db_client
         .from("transactions")
         .auth(&auth_key)
         .select("*")
+        .gt("date", start_date.to_string())
+        .lt("date", end_date.to_string())
         .order("date.desc")
         .execute()
         .await?

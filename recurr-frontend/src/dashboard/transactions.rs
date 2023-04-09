@@ -1,5 +1,4 @@
-use chrono::NaiveDate;
-use recurr_core::{get_supbase_client, SchemaAccessToken, TransactionOption, Transactions};
+use recurr_core::Transaction;
 use serde::{Deserialize, Serialize};
 use web_sys::{HtmlElement, HtmlInputElement, MouseEvent};
 use yew::{
@@ -57,7 +56,6 @@ impl TransactionsView {
             .clone()
             .expect("Needs session");
         let auth_key = session.auth_key;
-        let user_id = session.user.id;
 
         let page = self.page as u64 - 1;
         let per_page = self.transactions_per_page as u64 - 1;
@@ -184,7 +182,7 @@ impl Component for TransactionsView {
                 let mut transactions = t.1;
                 if let Some(cat) = &self.filter.category {
                     transactions = transactions
-                        .drain_filter(|t| t.category.as_ref().unwrap().last().unwrap() == cat)
+                        .drain_filter(|t| t.category.as_ref().unwrap().contains(cat))
                         .collect();
                 }
 
@@ -390,6 +388,10 @@ async fn get_transactions(
 
     if let Some(start_date) = start_date {
         query = query.gt("date", start_date);
+    }
+
+    if let Some(end_date) = end_date {
+        query = query.lt("date", end_date);
     }
 
     let res = query.execute().await?.error_for_status()?;

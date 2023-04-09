@@ -185,7 +185,7 @@ impl Component for Modal {
                         .flatten();
 
                     match res {
-                        Ok(r) => Msg::Submitted,
+                        Ok(_) => Msg::Submitted,
                         Err(e) => Msg::Error(e.to_string()),
                     }
                 });
