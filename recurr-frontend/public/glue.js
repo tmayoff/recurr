@@ -9,22 +9,6 @@ export async function setEventListener(
     });
 }
 
-export async function invokeGetTransactions(
-    auth_key,
-    access_token,
-    start_date,
-    end_date,
-    options,
-) {
-    return await invoke("get_transactions", {
-        authKey: auth_key,
-        accessToken: access_token,
-        startDate: start_date,
-        endDate: end_date,
-        options: options,
-    });
-}
-
 export async function invokeGetAccounts(auth_key, access_token, account_ids) {
     return await invoke("get_accounts", {
         authKey: auth_key,
@@ -96,6 +80,13 @@ export async function invokeGetPlaidBalances(auth_key, user_id) {
     return await invoke("get_plaid_balances", {
         authKey: auth_key,
         userId: user_id,
+    });
+}
+
+export async function invokeTransactionsSync(auth_key, access_token) {
+    return await invoke("sync", {
+        authKey: auth_key,
+        accessToken: access_token,
     });
 }
 

@@ -98,7 +98,7 @@ impl Component for Modal {
                                                 {
                                                     self.categories.clone().iter().map(|c| {
                                                         let cat = c.hierarchy.last().expect("Requires an option").clone();
-                                                        let selected = ctx.props().detail.clone().map_or(false, |d| d.category == cat);
+                                                        let selected = ctx.props().detail.clone().map_or(false, |d| d.category_id == cat);
                                                         html!{<option {selected}>{cat}</option>}
                                                     }).collect::<Html>()
                                                 }
@@ -148,7 +148,7 @@ impl Component for Modal {
                     .parse()
                     .expect("Failed to parse amount");
 
-                let category = self
+                let category_id = self
                     .category_ref
                     .cast::<HtmlInputElement>()
                     .expect("Category ref not an input element")
@@ -168,7 +168,7 @@ impl Component for Modal {
 
                 let schema = SchemaBudget {
                     user_id,
-                    category,
+                    category_id,
                     max: amount,
                 }
                 .to_string()
@@ -180,16 +180,12 @@ impl Component for Modal {
                         .auth(&auth_key)
                         .upsert(schema)
                         .execute()
-                        .await;
+                        .await
+                        .map(|r| r.error_for_status())
+                        .flatten();
 
                     match res {
-                        Ok(r) => {
-                            if r.status().is_success() {
-                                Msg::Submitted
-                            } else {
-                                Msg::Error(r.status().to_string())
-                            }
-                        }
+                        Ok(_) => Msg::Submitted,
                         Err(e) => Msg::Error(e.to_string()),
                     }
                 });

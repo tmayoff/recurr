@@ -1,5 +1,4 @@
-use chrono::{Local, Months, NaiveDate};
-use recurr_core::{Account, Category, Institution, Item, TransactionOption, Transactions};
+use recurr_core::{Account, Category, Institution, Item};
 use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
 
 pub mod link;
@@ -37,15 +36,6 @@ extern "C" {
     pub async fn invokeGetCategories() -> Result<JsValue, JsValue>;
 
     #[wasm_bindgen(catch)]
-    pub async fn invokeGetTransactions(
-        auth_key: &str,
-        access_token: &str,
-        start_date: String,
-        end_date: String,
-        options: JsValue,
-    ) -> Result<JsValue, JsValue>;
-
-    #[wasm_bindgen(catch)]
     pub async fn invokeSaveAccessToken(
         auth_token: &str,
         user_id: &str,
@@ -66,6 +56,11 @@ extern "C" {
         user_id: &str,
     ) -> Result<JsValue, JsValue>;
 
+    #[wasm_bindgen(catch)]
+    pub async fn invokeTransactionsSync(
+        auth_token: &str,
+        access_token: &str,
+    ) -> Result<(), JsValue>;
 }
 
 pub async fn get_accounts(
@@ -106,48 +101,16 @@ pub async fn get_institution(auth_key: &str, id: Option<String>) -> Result<Insti
     }
 }
 
-pub async fn get_transactions(
-    auth_key: &str,
-    access_token: &str,
-    start_date: Option<NaiveDate>,
-    end_date: Option<NaiveDate>,
-    options: TransactionOption,
-) -> Result<Transactions, String> {
-    let start_date = start_date
-        .unwrap_or(NaiveDate::from_ymd_opt(1900, 1, 1).unwrap())
-        .format("%Y-%m-%d")
-        .to_string();
-    let end_date = end_date
-        .unwrap_or(
-            Local::now()
-                .date_naive()
-                .checked_add_months(Months::new(1))
-                .expect("Date must be valid"),
-        )
-        .format("%Y-%m-%d")
-        .to_string();
-
-    let res = invokeGetTransactions(
-        auth_key,
-        access_token,
-        start_date,
-        end_date,
-        serde_wasm_bindgen::to_value(&options).expect("Failed to serialize"),
-    )
-    .await
-    .map_err(|e| e.as_string().unwrap())?;
-
-    let res = serde_wasm_bindgen::from_value(res).map_err(|e| e.to_string())?;
-    Ok(res)
+pub async fn transactions_sync(auth_key: &str, access_token: &str) -> Result<(), String> {
+    invokeTransactionsSync(auth_key, access_token)
+        .await
+        .map_err(|e| e.as_string().unwrap())
 }
 
 pub async fn get_balances(auth_token: &str, user_id: &str) -> Result<Vec<Account>, String> {
     let res = invokeGetPlaidBalances(auth_token, user_id).await;
     match res {
-        Ok(json) => {
-            log::info!("{:?}", json);
-            Ok(serde_wasm_bindgen::from_value(json).map_err(|e| e.to_string())?)
-        }
+        Ok(json) => Ok(serde_wasm_bindgen::from_value(json).map_err(|e| e.to_string())?),
         Err(e) => {
             log::error!("{:?}", e);
             Err(e.as_string().expect("Failed to get string"))

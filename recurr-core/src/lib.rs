@@ -35,7 +35,6 @@ impl Display for PlaidErrorType {
 }
 
 #[derive(Debug, Serialize, Deserialize, thiserror::Error)]
-// #[serde(rename = "Plaid")]
 pub struct PlaidError {
     pub error_type: PlaidErrorType,
     pub error_code: String,
@@ -49,7 +48,7 @@ impl Display for PlaidError {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize, thiserror::Error)]
+#[derive(Debug, Serialize, Deserialize, thiserror::Error)]
 pub enum Error {
     #[error(transparent)]
     #[serde(skip)]
@@ -58,13 +57,18 @@ pub enum Error {
     #[serde(skip)]
     Serialization(#[from] serde_json::Error),
 
+    #[error(transparent)]
+    #[serde(skip)]
+    Reqwest(#[from] reqwest::Error),
+
     #[error("{0}")]
     Request(String),
     #[error(transparent)]
-    #[serde(rename = "PlaidError")]
     Plaid(#[from] PlaidError),
+
     #[error("{0}")]
     Other(String),
+
     #[error("{0}")]
     Query(String),
 }
@@ -122,11 +126,16 @@ pub struct TransactionOption {
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct Transaction {
-    pub name: String,
+    pub transaction_id: String,
+    pub account_id: String,
     pub amount: f64,
-    pub category_id: Option<String>,
-    pub category: Vec<String>,
+    pub name: String,
     pub date: String,
+    pub category: Option<Vec<String>>,
+    pub category_id: Option<String>,
+    pub merchant_name: Option<String>,
+    pub pending: bool,
+    pub pending_transaction_id: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -141,14 +150,14 @@ pub struct Item {
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct SchemaBudget {
     pub user_id: String,
-    pub category: String,
+    pub category_id: String,
     pub max: f64,
 }
 
 impl std::hash::Hash for SchemaBudget {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.user_id.hash(state);
-        self.category.hash(state);
+        self.category_id.hash(state);
     }
 }
 

@@ -1,5 +1,4 @@
-use chrono::NaiveDate;
-use recurr_core::{get_supbase_client, SchemaAccessToken, TransactionOption, Transactions};
+use recurr_core::Transaction;
 use serde::{Deserialize, Serialize};
 use web_sys::{HtmlElement, HtmlInputElement, MouseEvent};
 use yew::{
@@ -9,7 +8,6 @@ use yew::{
 use yew_hooks::use_bool_toggle;
 
 use crate::{
-    commands,
     components::pagination::Paginate,
     context::{Session, SessionContext},
 };
@@ -23,7 +21,7 @@ pub struct Props {
 pub enum Msg {
     UpdatedContext(SessionContext),
 
-    GotTransactions(Transactions),
+    GotTransactions((u64, Vec<Transaction>)),
     GetTransactions,
     SetFilter(Filter),
 
@@ -39,7 +37,7 @@ pub struct TransactionsView {
     _context_listener: ContextHandle<SessionContext>,
 
     filter: Filter,
-    transactions: Transactions,
+    transactions_in_page: Vec<Transaction>,
     error: Option<String>,
 
     transactions_per_page: u64,
@@ -58,69 +56,18 @@ impl TransactionsView {
             .clone()
             .expect("Needs session");
         let auth_key = session.auth_key;
-        let user_id = session.user.id;
 
-        let db_client = get_supbase_client();
-
-        let page = self.page as u32;
-        let per_page = self.transactions_per_page as i32;
+        let page = self.page as u64 - 1;
+        let per_page = self.transactions_per_page as u64 - 1;
         let start_date = self.filter.start_date.clone();
         let end_date = self.filter.end_date.clone();
 
         ctx.link().send_future(async move {
-            let res = db_client
-                .from("access_tokens")
-                .auth(&auth_key)
-                .select("*,plaid_accounts(*)")
-                .eq("user_id", user_id)
-                .execute()
-                .await;
-
-            if let Err(e) = res {
-                return Msg::Error(e.to_string());
+            let res = get_transactions(&auth_key, page, per_page, start_date, end_date).await;
+            match res {
+                Ok(t) => Msg::GotTransactions(t),
+                Err(e) => Msg::Error(e.to_string()),
             }
-
-            let res: Vec<SchemaAccessToken> =
-                res.unwrap().json().await.expect("Failed to get json");
-
-            let start_date = start_date.map(|d| NaiveDate::parse_from_str(&d, "%Y-%m-%d").unwrap());
-            let end_date = end_date.map(|d| NaiveDate::parse_from_str(&d, "%Y-%m-%d").unwrap());
-
-            // Get Transactions
-            let mut transactions = Transactions::default();
-            for row in res {
-                if let Some(accounts) = row.plaid_accounts {
-                    let a: Vec<String> = accounts.into_iter().map(|a| a.account_id).collect();
-
-                    let options = TransactionOption {
-                        account_ids: a,
-                        count: Some(per_page),
-                        offset: Some(per_page as u32 * (page - 1)),
-                    };
-                    let res = commands::get_transactions(
-                        &auth_key,
-                        &row.access_token,
-                        start_date,
-                        end_date,
-                        options,
-                    )
-                    .await;
-
-                    match res {
-                        Ok(t) => {
-                            transactions.accounts.extend(t.accounts.clone());
-                            transactions.transactions.extend(t.transactions.clone());
-                            transactions.total_transactions += t.total_transactions;
-                        }
-                        Err(e) => {
-                            log::error!("{}", &e);
-                            return Msg::Error(e);
-                        }
-                    }
-                }
-            }
-
-            Msg::GotTransactions(transactions)
         });
     }
 }
@@ -144,7 +91,7 @@ impl Component for TransactionsView {
             _context_listener: context_listener,
 
             error: None,
-            transactions: Transactions::default(),
+            transactions_in_page: Vec::new(),
             transactions_per_page: 25,
             page: 1,
             total_pages: 1,
@@ -195,13 +142,13 @@ impl Component for TransactionsView {
                         </thead>
                         <tbody>
                         {
-                            self.transactions.transactions.clone().into_iter().map(|t| {
-                                let cat = t.category.last().unwrap();
+                            self.transactions_in_page.clone().into_iter().map(|t| {
+                                 let cat = t.category.unwrap().last().unwrap().clone();
                                 html!{
                                     <tr>
                                         <td> {t.date}</td>
                                         <td> {t.name}</td>
-                                        <td><a class="has-hover-underline" data-category={cat.clone()} onclick={cat_onclick.clone()}> {cat} </a></td>
+                                         <td><a class="has-hover-underline" data-category={cat.clone()} onclick={cat_onclick.clone()}> {cat} </a></td>
                                         {
                                             if t.amount < 0.0 {
                                                 html!{<td class="has-text-success">{format!("${:.2}", t.amount)}</td>}
@@ -232,20 +179,17 @@ impl Component for TransactionsView {
         match msg {
             Msg::GetTransactions => self.get_transaction(ctx),
             Msg::GotTransactions(t) => {
-                let mut transactions = t.transactions.clone();
-
+                let mut transactions = t.1;
                 if let Some(cat) = &self.filter.category {
                     transactions = transactions
-                        .drain_filter(|t| t.category.last().unwrap() == cat)
+                        .drain_filter(|t| t.category.as_ref().unwrap().contains(cat))
                         .collect();
                 }
 
-                self.total_transactions = transactions.len() as u64;
+                self.total_transactions = t.0;
                 self.total_pages = self.total_transactions / self.transactions_per_page;
 
-                let mut t = t;
-                t.transactions = transactions;
-                self.transactions = t;
+                self.transactions_in_page = transactions;
             }
             Msg::NextPage => {
                 self.page = (self.page + 1).clamp(0, self.total_pages);
@@ -420,4 +364,50 @@ fn filters(props: &FilterProps) -> Html {
         </div>
         </>
     }
+}
+
+async fn get_transactions(
+    auth_key: &str,
+    page: u64,
+    per_page: u64,
+    start_date: Option<String>,
+    end_date: Option<String>,
+) -> Result<(u64, Vec<Transaction>), recurr_core::Error> {
+    let db_client = recurr_core::get_supbase_client();
+
+    let mut query = db_client
+        .from("transactions")
+        .auth(&auth_key)
+        .select("*")
+        .order("date.desc")
+        .exact_count()
+        .range(
+            (page * per_page) as usize,
+            (page * per_page + per_page) as usize,
+        );
+
+    if let Some(start_date) = start_date {
+        query = query.gt("date", start_date);
+    }
+
+    if let Some(end_date) = end_date {
+        query = query.lt("date", end_date);
+    }
+
+    let res = query.execute().await?.error_for_status()?;
+
+    let total_transactions = res
+        .headers()
+        .get("content-range")
+        .expect("Failed to get total count")
+        .to_str()
+        .unwrap()
+        .split('/')
+        .last()
+        .unwrap()
+        .parse()
+        .unwrap();
+
+    let transactions: Vec<Transaction> = res.json().await?;
+    Ok((total_transactions, transactions))
 }
