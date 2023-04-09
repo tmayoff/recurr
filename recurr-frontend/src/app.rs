@@ -33,6 +33,8 @@ fn tauri_event_handler(context: &UseReducerHandle<Session>) {
 
         let event: Event = serde_wasm_bindgen::from_value(e).expect("Failed to deserialize");
 
+        log::debug!("Got Event: {}", event.event);
+
         match event.payload {
             recurr_core::Event::DeepLink(link) => {
                 #[derive(Serialize)]

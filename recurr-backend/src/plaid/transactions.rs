@@ -28,7 +28,7 @@ pub async fn get_categories() -> Result<Vec<Category>, Error> {
         .send()
         .await
         .map(|e| e.error_for_status())
-        .map_err(|e| recurr_core::Error::Other(e.to_string()))?
+        .flatten()
         .map_err(|e| recurr_core::Error::Other(e.to_string()))?;
 
     #[derive(Deserialize)]
@@ -77,7 +77,7 @@ pub async fn sync(auth_key: &str, access_token: &str) -> Result<(), Error> {
         .send()
         .await
         .map(|e| e.error_for_status())
-        .map_err(|e| recurr_core::Error::Other(e.to_string()))?
+        .flatten()
         .map_err(|e| recurr_core::Error::Other(e.to_string()))?;
 
     #[derive(Debug, Deserialize)]

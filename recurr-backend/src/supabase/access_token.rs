@@ -1,11 +1,11 @@
-use recurr_core::{Error, SchemaAccessToken};
+use recurr_core::{get_supbase_client, Error, SchemaAccessToken};
 
 #[tauri::command]
 pub async fn get_access_tokens(
     auth_token: &str,
     user_id: &str,
 ) -> Result<SchemaAccessToken, Error> {
-    let client = super::get_supbase_client();
+    let client = get_supbase_client();
 
     let res = client
         .from("access_tokens")
@@ -15,7 +15,7 @@ pub async fn get_access_tokens(
         .execute()
         .await
         .map(|e| e.error_for_status())
-        .map_err(|e| recurr_core::Error::Other(e.to_string()))?
+        .flatten()
         .map_err(|e| recurr_core::Error::Other(e.to_string()))?;
 
     let json = res
@@ -37,7 +37,7 @@ pub async fn get_access_token(
     user_id: &str,
     access_token: &str,
 ) -> Result<SchemaAccessToken, super::Error> {
-    let client = super::get_supbase_client();
+    let client = get_supbase_client();
 
     let res = client
         .from("access_tokens")
@@ -48,7 +48,7 @@ pub async fn get_access_token(
         .execute()
         .await
         .map(|e| e.error_for_status())
-        .map_err(|e| recurr_core::Error::Other(e.to_string()))?
+        .flatten()
         .map_err(|e| recurr_core::Error::Other(e.to_string()))?;
 
     let json = res
@@ -70,7 +70,7 @@ pub async fn save_access_token(
     user_id: &str,
     access_token: &str,
 ) -> Result<(), super::Error> {
-    let client = super::get_supbase_client();
+    let client = get_supbase_client();
 
     let body = serde_json::to_string(&SchemaAccessToken {
         id: 0,
@@ -87,7 +87,7 @@ pub async fn save_access_token(
         .execute()
         .await
         .map(|e| e.error_for_status())
-        .map_err(|e| recurr_core::Error::Other(e.to_string()))?
+        .flatten()
         .map_err(|e| recurr_core::Error::Other(e.to_string()))?;
 
     Ok(())
