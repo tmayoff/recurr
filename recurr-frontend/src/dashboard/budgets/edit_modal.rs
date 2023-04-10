@@ -198,7 +198,6 @@ impl Component for Modal {
                     .as_ref()
                     .expect("Needs session");
                 let auth_key = session.auth_key.clone();
-                let user_id = session.user.id.clone();
 
                 let db_client = get_supbase_client();
 
@@ -219,7 +218,7 @@ impl Component for Modal {
                         .and_then(|r| r.error_for_status());
 
                     match res {
-                        Ok(r) => Msg::Submitted,
+                        Ok(_) => Msg::Submitted,
                         Err(e) => Msg::Error(e.to_string()),
                     }
                 });
