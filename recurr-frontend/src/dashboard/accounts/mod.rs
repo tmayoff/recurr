@@ -1,16 +1,11 @@
-use std::{collections::HashMap, sync::Mutex};
 mod link;
-
-use std::collections::HashMap;
 
 use crate::{commands, context::Session};
 use futures::future;
 use link::Link;
-use std::collections::HashMap;
-
-use futures::future;
 use recurr_core::{get_supbase_client, Account, Institution, SchemaAccessToken};
 use serde::Deserialize;
+use std::collections::HashMap;
 use yew::{
     function_component, html, platform::spawn_local, Callback, Component, Html, Properties,
     UseReducerHandle,
@@ -28,7 +23,7 @@ pub enum Msg {
 
     Error(String),
 
-    _Refresh,
+    Refresh,
 }
 
 #[derive(Properties, PartialEq)]
@@ -170,7 +165,7 @@ impl Component for AccountsView {
             }
             Msg::GotAccounts(a) => self.accounts = a,
             Msg::Error(e) => self.error = e,
-            Msg::_Refresh => (),
+            Msg::Refresh => (),
         }
 
         true
