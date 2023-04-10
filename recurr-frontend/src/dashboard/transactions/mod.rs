@@ -1,3 +1,5 @@
+mod categories;
+
 use recurr_core::Transaction;
 use serde::{Deserialize, Serialize};
 use web_sys::{HtmlElement, HtmlInputElement, MouseEvent};
