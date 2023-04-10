@@ -7,7 +7,6 @@ mod commands;
 mod components;
 mod context;
 mod dashboard;
-mod plaid;
 mod supabase;
 
 use app::App;

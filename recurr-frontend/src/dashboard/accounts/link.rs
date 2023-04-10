@@ -1,13 +1,16 @@
-use serde::{Deserialize, Serialize};
-use wasm_bindgen::prelude::*;
-use yew::{function_component, html, platform::spawn_local, use_context, Html};
-
+use super::Msg;
 use crate::{
     commands::{
         self, invokeItemPublicTokenExchange,
         link::{link_token_create, LinkFailure, LinkSuccess},
     },
     context::SessionContext,
+    supabase::Session,
+};
+use serde::{Deserialize, Serialize};
+use wasm_bindgen::prelude::*;
+use yew::{
+    function_component, html, platform::spawn_local, use_context, Callback, Html, Properties,
 };
 
 #[derive(Serialize, Debug)]
@@ -57,7 +60,7 @@ async fn item_public_token_exchange(
     Ok(s)
 }
 
-fn link_callback(session: super::supabase::Session, result: Result<LinkSuccess, LinkFailure>) {
+fn link_callback(session: Session, result: Result<LinkSuccess, LinkFailure>) {
     let link_status = result.expect("Failed to get link");
     log::info!("Trying to save access token");
 
@@ -140,12 +143,19 @@ fn link_callback(session: super::supabase::Session, result: Result<LinkSuccess, 
     });
 }
 
+#[derive(Properties, PartialEq)]
+pub struct LinkProps {
+    pub on_link_change: Callback<super::Msg>,
+}
+
 #[function_component(Link)]
-pub fn link() -> Html {
+pub fn link(props: &LinkProps) -> Html {
     let context = use_context::<SessionContext>().expect("No context");
 
+    let cb = props.on_link_change.clone();
     let link = move |_| {
         let context = context.clone();
+        let cb = cb.clone();
         spawn_local(async move {
             let context = context.clone();
             let session = context
@@ -165,6 +175,7 @@ pub fn link() -> Html {
             commands::link::start(link_token, move |res| {
                 log::info!("Trying to save access token");
                 link_callback(session.clone(), res);
+                cb.emit(Msg::Refresh);
             });
         })
     };

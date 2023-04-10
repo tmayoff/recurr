@@ -9,7 +9,8 @@
 				"$rustc"
 			],
 			"group": "build",
-			"label": "rust: tuari dev"
+			"label": "rust: tuari dev",
+			"isBackground": true,
 		},
 		{
 			"type": "cargo",

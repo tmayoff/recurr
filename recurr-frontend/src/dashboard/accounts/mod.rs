@@ -1,5 +1,15 @@
+<<<<<<< Updated upstream:recurr-frontend/src/dashboard/accounts.rs
 use std::{collections::HashMap, sync::Mutex};
 
+=======
+mod link;
+
+use std::collections::HashMap;
+
+use crate::{commands, context::Session};
+use futures::future;
+use link::Link;
+>>>>>>> Stashed changes:recurr-frontend/src/dashboard/accounts/mod.rs
 use recurr_core::{get_supbase_client, Account, Institution, SchemaAccessToken};
 use serde::Deserialize;
 use yew::{
@@ -8,8 +18,6 @@ use yew::{
     Callback, Component, Html, Properties, UseReducerHandle,
 };
 use yew_hooks::use_bool_toggle;
-
-use crate::{commands, context::Session, plaid::Link};
 
 pub struct AccountsView {
     accounts: HashMap<Institution, Vec<Account>>,
@@ -63,11 +71,13 @@ impl Component for AccountsView {
             .user
             .id;
 
+        let link_cb = ctx.link().callback(|msg| msg);
+
         html! {
             <div>
                 <div class="is-flex is-flex-direction-row is-justify-content-space-around is-align-items-center">
                     <h1 class="is-size-3">{"All Accounts"}</h1>
-                    <Link />
+                    <Link on_link_change={link_cb}/>
                 </div>
                 <div class="is-flex p-2">
                 if self.accounts.is_empty() {
