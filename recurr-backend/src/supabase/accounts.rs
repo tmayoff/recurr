@@ -1,3 +1,4 @@
+use futures::future;
 use recurr_core::{get_supbase_client, Account, SchemaAccessToken, SchemaPlaidAccount};
 
 use crate::{plaid, supabase::access_token::get_access_token};
@@ -16,8 +17,7 @@ pub async fn get_plaid_balances(
         .eq("user_id", user_id)
         .execute()
         .await
-        .map(|e| e.error_for_status())
-        .flatten()
+        .and_then(|e| e.error_for_status())
         .map_err(|e| recurr_core::Error::Request(e.to_string()))?;
 
     let access_tokens: Vec<SchemaAccessToken> = res
@@ -25,7 +25,7 @@ pub async fn get_plaid_balances(
         .await
         .map_err(|e| recurr_core::Error::Request(e.to_string()))?;
 
-    let mut all_accounts = Vec::new();
+    let mut futures = Vec::new();
     for access_token in access_tokens {
         if let Some(token) = access_token.plaid_accounts {
             let account_ids = token
@@ -33,12 +33,18 @@ pub async fn get_plaid_balances(
                 .map(|a| a.account_id)
                 .collect::<Vec<String>>();
 
-            let accounts =
-                plaid::accounts::get_balances(auth_key, &access_token.access_token, account_ids)
-                    .await
-                    .map_err(|e| recurr_core::Error::Other(e.to_string()))?;
-            all_accounts.extend(accounts);
+            futures.push(plaid::accounts::get_balances(
+                auth_key,
+                access_token.access_token,
+                account_ids,
+            ));
         }
+    }
+
+    let results = future::join_all(futures).await;
+    let mut all_accounts = Vec::new();
+    for res in results {
+        all_accounts.extend(res?);
     }
 
     Ok(all_accounts)
@@ -67,8 +73,7 @@ pub async fn save_plaid_account(
         .insert(&body)
         .execute()
         .await
-        .map(|res| res.error_for_status())
-        .flatten()
+        .and_then(|res| res.error_for_status())
         .map_err(|e| recurr_core::Error::Request(e.to_string()))?;
 
     Ok(())
