@@ -1,7 +1,4 @@
-<<<<<<< Updated upstream:recurr-frontend/src/dashboard/accounts.rs
 use std::{collections::HashMap, sync::Mutex};
-
-=======
 mod link;
 
 use std::collections::HashMap;
@@ -9,13 +6,14 @@ use std::collections::HashMap;
 use crate::{commands, context::Session};
 use futures::future;
 use link::Link;
->>>>>>> Stashed changes:recurr-frontend/src/dashboard/accounts/mod.rs
+use std::collections::HashMap;
+
+use futures::future;
 use recurr_core::{get_supbase_client, Account, Institution, SchemaAccessToken};
 use serde::Deserialize;
 use yew::{
-    function_component, html,
-    platform::{pinned::oneshot, spawn_local},
-    Callback, Component, Html, Properties, UseReducerHandle,
+    function_component, html, platform::spawn_local, Callback, Component, Html, Properties,
+    UseReducerHandle,
 };
 use yew_hooks::use_bool_toggle;
 
@@ -30,7 +28,7 @@ pub enum Msg {
 
     Error(String),
 
-    Refresh,
+    _Refresh,
 }
 
 #[derive(Properties, PartialEq)]
@@ -100,7 +98,7 @@ impl Component for AccountsView {
                 let supabase_session = ctx.props().context.supabase_session.clone().unwrap();
 
                 let auth_key = supabase_session.auth_key;
-                let user_id = supabase_session.user.id;
+                // let user_id = supabase_session.user.id;
 
                 ctx.link().send_future(async move {
                     let client = get_supbase_client();
@@ -108,7 +106,6 @@ impl Component for AccountsView {
                         .from("access_tokens")
                         .auth(&auth_key)
                         .select("*,plaid_accounts(*)")
-                        .eq("user_id", &user_id)
                         .execute()
                         .await;
 
@@ -119,65 +116,53 @@ impl Component for AccountsView {
                     let rows: Vec<SchemaAccessToken> =
                         res.unwrap().json().await.expect("Failed to deserialize");
 
-                    let mut grouped_accounts: HashMap<String, Vec<String>> = HashMap::new();
+                    let mut futures = Vec::new();
+                    for row in rows {
+                        if row.plaid_accounts.is_none() {
+                            continue;
+                        }
 
-                    rows.into_iter().for_each(|a| {
-                        grouped_accounts.insert(
-                            a.access_token,
-                            a.plaid_accounts
-                                .unwrap_or_default()
-                                .into_iter()
-                                .map(|a| a.account_id)
-                                .collect(),
-                        );
-                    });
+                        futures.push(get_accounts(&auth_key, row.clone()));
+                    }
+
+                    let results = future::join_all(futures).await;
 
                     let mut all_accounts = HashMap::new();
-                    for (token, ids) in grouped_accounts {
-                        let accounts =
-                            commands::get_accounts(&auth_key, &token, ids.to_owned()).await;
-
-                        if let Err(e) = &accounts {
+                    for res in results {
+                        if let Err(e) = &res {
                             if let recurr_core::Error::Plaid(e) = e {
                                 if &e.error_code == "ITEM_LOGIN_REQUIRED" {
-                                    log::info!("Needs login");
+                                    log::error!("Needs login");
 
-                                    let link_token = commands::link::link_token_create(
-                                        &auth_key,
-                                        &user_id,
-                                        Some(token),
-                                    )
-                                    .await
-                                    .expect("failed to get link token");
+                                    //         let link_token = commands::link::link_token_create(
+                                    //             &auth_key,
+                                    //             &user_id,
+                                    //             Some(res.to_owned()),
+                                    //         )
+                                    //         .await
+                                    //         .expect("failed to get link token");
 
-                                    let link_token = link_token.link_token;
-                                    let (tx, rx) = oneshot::channel::<()>();
-                                    let sender_mtx = Mutex::new(Some(tx));
+                                    //         let link_token = link_token.link_token;
+                                    //         let (tx, rx) = oneshot::channel::<()>();
+                                    //         let sender_mtx = Mutex::new(Some(tx));
 
-                                    commands::link::start(link_token, move |_| {
-                                        if let Some(tx) = sender_mtx.lock().unwrap().take() {
-                                            let _ = tx.send(());
-                                        }
-                                    });
+                                    //         commands::link::start(link_token, move |_| {
+                                    //             if let Some(tx) = sender_mtx.lock().unwrap().take() {
+                                    //                 let _ = tx.send(());
+                                    //             }
+                                    //         });
 
-                                    rx.await.expect("Failed to update token");
+                                    //         rx.await.expect("Failed to update token");
 
-                                    return Msg::Refresh;
+                                    //         return Msg::Refresh;
                                 }
                             } else {
                                 return Msg::Error(e.to_string());
                             }
                         }
-                        let res = accounts.unwrap();
 
-                        let accounts = res.1;
-
-                        let institution_id = res.0.institution_id.unwrap();
-                        let insitution = commands::get_institution(&auth_key, Some(institution_id))
-                            .await
-                            .unwrap();
-
-                        all_accounts.insert(insitution, accounts);
+                        let res = res.unwrap();
+                        all_accounts.insert(res.0, res.1);
                     }
 
                     Msg::GotAccounts(all_accounts)
@@ -185,11 +170,35 @@ impl Component for AccountsView {
             }
             Msg::GotAccounts(a) => self.accounts = a,
             Msg::Error(e) => self.error = e,
-            Msg::Refresh => (),
+            Msg::_Refresh => (),
         }
 
         true
     }
+}
+
+async fn get_accounts(
+    auth_key: &str,
+    access_token_row: SchemaAccessToken,
+) -> Result<(Institution, Vec<Account>), recurr_core::Error> {
+    let access_token = access_token_row.access_token.as_ref();
+
+    let account_ids = access_token_row
+        .plaid_accounts
+        .as_ref()
+        .unwrap()
+        .iter()
+        .map(|a| a.account_id.clone())
+        .collect();
+
+    let res = commands::get_accounts(auth_key, access_token, account_ids).await?;
+
+    let institution_id = res.0.institution_id.unwrap();
+    let insitution = commands::get_institution(auth_key, Some(institution_id))
+        .await
+        .unwrap();
+
+    Ok((insitution, res.1))
 }
 
 #[derive(Properties, PartialEq)]

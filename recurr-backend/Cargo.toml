@@ -26,6 +26,7 @@ thiserror = "1.0.38"
 chrono = "0.4.23"
 tauri-plugin-deep-link = { git = "https://github.com/FabianLars/tauri-plugin-deep-link.git", version = "0.1.0" }
 async-recursion = "1.0.4"
+futures = "0.3.28"
 
 [features]
 # by default Tauri runs in production mode

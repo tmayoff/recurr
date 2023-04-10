@@ -19,7 +19,7 @@ struct AccountsGetRequest {
 
 pub async fn get_balances(
     auth_key: &str,
-    access_token: &str,
+    access_token: String,
     account_ids: Vec<String>,
 ) -> Result<Vec<Account>, Error> {
     let mut authorization = String::from("Bearer ");
@@ -53,8 +53,7 @@ pub async fn get_balances(
         .headers(headers)
         .send()
         .await
-        .map(|e| e.error_for_status())
-        .flatten()
+        .and_then(|e| e.error_for_status())
         .map_err(|e| recurr_core::Error::Other(e.to_string()))?;
 
     #[derive(Deserialize)]
@@ -108,8 +107,7 @@ pub async fn get_accounts(
         .headers(headers)
         .send()
         .await
-        .map(|e| e.error_for_status())
-        .flatten()
+        .and_then(|e| e.error_for_status())
         .map_err(|e| recurr_core::Error::Other(e.to_string()))?;
 
     #[derive(Deserialize)]
