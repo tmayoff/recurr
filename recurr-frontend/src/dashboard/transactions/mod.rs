@@ -1,5 +1,6 @@
 mod categories;
 
+use categories::Categories;
 use recurr_core::Transaction;
 use serde::{Deserialize, Serialize};
 use web_sys::{HtmlElement, HtmlInputElement, MouseEvent};
@@ -31,6 +32,8 @@ pub enum Msg {
     GotoPage(u64),
     PrevPage,
 
+    CategoryModal(bool),
+
     Error(String),
 }
 
@@ -46,6 +49,8 @@ pub struct TransactionsView {
     page: u64,
     total_pages: u64,
     total_transactions: u64,
+
+    show_categories: bool,
 }
 
 impl TransactionsView {
@@ -99,6 +104,7 @@ impl Component for TransactionsView {
             total_pages: 1,
             total_transactions: 0,
             filter,
+            show_categories: false,
         }
     }
 
@@ -125,6 +131,11 @@ impl Component for TransactionsView {
             })
         };
 
+        let show_categories_modal = self.show_categories;
+        let toggle_cat = ctx
+            .link()
+            .callback(move |_| Msg::CategoryModal(!show_categories_modal));
+
         html! {
             <div class="column">
                 <h1 class="is-size-3"> {"Transaction"} </h1>
@@ -135,6 +146,9 @@ impl Component for TransactionsView {
 
                 <div>
                     <Filters apply_filter={filter_cb} {filter}/>
+
+                    <button class="button" onclick={toggle_cat.clone()} >{"All Categories"}</button>
+                    <Categories show={show_categories_modal} on_toggle={toggle_cat.clone()}/>
                     <table class="table is-hoverable is-full-width mb-0">
                         <thead>
                             <th>{"Data"}</th>
@@ -214,6 +228,7 @@ impl Component for TransactionsView {
                 ctx.link().send_message(Msg::GetTransactions)
             }
             Msg::UpdatedContext(context) => self.context = context,
+            Msg::CategoryModal(show) => self.show_categories = show,
         }
 
         true
