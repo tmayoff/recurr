@@ -194,12 +194,10 @@ impl Component for Modal {
                 let session = ctx
                     .props()
                     .session
-                    .clone()
                     .supabase_session
-                    .clone()
+                    .as_ref()
                     .expect("Needs session");
-                let auth_key = session.auth_key;
-                let user_id = session.user.id;
+                let auth_key = session.auth_key.clone();
 
                 let db_client = get_supbase_client();
 
@@ -213,20 +211,14 @@ impl Component for Modal {
                     let res = db_client
                         .from("budgets")
                         .auth(&auth_key)
-                        .eq("user_id", user_id)
-                        .eq("category", category)
+                        .eq("category_id", category)
                         .delete()
                         .execute()
-                        .await;
+                        .await
+                        .and_then(|r| r.error_for_status());
 
                     match res {
-                        Ok(r) => {
-                            if r.status().is_success() {
-                                Msg::Submitted
-                            } else {
-                                Msg::Error(r.status().to_string())
-                            }
-                        }
+                        Ok(_) => Msg::Submitted,
                         Err(e) => Msg::Error(e.to_string()),
                     }
                 });
