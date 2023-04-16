@@ -41,7 +41,7 @@ impl Component for Categories {
 
         if ctx.props().show {
             html! {
-            <>
+                <>
                 <div class="modal is-active">
                     <div class="modal-background" onclick={close_modal.clone()}></div>
 
@@ -57,6 +57,8 @@ impl Component for Categories {
                         <footer class="modal-card-foot"> </footer>
                     </div>
                 </div>
+                </>
+            }
         } else {
             html! {}
         }
