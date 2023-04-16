@@ -41,21 +41,23 @@ impl Component for Categories {
 
         if ctx.props().show {
             html! {
-            <>
+                <>
                 <div class="modal is-active">
                     <div class="modal-background" onclick={close_modal.clone()}></div>
 
                     <div class="modal-card">
                         <header class="modal-card-head">
-                            <h1 class="is-size-1">{"Categories"}</h1>
+                            <h1 class="modal-card-title">{"Categories"}</h1>
                         </header>
 
                         <section class="modal-card-body">
                             {self.categories.iter().map(|c| html!{<ul class="ml-4 list"> <Category category={c.clone()}/> </ul>}).collect::<Html>()}
                         </section>
+
+                        <footer class="modal-card-foot"> </footer>
                     </div>
                 </div>
-            </>
+                </>
             }
         } else {
             html! {}

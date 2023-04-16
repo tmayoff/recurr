@@ -4,5 +4,6 @@ dev:
 build:
     cargo tauri build
 
-functions:
+supabase:
+    supabase start && \
     supabase functions serve plaid --env-file supabase/.env
