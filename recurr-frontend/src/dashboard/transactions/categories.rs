@@ -47,12 +47,14 @@ impl Component for Categories {
 
                     <div class="modal-card">
                         <header class="modal-card-head">
-                            <h1 class="is-size-1">{"Categories"}</h1>
+                            <h1 class="modal-card-title">{"Categories"}</h1>
                         </header>
 
                         <section class="modal-card-body">
                             {self.categories.iter().map(|c| html!{<ul class="ml-4 list"> <Category category={c.clone()}/> </ul>}).collect::<Html>()}
                         </section>
+
+                        <footer class="modal-card-foot"> </footer>
                     </div>
                 </div>
             </>
