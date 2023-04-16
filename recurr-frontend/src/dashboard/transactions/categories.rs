@@ -57,8 +57,6 @@ impl Component for Categories {
                         <footer class="modal-card-foot"> </footer>
                     </div>
                 </div>
-            </>
-            }
         } else {
             html! {}
         }
